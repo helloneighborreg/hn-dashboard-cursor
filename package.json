@@ -1,0 +1,28 @@
+{
+  "name": "hn-dashboard",
+  "version": "1.0.0",
+  "description": "Hello Neighbor Real Estate Group — Operations Dashboard",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "next": "14.2.3",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0",
+    "iron-session": "^8.0.1",
+    "bcryptjs": "^2.4.3",
+    "date-fns": "^3.6.0",
+    "recharts": "^2.12.7",
+    "lucide-react": "^0.383.0",
+    "uuid": "^9.0.1",
+    "clsx": "^2.1.1"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.3",
+    "autoprefixer": "^10.4.19",
+    "postcss": "^8.4.38"
+  }
+}

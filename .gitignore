@@ -1,0 +1,22 @@
+# dependencies
+node_modules/
+
+# Next.js build output
+.next/
+out/
+
+# env / secrets — never commit these
+.env
+.env.local
+env.local
+
+# local data — persisted via Railway volume in production
+data/db.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# misc
+*.log
+npm-debug.log*
