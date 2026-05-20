@@ -27,7 +27,7 @@ export default function Layout({ children, title }) {
   }
 
   return (
-    <div className="min-h-screen bg-bg flex">
+    <div className="min-h-screen bg-bg flex overflow-x-hidden">
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
@@ -110,7 +110,7 @@ export default function Layout({ children, title }) {
       </aside>
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col min-w-0 lg:ml-0">
+      <div className="flex-1 flex flex-col min-w-0 w-full max-w-full lg:ml-0">
         {/* Top bar (mobile) */}
         <header className="bg-white border-b border-border px-4 py-3 flex items-center gap-3 lg:hidden sticky top-0 z-10">
           <button
@@ -128,7 +128,7 @@ export default function Layout({ children, title }) {
         </header>
 
         {/* Page content */}
-        <main className="flex-1 p-4 lg:p-8 overflow-y-auto">
+        <main className="flex-1 w-full max-w-full p-4 lg:p-8 overflow-y-auto overflow-x-hidden">
           {title && (
             <h1 className="text-xl font-bold text-dark mb-6 hidden lg:block">{title}</h1>
           )}

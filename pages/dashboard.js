@@ -144,17 +144,17 @@ export default function DashboardPage() {
           />
         )}
 
-        {/* Header row */}
-        <div className="flex items-start justify-between mb-6 gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-dark">Dashboard</h1>
+        {/* Header — stacks on phone so buttons don't force horizontal scroll */}
+        <div className="flex flex-col gap-4 mb-6 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold text-dark">Dashboard</h1>
             {today && <p className="text-muted text-sm mt-0.5">{today}</p>}
           </div>
-          <div className="flex flex-wrap gap-2 flex-shrink-0 justify-end">
+          <div className="grid grid-cols-2 gap-2 w-full sm:w-auto sm:flex sm:flex-wrap sm:justify-end">
             <button
               type="button"
               onClick={() => setShowTaskModal(true)}
-              className="btn-primary text-xs gap-1.5"
+              className="btn-primary text-xs gap-1.5 justify-center"
             >
               <Plus size={14} />
               New Task
@@ -162,7 +162,7 @@ export default function DashboardPage() {
             <button
               type="button"
               onClick={() => setShowTransactionModal(true)}
-              className="btn-primary text-xs gap-1.5"
+              className="btn-primary text-xs gap-1.5 justify-center"
             >
               <Plus size={14} />
               New Transaction
@@ -170,12 +170,12 @@ export default function DashboardPage() {
             <button
               onClick={syncTasks}
               disabled={syncing}
-              className="btn-secondary text-xs gap-1.5"
+              className="btn-secondary text-xs gap-1.5 justify-center"
             >
               <RefreshCw size={14} className={syncing ? 'animate-spin' : ''} />
               {syncing ? 'Syncing…' : 'Sync Tasks'}
             </button>
-            <button onClick={load} className="btn-secondary text-xs gap-1.5">
+            <button onClick={load} className="btn-secondary text-xs gap-1.5 justify-center">
               <RefreshCw size={14} />
               Refresh
             </button>
@@ -187,8 +187,8 @@ export default function DashboardPage() {
 
         {data && !loading && (
           <>
-            {/* Stat cards — 3 per row */}
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+            {/* Stat cards — one column on phone, then 2–3 across */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-6 sm:mb-8">
               <StatCard
                 label="Occupied Now"
                 value={data.stats.occupied_count}

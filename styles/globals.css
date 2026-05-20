@@ -9,6 +9,10 @@ html {
 }
 
 @layer base {
+  html,
+  body {
+    @apply overflow-x-hidden;
+  }
   body {
     @apply bg-bg text-dark;
   }

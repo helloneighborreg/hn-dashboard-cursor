@@ -14,7 +14,7 @@ export default function StatCard({ label, value, sub, icon: Icon, color = 'brand
     <div
       onClick={onClick}
       className={clsx(
-        'bg-white rounded-xl border border-border shadow-card p-5 flex items-start gap-4',
+        'bg-white rounded-xl border border-border shadow-card p-4 sm:p-5 flex items-start gap-3 sm:gap-4 w-full min-w-0',
         onClick && 'cursor-pointer hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-150'
       )}
     >
