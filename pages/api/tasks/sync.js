@@ -25,7 +25,7 @@ export default async function handler(req, res) {
         if (!checkoutDate) { skipped++; continue; }
 
         const prop = propMap[r.property_id];
-        const result = upsertTurnoverTask({
+        const { isNew } = await upsertTurnoverTask({
           id: uuidv4(),
           reservation_id: r.id,
           property_id: r.property_id,
@@ -40,7 +40,8 @@ export default async function handler(req, res) {
           type: 'turnover',
           notes: null,
         });
-        if (result) created++;
+        if (isNew) created++;
+        else skipped++;
       }
 
       res.json({ ok: true, processed: reservations.length, created, skipped });

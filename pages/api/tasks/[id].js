@@ -6,17 +6,17 @@ export default async function handler(req, res) {
     const { id } = req.query;
 
     if (req.method === 'GET') {
-      const task = getTaskById(id);
+      const task = await getTaskById(id);
       if (!task) return res.status(404).json({ error: 'Task not found' });
       return res.json({ data: task });
     }
     if (req.method === 'PATCH') {
-      const task = getTaskById(id);
+      const task = await getTaskById(id);
       if (!task) return res.status(404).json({ error: 'Task not found' });
-      return res.json({ data: updateTask(id, req.body) });
+      return res.json({ data: await updateTask(id, req.body) });
     }
     if (req.method === 'DELETE') {
-      deleteTask(id);
+      await deleteTask(id);
       return res.status(204).end();
     }
     res.status(405).end();

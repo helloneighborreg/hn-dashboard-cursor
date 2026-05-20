@@ -24,7 +24,7 @@ export default function LoginPage() {
       if (!res.ok) { setError(data.error || 'Invalid password'); return; }
       router.push('/dashboard');
     } catch {
-      setError('Cannot reach the server. Run npm run dev in the project folder, then open http://localhost:3000');
+      setError('Cannot reach the server. Run npm run dev and open the URL shown in the terminal (e.g. http://localhost:3000).');
     } finally {
       setLoading(false);
     }

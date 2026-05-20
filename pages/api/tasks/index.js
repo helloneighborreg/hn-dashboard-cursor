@@ -15,7 +15,7 @@ export default async function handler(req, res) {
       if (date_from)   filters.date_from = date_from;
       if (date_to)     filters.date_to = date_to;
 
-      const tasks = today === 'true' ? getTasksForToday() : getTasks(filters);
+      const tasks = today === 'true' ? await getTasksForToday() : await getTasks(filters);
       return res.json({ data: tasks });
     }
 
@@ -26,7 +26,7 @@ export default async function handler(req, res) {
       if (!property_id || !due_date || !title?.trim())
         return res.status(400).json({ error: 'property_id, due_date, and title are required' });
 
-      const task = createTask({
+      const task = await createTask({
         id: uuidv4(),
         reservation_id: reservation_id || `manual-${uuidv4()}`,
         property_id,

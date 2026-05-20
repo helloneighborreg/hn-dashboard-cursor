@@ -10,7 +10,7 @@ out/
 .env.local
 env.local
 
-# local data — persisted via Railway volume in production
+# local JSON store (legacy); use scripts/import-db-json.mjs to migrate to Supabase
 data/db.json
 
 # OS

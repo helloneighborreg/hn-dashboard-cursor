@@ -34,7 +34,7 @@ export default async function handler(req, res) {
       const upcomingCheckIns  = active.filter((r) => ci(r) > todayStr && ci(r) <= in7days).map(wp);
       const upcomingCheckOuts = active.filter((r) => co(r) > todayStr && co(r) <= in7days).map(wp);
 
-      const todayTasks = getTasksForToday();
+      const todayTasks = await getTasksForToday();
 
       res.json({
         data: {

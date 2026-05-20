@@ -24,7 +24,7 @@ export default async function handler(req, res) {
       if (property) expFilters.property_id = property;
       if (date_from) expFilters.date_from = date_from;
       if (date_to) expFilters.date_to = date_to;
-      const manualExpenses = getExpenses(expFilters);
+      const manualExpenses = await getExpenses(expFilters);
       const totalManualExpenses = manualExpenses.reduce((s, e) => s + e.amount, 0);
 
       const resvData = reservations
