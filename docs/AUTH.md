@@ -46,6 +46,16 @@ If only **`DASHBOARD_PASSWORD`** is set, one admin account is created (`username
 
 Also required: **`SESSION_SECRET`** (32+ random characters).
 
+After deploy, open **`/api/auth/status`** on your site. You should see `"dashboard_usernames":["josiah","brandi"]` and `"login_ready":true`. If Brandi is missing from that list, fix **`DASHBOARD_USERS`** in Netlify.
+
+Generate a one-line `DASHBOARD_USERS` value locally:
+
+```bash
+node scripts/print-dashboard-users.mjs --brandi-password brandi
+```
+
+Paste the output into Netlify → Site settings → Environment variables → **DASHBOARD_USERS**, then redeploy.
+
 ## Login
 
 - **Admin** → lands on Dashboard after sign-in  
