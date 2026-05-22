@@ -6,6 +6,8 @@ import {
   RefreshCw, CalendarDays, Clock, ArrowRight, Plus,
 } from 'lucide-react';
 import { format } from 'date-fns';
+import { taskHeadline, taskGuestSubtitle, formatClock } from '../lib/taskDisplay';
+import { fetchJson } from '../lib/apiClient';
 import Layout from '../components/Layout';
 import StatCard from '../components/StatCard';
 import Badge from '../components/Badge';
@@ -41,7 +43,7 @@ function ReservationList({ items, emptyMsg, subtitle = 'code', footer = 'nights'
             className="w-full py-3 flex items-start justify-between gap-3 text-left hover:bg-gray-50 transition-colors rounded-lg px-1 -mx-1 cursor-pointer"
           >
             <div className="min-w-0">
-              <p className="text-sm font-medium text-dark truncate">{r.property_name}</p>
+              <p className="text-sm font-mono font-semibold text-dark tracking-wide truncate">{r.property_name}</p>
               <p className="text-xs text-muted mt-0.5">{reservationSubtitle(r, subtitle)}</p>
             </div>
             <div className="text-right flex-shrink-0">
@@ -62,10 +64,13 @@ function TaskList({ items }) {
       {items.map((t) => (
         <li key={t.id} className="py-3 flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-sm font-medium text-dark truncate">{t.title}</p>
-            <p className="text-xs text-muted mt-0.5">{t.property_name} · Due {t.due_time}</p>
+            <p className="text-sm font-semibold font-mono text-dark tracking-wide truncate">{taskHeadline(t)}</p>
+            <p className="text-xs text-muted mt-0.5">{taskGuestSubtitle(t)}</p>
+            <p className="text-xs text-muted mt-0.5">
+              Due {formatClock(t.due_time || '16:00')}
+            </p>
           </div>
-          <Badge label={t.status} variant={t.status} />
+          <Badge label={t.status === 'unassigned' ? 'Unassigned' : t.status} variant={t.status} />
         </li>
       ))}
     </ul>
@@ -79,17 +84,16 @@ export default function DashboardPage() {
   const [syncing, setSyncing] = useState(false);
   const [selected, setSelected] = useState(null);
   const [properties, setProperties] = useState([]);
+  const [propertiesLoading, setPropertiesLoading] = useState(false);
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [showTransactionModal, setShowTransactionModal] = useState(false);
 
   async function load() {
-    setLoading(true); setError('');
+    setLoading(true);
+    setError('');
     try {
-      const res = await fetch('/api/dashboard');
-      if (res.status === 401) { window.location.href = '/'; return; }
-      if (!res.ok) throw new Error((await res.json()).error);
-      const json = await res.json();
-      setData(json.data);
+      const json = await fetchJson('/api/dashboard');
+      if (json) setData(json.data);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -97,10 +101,35 @@ export default function DashboardPage() {
     }
   }
 
+  async function ensureProperties() {
+    if (properties.length || propertiesLoading) return properties;
+    setPropertiesLoading(true);
+    try {
+      const json = await fetchJson('/api/properties');
+      const list = json?.data || [];
+      setProperties(list);
+      return list;
+    } catch {
+      return [];
+    } finally {
+      setPropertiesLoading(false);
+    }
+  }
+
+  async function openTaskModal() {
+    await ensureProperties();
+    setShowTaskModal(true);
+  }
+
+  async function openTransactionModal() {
+    await ensureProperties();
+    setShowTransactionModal(true);
+  }
+
   async function syncTasks() {
     setSyncing(true);
     try {
-      await fetch('/api/tasks/sync', { method: 'POST' });
+      await fetchJson('/api/tasks/sync', { method: 'POST' });
       load();
     } finally {
       setSyncing(false);
@@ -108,13 +137,6 @@ export default function DashboardPage() {
   }
 
   useEffect(() => { load(); }, []);
-
-  useEffect(() => {
-    fetch('/api/properties')
-      .then((res) => (res.ok ? res.json() : { data: [] }))
-      .then((json) => setProperties(json.data || []))
-      .catch(() => setProperties([]));
-  }, []);
 
   const today = data?.today ? format(new Date(data.today + 'T12:00:00'), 'EEEE, MMMM d, yyyy') : '';
 
@@ -144,16 +166,15 @@ export default function DashboardPage() {
           />
         )}
 
-        {/* Header — stacks on phone so buttons don't force horizontal scroll */}
         <div className="flex flex-col gap-4 mb-6 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
             <h1 className="text-xl sm:text-2xl font-bold text-dark">Dashboard</h1>
             {today && <p className="text-muted text-sm mt-0.5">{today}</p>}
           </div>
-          <div className="grid grid-cols-2 gap-2 w-full sm:w-auto sm:flex sm:flex-wrap sm:justify-end">
+          <div className="flex flex-col gap-2 w-full md:flex-row md:flex-wrap md:justify-end">
             <button
               type="button"
-              onClick={() => setShowTaskModal(true)}
+              onClick={openTaskModal}
               className="btn-primary text-xs gap-1.5 justify-center"
             >
               <Plus size={14} />
@@ -161,21 +182,22 @@ export default function DashboardPage() {
             </button>
             <button
               type="button"
-              onClick={() => setShowTransactionModal(true)}
+              onClick={openTransactionModal}
               className="btn-primary text-xs gap-1.5 justify-center"
             >
               <Plus size={14} />
               New Transaction
             </button>
             <button
+              type="button"
               onClick={syncTasks}
               disabled={syncing}
               className="btn-secondary text-xs gap-1.5 justify-center"
             >
               <RefreshCw size={14} className={syncing ? 'animate-spin' : ''} />
-              {syncing ? 'Syncing…' : 'Sync Tasks'}
+              {syncing ? 'Syncing…' : 'Sync from Reservations'}
             </button>
-            <button onClick={load} className="btn-secondary text-xs gap-1.5 justify-center">
+            <button type="button" onClick={load} className="btn-secondary text-xs gap-1.5 justify-center">
               <RefreshCw size={14} />
               Refresh
             </button>
@@ -187,47 +209,24 @@ export default function DashboardPage() {
 
         {data && !loading && (
           <>
-            {/* Stat cards — one column on phone, then 2–3 across */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-6 sm:mb-8">
-              <StatCard
-                label="Occupied Now"
-                value={data.stats.occupied_count}
-                icon={Building2}
-                color="brand"
-              />
-              <StatCard
-                label="Check-ins Today"
-                value={data.stats.checkins_today}
-                icon={LogIn}
-                color="green"
-              />
-              <StatCard
-                label="Checkouts Today"
-                value={data.stats.checkouts_today}
-                icon={LogOutIcon}
-                color="amber"
-              />
-              <StatCard
-                label="Tasks Due Today"
-                value={data.stats.tasks_today}
-                icon={CheckSquare}
-                color={data.stats.tasks_today > 0 ? 'red' : 'brand'}
-              />
-              <StatCard
-                label="Upcoming Check-ins"
-                value={data.stats.upcoming_checkins}
-                icon={CalendarDays}
-                color="brand"
-              />
-              <StatCard
-                label="Upcoming Checkouts"
-                value={data.stats.upcoming_checkouts}
-                icon={Clock}
-                color="amber"
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-6 sm:mb-8 w-full">
+              <StatCard label="Occupied Now" value={data.stats.occupied_count} icon={Building2} color="brand" />
+              <StatCard label="Check-ins Today" value={data.stats.checkins_today} icon={LogIn} color="green" />
+              <StatCard label="Checkouts Today" value={data.stats.checkouts_today} icon={LogOutIcon} color="amber" />
+              <StatCard label="Tasks Due Today" value={data.stats.tasks_today} icon={CheckSquare} color={data.stats.tasks_today > 0 ? 'red' : 'brand'} />
+              <Link href="/tasks" className="block">
+                <StatCard
+                  label="Unassigned Tasks"
+                  value={data.stats.tasks_unassigned ?? 0}
+                  icon={CheckSquare}
+                  color={(data.stats.tasks_unassigned ?? 0) > 0 ? 'red' : 'brand'}
+                  sub="Needs assignee"
+                />
+              </Link>
+              <StatCard label="Upcoming Check-ins" value={data.stats.upcoming_checkins} icon={CalendarDays} color="brand" />
+              <StatCard label="Upcoming Checkouts" value={data.stats.upcoming_checkouts} icon={Clock} color="amber" />
             </div>
 
-            {/* Detail panels — two rows of two */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className="card p-5">
                 <div className="flex items-center justify-between mb-4">

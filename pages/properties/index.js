@@ -6,6 +6,7 @@ import { Search, MapPin, Bed, Bath, Users, Wifi } from 'lucide-react';
 import Layout from '../../components/Layout';
 import { PageLoader, ErrorState, EmptyState } from '../../components/LoadingSpinner';
 import Badge from '../../components/Badge';
+import { fetchJson } from '../../lib/apiClient';
 import { requireAuth } from '../../lib/auth';
 
 function AmenityChip({ label }) {
@@ -82,11 +83,8 @@ export default function PropertiesPage() {
   async function load() {
     setLoading(true); setError('');
     try {
-      const res = await fetch('/api/properties');
-      if (res.status === 401) { window.location.href = '/'; return; }
-      if (!res.ok) throw new Error((await res.json()).error);
-      const json = await res.json();
-      setProperties(json.data || []);
+      const json = await fetchJson('/api/properties');
+      if (json) setProperties(json.data || []);
     } catch (err) {
       setError(err.message);
     } finally {

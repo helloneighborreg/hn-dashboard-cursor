@@ -1,12 +1,14 @@
 import { useState, useEffect, useMemo } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
+import { useRouter } from 'next/router';
 import { Filter, RefreshCw, ChevronDown } from 'lucide-react';
 import { format } from 'date-fns';
 import Layout from '../components/Layout';
 import Badge from '../components/Badge';
 import ReservationPanel, { reservationGuestName } from '../components/ReservationPanel';
 import { PageLoader, ErrorState, EmptyState } from '../components/LoadingSpinner';
+import { fetchJson } from '../lib/apiClient';
 import { requireAuth } from '../lib/auth';
 
 const PLATFORMS = ['', 'airbnb', 'homeaway', 'booking_com', 'direct'];
@@ -23,6 +25,7 @@ function fmtTime(dateStr) {
 }
 
 export default function ReservationsPage() {
+  const router = useRouter();
   const [reservations, setReservations] = useState([]);
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -36,9 +39,8 @@ export default function ReservationsPage() {
   async function load() {
     setLoading(true); setError('');
     try {
-      const [propsRes] = await Promise.all([fetch('/api/properties')]);
-      if (propsRes.status === 401) { window.location.href = '/'; return; }
-      const propsJson = await propsRes.json();
+      const propsJson = await fetchJson('/api/properties');
+      if (!propsJson) return;
       const props = propsJson.data || [];
       setProperties(props);
 
@@ -48,12 +50,9 @@ export default function ReservationsPage() {
       if (filters.platform) params.set('platform', filters.platform);
       if (filters.start) params.set('start', filters.start);
       if (filters.end) params.set('end', filters.end);
-      params.set('per_page', '200');
 
-      const res = await fetch('/api/reservations?' + params);
-      if (!res.ok) throw new Error((await res.json()).error);
-      const json = await res.json();
-      setReservations(json.data || []);
+      const json = await fetchJson('/api/reservations?' + params);
+      if (json) setReservations(json.data || []);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -62,6 +61,15 @@ export default function ReservationsPage() {
   }
 
   useEffect(() => { load(); }, []);
+
+  useEffect(() => {
+    const code = router.query.code;
+    if (!code || !reservations.length) return;
+    const match = reservations.find(
+      (r) => String(r.code).toLowerCase() === String(code).toLowerCase(),
+    );
+    if (match) setSelected(match);
+  }, [router.query.code, reservations]);
 
   // Filter by search locally
   const filtered = useMemo(() => {
@@ -72,6 +80,7 @@ export default function ReservationsPage() {
         reservationGuestName(r).toLowerCase().includes(q) ||
         r.code?.toLowerCase().includes(q) ||
         r.property_name?.toLowerCase().includes(q) ||
+        r.id?.toLowerCase().includes(q) ||
         r.platform?.toLowerCase().includes(q)
     );
   }, [reservations, search]);
@@ -201,6 +210,7 @@ export default function ReservationsPage() {
                   <table className="w-full">
                     <thead className="bg-gray-50 border-b border-border">
                       <tr>
+                        <th className="table-head">Reservation ID</th>
                         <th className="table-head">Guest</th>
                         <th className="table-head">Property</th>
                         <th className="table-head">Check-in</th>
@@ -219,13 +229,13 @@ export default function ReservationsPage() {
                           className="hover:bg-gray-50 transition-colors cursor-pointer"
                         >
                           <td className="table-cell">
-                            <div>
-                              <p className="font-medium text-dark">{reservationGuestName(r) || '—'}</p>
-                              <p className="text-xs text-muted font-mono">{r.code}</p>
-                            </div>
+                            <p className="font-mono text-sm text-dark font-semibold tracking-wide">{r.code || '—'}</p>
                           </td>
                           <td className="table-cell">
-                            <p className="font-medium text-dark truncate max-w-xs">{r.property_name}</p>
+                            <p className="font-medium text-dark">{reservationGuestName(r) || '—'}</p>
+                          </td>
+                          <td className="table-cell">
+                            <p className="font-mono text-sm font-semibold text-dark tracking-wide">{r.property_name}</p>
                           </td>
                           <td className="table-cell">
                             <p>{fmt(r.check_in || r.arrival_date)}</p>

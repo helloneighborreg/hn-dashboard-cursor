@@ -1,25 +1,44 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
-import Image from 'next/image';
 import {
   LayoutDashboard, Building2, CalendarDays, Calendar, CheckSquare,
-  DollarSign, LogOut, Menu, X, ChevronRight
+  DollarSign, LogOut, Menu, X, ChevronRight,
 } from 'lucide-react';
 import clsx from 'clsx';
+import { useAuth } from './AuthContext';
+import { homePathForRole, navItemsForRole, roleLabel } from '../lib/roles';
 
-const NAV = [
-  { href: '/dashboard',    label: 'Dashboard',    icon: LayoutDashboard },
-  { href: '/properties',   label: 'Properties',   icon: Building2 },
-  { href: '/calendar',     label: 'Calendar',     icon: Calendar },
-  { href: '/reservations', label: 'Reservations', icon: CalendarDays },
-  { href: '/tasks',        label: 'Tasks',         icon: CheckSquare },
-  { href: '/financials',   label: 'Financials',   icon: DollarSign },
-];
+const NAV_ICONS = {
+  '/dashboard': LayoutDashboard,
+  '/properties': Building2,
+  '/calendar': Calendar,
+  '/reservations': CalendarDays,
+  '/tasks': CheckSquare,
+  '/financials': DollarSign,
+};
+
+function userInitials(name) {
+  if (!name) return '?';
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+  return name.slice(0, 2).toUpperCase();
+}
 
 export default function Layout({ children, title }) {
   const router = useRouter();
+  const { user } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const navItems = useMemo(
+    () => navItemsForRole(user?.role).map((item) => ({
+      ...item,
+      icon: NAV_ICONS[item.href] || Building2,
+    })),
+    [user?.role],
+  );
+
+  const homeHref = user ? homePathForRole(user.role) : '/';
 
   async function handleLogout() {
     await fetch('/api/auth/logout', { method: 'POST' });
@@ -28,7 +47,6 @@ export default function Layout({ children, title }) {
 
   return (
     <div className="min-h-screen bg-bg flex overflow-x-hidden">
-      {/* Mobile overlay */}
       {sidebarOpen && (
         <div
           className="fixed inset-0 z-20 bg-black/40 lg:hidden"
@@ -36,16 +54,14 @@ export default function Layout({ children, title }) {
         />
       )}
 
-      {/* Sidebar */}
       <aside
         className={clsx(
           'fixed inset-y-0 left-0 z-30 w-64 bg-dark flex flex-col transition-transform duration-300 lg:static lg:translate-x-0',
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         )}
       >
-        {/* Logo */}
         <div className="flex items-center justify-between px-5 py-5 border-b border-white/10">
-          <Link href="/dashboard" onClick={() => setSidebarOpen(false)}>
+          <Link href={homeHref} onClick={() => setSidebarOpen(false)}>
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-md bg-brand-500 flex items-center justify-center">
                 <span className="text-white font-bold text-sm">HN</span>
@@ -64,9 +80,8 @@ export default function Layout({ children, title }) {
           </button>
         </div>
 
-        {/* Navigation */}
         <nav className="flex-1 py-4 px-3 space-y-0.5 overflow-y-auto">
-          {NAV.map(({ href, label, icon: Icon }) => {
+          {navItems.map(({ href, label, icon: Icon }) => {
             const active = router.pathname.startsWith(href);
             return (
               <Link
@@ -88,17 +103,18 @@ export default function Layout({ children, title }) {
           })}
         </nav>
 
-        {/* Logout */}
         <div className="p-4 border-t border-white/10">
-          <div className="flex items-center gap-3 mb-3 px-2">
-            <div className="w-8 h-8 rounded-full bg-brand-500 flex items-center justify-center flex-shrink-0">
-              <span className="text-white text-xs font-bold">JB</span>
+          {user && (
+            <div className="flex items-center gap-3 mb-3 px-2">
+              <div className="w-8 h-8 rounded-full bg-brand-500 flex items-center justify-center flex-shrink-0">
+                <span className="text-white text-xs font-bold">{userInitials(user.name)}</span>
+              </div>
+              <div className="min-w-0">
+                <p className="text-white text-sm font-medium truncate">{user.name}</p>
+                <p className="text-white/40 text-xs truncate">{roleLabel(user.role)}</p>
+              </div>
             </div>
-            <div className="min-w-0">
-              <p className="text-white text-sm font-medium truncate">Josiah Burton</p>
-              <p className="text-white/40 text-xs truncate">Admin</p>
-            </div>
-          </div>
+          )}
           <button
             onClick={handleLogout}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-white/60 hover:text-white hover:bg-white/10 transition-colors"
@@ -109,9 +125,7 @@ export default function Layout({ children, title }) {
         </div>
       </aside>
 
-      {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0 w-full max-w-full lg:ml-0">
-        {/* Top bar (mobile) */}
         <header className="bg-white border-b border-border px-4 py-3 flex items-center gap-3 lg:hidden sticky top-0 z-10">
           <button
             onClick={() => setSidebarOpen(true)}
@@ -127,7 +141,6 @@ export default function Layout({ children, title }) {
           </div>
         </header>
 
-        {/* Page content */}
         <main className="flex-1 w-full max-w-full p-4 lg:p-8 overflow-y-auto overflow-x-hidden">
           {title && (
             <h1 className="text-xl font-bold text-dark mb-6 hidden lg:block">{title}</h1>

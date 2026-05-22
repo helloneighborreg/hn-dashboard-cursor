@@ -25,5 +25,5 @@ export default async function handler(req, res) {
       return res.status(201).json({ data: expense });
     }
     res.status(405).end();
-  });
+  }, { adminOnly: true });
 }

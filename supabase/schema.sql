@@ -5,11 +5,16 @@ create table if not exists tasks (
 	reservation_id text not null,
 	property_id text,
 	property_name text not null default '',
+	guest_name text not null default '',
+	checklist_url text,
+	fillout_submission_id text,
+	checklist_pdf_url text,
 	title text not null,
 	description text not null default '',
 	due_date date not null,
 	due_time text not null default '16:00',
 	checkout_date date,
+	start_time text not null default '10:00',
 	status text not null default 'unassigned',
 	assignee text,
 	type text not null default 'other',
@@ -18,10 +23,9 @@ create table if not exists tasks (
 	updated_at timestamptz not null default now()
 );
 
--- One turnover task per reservation
-create unique index if not exists tasks_turnover_per_reservation
-	on tasks (reservation_id)
-	where type = 'turnover';
+-- One task per reservation (synced from bookings)
+create unique index if not exists tasks_one_per_reservation
+	on tasks (reservation_id);
 
 create table if not exists expenses (
 	id uuid primary key,

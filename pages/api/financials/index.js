@@ -1,5 +1,5 @@
 import { withAuth } from '../../../lib/auth';
-import { getProperties, getReservations, platformLabel } from '../../../lib/hospitable';
+import { getProperties, getReservations, getPropertyCode, platformLabel, buildPropertyMap } from '../../../lib/hospitable';
 import { getExpenses } from '../../../lib/db';
 
 export default async function handler(req, res) {
@@ -9,7 +9,7 @@ export default async function handler(req, res) {
 
     try {
       const properties = await getProperties();
-      const propMap = Object.fromEntries(properties.map((p) => [p.id, p]));
+      const propMap = buildPropertyMap(properties);
       const ids = property ? [property] : properties.map((p) => p.id);
 
       // Fetch reservations with financials + guest embedded
@@ -73,7 +73,7 @@ export default async function handler(req, res) {
             platform: r.platform,
             platform_label: platformLabel(r.platform),
             property_id: r.property_id,
-            property_name: prop?.name || r.property_id,
+            property_name: getPropertyCode(prop) || r.property_id,
             check_in:  r.check_in  || r.arrival_date,
             check_out: r.check_out || r.departure_date,
             nights: r.nights,
@@ -212,5 +212,5 @@ export default async function handler(req, res) {
       console.error('Financials error:', err.message);
       res.status(502).json({ error: err.message });
     }
-  });
+  }, { adminOnly: true });
 }

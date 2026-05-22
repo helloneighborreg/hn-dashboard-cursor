@@ -46,6 +46,7 @@ function DetailRow({ icon: Icon, label, value, mono }) {
 }
 
 export default function ReservationPanel({ resv, propName, onClose }) {
+  const propertyLabel = propName || resv.property_name;
   if (!resv) return null;
   const ps = platformStyle(resv.platform);
   const name = reservationGuestName(resv);
@@ -92,7 +93,7 @@ export default function ReservationPanel({ resv, propName, onClose }) {
           </div>
 
           <div className="space-y-3">
-            <DetailRow icon={Home} label="Property" value={propName} />
+            <DetailRow icon={Home} label="Property" value={propertyLabel} mono />
             <DetailRow icon={CalendarDays} label="Check-in" value={fmtDate(arrStr)} />
             <DetailRow icon={CalendarDays} label="Check-out" value={fmtDate(depStr)} />
             <DetailRow

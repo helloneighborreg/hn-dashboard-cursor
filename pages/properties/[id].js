@@ -9,6 +9,7 @@ import {
 import Layout from '../../components/Layout';
 import Badge from '../../components/Badge';
 import { PageLoader, ErrorState } from '../../components/LoadingSpinner';
+import { fetchJson } from '../../lib/apiClient';
 import { requireAuth } from '../../lib/auth';
 
 function AmenityTag({ label }) {
@@ -49,13 +50,8 @@ export default function PropertyDetailPage() {
   useEffect(() => {
     if (!id) return;
     setLoading(true); setError('');
-    fetch(`/api/properties/${id}`)
-      .then((r) => {
-        if (r.status === 401) { window.location.href = '/'; return null; }
-        if (!r.ok) throw new Error('Failed to load property');
-        return r.json();
-      })
-      .then((json) => json && setProperty(json.data))
+    fetchJson(`/api/properties/${id}`)
+      .then((json) => { if (json) setProperty(json.data); })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
   }, [id]);
@@ -76,7 +72,7 @@ export default function PropertyDetailPage() {
 
   return (
     <>
-      <Head><title>{property.public_name} — Hello Neighbor</title></Head>
+      <Head><title>{`${property.public_name} — Hello Neighbor`}</title></Head>
       <Layout title="">
         {/* Back */}
         <Link href="/properties" className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-brand-500 mb-5 transition-colors">

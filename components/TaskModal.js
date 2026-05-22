@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { X } from 'lucide-react';
 
-const ASSIGNEES = ['Brandi Drielsien', 'Josiah Burton', 'Rachel Jackson', 'Other'];
+import { ASSIGNEES } from '../lib/constants';
+import { getPropertyCode } from '../lib/hospitable';
 const TASK_TYPES = ['turnover', 'maintenance', 'inspection', 'other'];
 
 export default function TaskModal({ properties, onClose, onSaved }) {
@@ -35,7 +36,7 @@ export default function TaskModal({ properties, onClose, onSaved }) {
         body: JSON.stringify({
           title: form.title.trim(),
           property_id: form.property_id,
-          property_name: prop?.name || '',
+          property_name: getPropertyCode(prop) || '',
           due_date: form.due_date,
           due_time: form.due_time || '16:00',
           checkout_date: form.due_date,

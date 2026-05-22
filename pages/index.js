@@ -5,6 +5,7 @@ import { Eye, EyeOff, Lock } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -18,11 +19,11 @@ export default function LoginPage() {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password }),
+        body: JSON.stringify({ username: username.trim() || undefined, password }),
       });
       const data = await res.json();
-      if (!res.ok) { setError(data.error || 'Invalid password'); return; }
-      router.push('/dashboard');
+      if (!res.ok) { setError(data.error || 'Invalid username or password'); return; }
+      router.push(data.redirect || '/dashboard');
     } catch {
       setError('Cannot reach the server. Run npm run dev and open the URL shown in the terminal (e.g. http://localhost:3000).');
     } finally {
@@ -52,6 +53,17 @@ export default function LoginPage() {
             <p className="text-muted text-sm mb-6">Sign in to access the dashboard</p>
 
             <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="label">Username</label>
+                <input
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="input"
+                  placeholder="Your username"
+                  autoComplete="username"
+                />
+              </div>
               <div>
                 <label className="label">Password</label>
                 <div className="relative">

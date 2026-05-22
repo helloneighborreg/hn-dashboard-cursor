@@ -1,5 +1,11 @@
 import { withAuth } from '../../../lib/auth';
-import { getProperties, getReservations, platformLabel } from '../../../lib/hospitable';
+import {
+	getProperties,
+	getReservations,
+	getPropertyCode,
+	platformLabel,
+	buildPropertyMap,
+} from '../../../lib/hospitable';
 
 export default async function handler(req, res) {
   await withAuth(req, res, async () => {
@@ -9,9 +15,7 @@ export default async function handler(req, res) {
 
     try {
       const properties = await getProperties();
-      const propertyMap = Object.fromEntries(
-        properties.map((p) => [p.id, p])
-      );
+      const propertyMap = buildPropertyMap(properties);
 
       const ids = property ? [property] : properties.map((p) => p.id);
 
@@ -31,7 +35,7 @@ export default async function handler(req, res) {
         const prop = propertyMap[r.property_id] || null;
         return {
           ...r,
-          property_name: prop?.name || r.property_id || 'Unknown',
+          property_name: getPropertyCode(prop) || r.property_id || 'Unknown',
           property_public_name: prop?.public_name || '',
           platform_label: platformLabel(r.platform),
         };

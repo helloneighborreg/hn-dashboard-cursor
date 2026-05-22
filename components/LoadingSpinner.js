@@ -34,7 +34,7 @@ export function ErrorState({ message, retry }) {
         <span className="text-2xl">⚠️</span>
       </div>
       <p className="font-semibold text-dark">Something went wrong</p>
-      <p className="text-muted text-sm max-w-sm">{message}</p>
+      <p className="text-muted text-sm max-w-sm px-4 break-words">{message}</p>
       {retry && (
         <button
           onClick={retry}

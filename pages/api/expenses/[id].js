@@ -18,5 +18,5 @@ export default async function handler(req, res) {
       return res.status(204).end();
     }
     res.status(405).end();
-  });
+  }, { adminOnly: true });
 }

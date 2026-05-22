@@ -6,6 +6,7 @@ import {
 } from 'date-fns';
 import Layout from '../components/Layout';
 import ReservationPanel, { reservationGuestName } from '../components/ReservationPanel';
+import { fetchJson } from '../lib/apiClient';
 import { requireAuth } from '../lib/auth';
 
 const COL_W    = 42;
@@ -49,11 +50,8 @@ export default function CalendarPage() {
     setLoading(true); setError('');
     try {
       const params = new URLSearchParams({ start: startStr, end: endStr });
-      const res = await fetch('/api/calendar?' + params);
-      if (res.status === 401) { window.location.href = '/'; return; }
-      if (!res.ok) throw new Error((await res.json()).error);
-      const json = await res.json();
-      setData(json.data);
+      const json = await fetchJson('/api/calendar?' + params);
+      if (json) setData(json.data);
     } catch (err) {
       setError(err.message);
     } finally {
