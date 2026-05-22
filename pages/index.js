@@ -21,7 +21,7 @@ export default function LoginPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username: username.trim() || undefined, password }),
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) { setError(data.error || 'Invalid username or password'); return; }
       router.push(data.redirect || '/dashboard');
     } catch {
@@ -60,7 +60,7 @@ export default function LoginPage() {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   className="input"
-                  placeholder="Your username"
+                  placeholder="e.g. brandi"
                   autoComplete="username"
                 />
               </div>
