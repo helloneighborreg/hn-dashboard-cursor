@@ -1,14 +1,14 @@
 import { useState, useEffect, useMemo } from 'react';
 import Head from 'next/head';
-import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { Filter, RefreshCw, ChevronDown } from 'lucide-react';
+import { Filter, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
 import Layout from '../components/Layout';
 import Badge from '../components/Badge';
 import ReservationPanel, { reservationGuestName } from '../components/ReservationPanel';
 import { PageLoader, ErrorState, EmptyState } from '../components/LoadingSpinner';
 import { fetchJson } from '../lib/apiClient';
+import { groupReservationsByTimeline, reservationCheckInDate, reservationCheckOutDate } from '../lib/reservationDates';
 import { requireAuth } from '../lib/auth';
 
 const PLATFORMS = ['', 'airbnb', 'homeaway', 'booking_com', 'direct'];
@@ -16,7 +16,10 @@ const STATUSES  = ['', 'accepted', 'cancelled', 'pending', 'inquiry'];
 
 function fmt(dateStr) {
   if (!dateStr) return '—';
-  try { return format(new Date(dateStr), 'MMM d, yyyy'); } catch { return dateStr; }
+  try {
+    const s = String(dateStr).slice(0, 10);
+    return format(new Date(`${s}T12:00:00`), 'MMM d, yyyy');
+  } catch { return dateStr; }
 }
 
 function fmtTime(dateStr) {
@@ -85,24 +88,13 @@ export default function ReservationsPage() {
     );
   }, [reservations, search]);
 
-  // Categorize
-  const today = new Date().toISOString().slice(0, 10);
-  const upcoming = filtered.filter((r) => {
-    const ci = (r.check_in || r.arrival_date)?.slice(0, 10);
-    return ci >= today && r.status !== 'cancelled';
-  });
-  const current = filtered.filter((r) => {
-    const ci = (r.check_in || r.arrival_date)?.slice(0, 10);
-    const co = (r.check_out || r.departure_date)?.slice(0, 10);
-    return ci <= today && co >= today && r.status !== 'cancelled';
-  });
-  const past = filtered.filter((r) => {
-    const co = (r.check_out || r.departure_date)?.slice(0, 10);
-    return co < today;
-  });
+  const { future, active, past } = useMemo(
+    () => groupReservationsByTimeline(filtered),
+    [filtered],
+  );
 
-  const [tab, setTab] = useState('upcoming');
-  const displayed = tab === 'upcoming' ? upcoming : tab === 'current' ? current : past;
+  const [tab, setTab] = useState('active');
+  const displayed = tab === 'future' ? future : tab === 'active' ? active : past;
 
   function applyFilters() { load(); }
 
@@ -182,9 +174,9 @@ export default function ReservationsPage() {
         {/* Tabs */}
         <div className="flex border-b border-border mb-4 gap-0">
           {[
-            { key: 'upcoming', label: `Upcoming (${upcoming.length})` },
-            { key: 'current',  label: `Active (${current.length})` },
-            { key: 'past',     label: `Past (${past.length})` },
+            { key: 'future', label: `Future (${future.length})` },
+            { key: 'active', label: `Active (${active.length})` },
+            { key: 'past', label: `Past (${past.length})` },
           ].map(({ key, label }) => (
             <button
               key={key}
@@ -238,12 +230,12 @@ export default function ReservationsPage() {
                             <p className="font-mono text-sm font-semibold text-dark tracking-wide">{r.property_name}</p>
                           </td>
                           <td className="table-cell">
-                            <p>{fmt(r.check_in || r.arrival_date)}</p>
-                            <p className="text-xs text-muted">{fmtTime(r.check_in)}</p>
+                            <p>{fmt(reservationCheckInDate(r))}</p>
+                            <p className="text-xs text-muted">{fmtTime(r.check_in || r.arrival_date)}</p>
                           </td>
                           <td className="table-cell">
-                            <p>{fmt(r.check_out || r.departure_date)}</p>
-                            <p className="text-xs text-muted">{fmtTime(r.check_out)}</p>
+                            <p>{fmt(reservationCheckOutDate(r))}</p>
+                            <p className="text-xs text-muted">{fmtTime(r.check_out || r.departure_date)}</p>
                           </td>
                           <td className="table-cell">{r.nights}</td>
                           <td className="table-cell">{r.guests?.total ?? '–'}</td>
