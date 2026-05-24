@@ -88,13 +88,17 @@ export default function ReservationsPage() {
     );
   }, [reservations, search]);
 
-  const { future, active, past } = useMemo(
+  const { future, active, past, cancelled } = useMemo(
     () => groupReservationsByTimeline(filtered),
     [filtered],
   );
 
   const [tab, setTab] = useState('active');
-  const displayed = tab === 'future' ? future : tab === 'active' ? active : past;
+  const displayed =
+    tab === 'future' ? future
+      : tab === 'active' ? active
+        : tab === 'cancelled' ? cancelled
+          : past;
 
   function applyFilters() { load(); }
 
@@ -172,11 +176,12 @@ export default function ReservationsPage() {
         />
 
         {/* Tabs */}
-        <div className="flex border-b border-border mb-4 gap-0">
+        <div className="flex flex-wrap border-b border-border mb-4 gap-0">
           {[
             { key: 'future', label: `Future (${future.length})` },
             { key: 'active', label: `Active (${active.length})` },
             { key: 'past', label: `Past (${past.length})` },
+            { key: 'cancelled', label: `Cancelled (${cancelled.length})` },
           ].map(({ key, label }) => (
             <button
               key={key}
