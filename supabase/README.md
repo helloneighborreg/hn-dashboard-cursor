@@ -42,7 +42,7 @@ node scripts/import-db-json.mjs
 
 ## Task assignment notifications (optional)
 
-When an assignee is set on a task, the app emails and/or texts them. Contacts come from **`email` / `phone` on each `DASHBOARD_USERS` entry** (name must match the Assignee dropdown), or from **`TASK_ASSIGNEE_CONTACTS`**. Add to `env.local`:
+When an assignee is set on a task, the app emails and/or texts them. The same contacts are notified when **checkout or due date/time changes** on an already-assigned task (including after syncing from reservations).
 
 ```env
 # Email/phone on dashboard users (recommended)

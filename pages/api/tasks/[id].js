@@ -1,7 +1,8 @@
 import { withAuth, isAdmin, isCleaner } from '../../../lib/auth';
 import { getTaskById, updateTask, deleteTask } from '../../../lib/db';
-import { notifyTaskAssigned } from '../../../lib/notify';
+import { notifyTaskAssigned, notifyTaskScheduleChanged } from '../../../lib/notify';
 import { withChecklistUrl } from '../../../lib/checklistUrl';
+import { taskScheduleChanged } from '../../../lib/taskSchedule';
 
 function taskBelongsToCleaner(task, user) {
 	return task?.assignee === user?.name;
@@ -39,6 +40,13 @@ export default async function handler(req, res) {
 					notified = await notifyTaskAssigned(enriched, newAssignee);
 				} catch (err) {
 					console.error('Task assignment notify failed:', err.message);
+					notified = { skipped: true, reason: 'error' };
+				}
+			} else if (enriched?.assignee && taskScheduleChanged(task, enriched)) {
+				try {
+					notified = await notifyTaskScheduleChanged(enriched, enriched.assignee, task);
+				} catch (err) {
+					console.error('Task schedule notify failed:', err.message);
 					notified = { skipped: true, reason: 'error' };
 				}
 			}
