@@ -319,7 +319,7 @@ export default function TasksPageView() {
 			const json = await fetchJson('/api/tasks/sync', { method: 'POST' });
 			if (json) {
 				alert(
-					`Sync complete. ${json.created ?? 0} created, ${json.updated ?? 0} updated from reservations.`,
+					`Sync complete. ${json.created ?? 0} created, ${json.updated ?? 0} updated, ${json.deleted ?? 0} removed (cancelled).`,
 				);
 			}
 			loadTasks();
