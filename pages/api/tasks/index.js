@@ -1,37 +1,90 @@
 import { withAuth, isAdmin, isCleaner } from '../../../lib/auth';
 import { getTasks, createTask, getTasksForToday } from '../../../lib/db';
-import { getPropertyCode } from '../../../lib/hospitable';
+import { countTasksByIndicator } from '../../../lib/constants';
 import { getChecklistUrl } from '../../../lib/propertyChecklists';
 import { withChecklistUrl } from '../../../lib/checklistUrl';
+import { enrichTasks } from '../../../lib/taskEnrich';
 import { notifyTaskAssigned } from '../../../lib/notify';
 import { v4 as uuidv4 } from 'uuid';
+
+function buildBaseFilters(query, session) {
+	const { property_id, status, assignee, due_date, date_from, date_to, type } = query;
+	const filters = {};
+
+	if (isCleaner(session.user)) {
+		filters.assigned = true;
+		filters.assignee = session.user.name;
+		filters.exclude_completed = true;
+	} else if (assignee) {
+		filters.assignee = assignee;
+	}
+
+	if (property_id) filters.property_id = property_id;
+	if (status) filters.status = status;
+	if (type) filters.type = type;
+	if (due_date) filters.due_date = due_date;
+	if (date_from) filters.date_from = date_from;
+	if (date_to) filters.date_to = date_to;
+
+	return filters;
+}
+
+function applyTabFilter(filters, query, session) {
+	if (isCleaner(session.user)) return filters;
+
+	const { status: _status, ...rest } = filters;
+	const { unassigned, assigned, completed } = query;
+
+	if (completed === 'true') {
+		// Completed tab shows every completed task — not scoped to one assignee.
+		const { assignee: _assignee, ...completedRest } = rest;
+		return { ...completedRest, status: 'completed' };
+	}
+	if (unassigned === 'true') {
+		return { ...rest, unassigned: true, exclude_completed: true };
+	}
+	if (assigned === 'true') {
+		return { ...rest, assigned: true, exclude_completed: true };
+	}
+	return filters;
+}
 
 export default async function handler(req, res) {
   try {
     await withAuth(req, res, async (session) => {
       if (req.method === 'GET') {
-        const { property_id, status, assignee, due_date, date_from, date_to, today, type, unassigned, assigned } = req.query;
-        const filters = {};
-        if (isCleaner(session.user)) {
-          filters.assigned = true;
-          filters.assignee = session.user.name;
-        } else {
-          if (unassigned === 'true') filters.unassigned = true;
-          if (assigned === 'true') filters.assigned = true;
-          if (assignee) filters.assignee = assignee;
-        }
-        if (property_id) filters.property_id = property_id;
-        if (status)      filters.status = status;
-        if (type)        filters.type = type;
-        if (due_date)    filters.due_date = due_date;
-        if (date_from)   filters.date_from = date_from;
-        if (date_to)     filters.date_to = date_to;
+        res.setHeader('Cache-Control', 'no-store');
+        const { today, counts_only } = req.query;
+        const baseFilters = buildBaseFilters(req.query, session);
+        const listFilters = applyTabFilter(baseFilters, req.query, session);
 
-        const rows = today === 'true' ? await getTasksForToday() : await getTasks(filters);
+        const rows = today === 'true' ? await getTasksForToday() : await getTasks(listFilters);
+        const enriched = await enrichTasks(rows);
         const data = isCleaner(session.user)
-          ? rows.filter((t) => t.assignee === session.user.name).map(withChecklistUrl)
-          : rows.map(withChecklistUrl);
-        return res.json({ data });
+          ? enriched.filter((t) => t.assignee === session.user.name).map(withChecklistUrl)
+          : enriched.map(withChecklistUrl);
+
+        if (counts_only === 'true') {
+          const countRows = today === 'true'
+            ? await getTasksForToday()
+            : await getTasks(baseFilters);
+          const countEnriched = await enrichTasks(countRows);
+          const scoped = isCleaner(session.user)
+            ? countEnriched.filter((t) => t.assignee === session.user.name)
+            : countEnriched;
+          return res.json({ counts: countTasksByIndicator(scoped) });
+        }
+
+        const countRows = today === 'true'
+          ? await getTasksForToday()
+          : await getTasks(baseFilters);
+        const countEnriched = await enrichTasks(countRows);
+        const scoped = isCleaner(session.user)
+          ? countEnriched.filter((t) => t.assignee === session.user.name)
+          : countEnriched;
+        const counts = countTasksByIndicator(scoped);
+
+        return res.json({ data, counts });
       }
 
       if (req.method === 'POST') {

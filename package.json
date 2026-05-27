@@ -8,7 +8,8 @@
     "build": "next build",
     "start": "next start",
     "db:check": "node scripts/check-supabase.mjs",
-    "db:import": "node scripts/import-db-json.mjs"
+    "db:import": "node scripts/import-db-json.mjs",
+    "db:backfill-fillout": "node scripts/backfill-fillout-tasks.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.106.1",
@@ -18,6 +19,7 @@
     "iron-session": "^8.0.1",
     "lucide-react": "^0.383.0",
     "next": "14.2.3",
+    "plaid": "^42.2.0",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
     "recharts": "^2.12.7",

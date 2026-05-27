@@ -1,6 +1,7 @@
 import { withAuth } from '../../../lib/auth';
 import { getCached } from '../../../lib/cache';
 import { getTasksForToday, getUnassignedTasksCount } from '../../../lib/db';
+import { enrichTasks } from '../../../lib/taskEnrich';
 import {
 	getProperties,
 	getReservations,
@@ -41,10 +42,11 @@ async function buildDashboardData() {
 	const upcomingCheckIns = active.filter((r) => ci(r) > todayStr && ci(r) <= in7days).map(wp);
 	const upcomingCheckOuts = active.filter((r) => co(r) > todayStr && co(r) <= in7days).map(wp);
 
-	const [todayTasks, unassignedCount] = await Promise.all([
+	const [todayTasksRaw, unassignedCount] = await Promise.all([
 		getTasksForToday(),
 		getUnassignedTasksCount(),
 	]);
+	const todayTasks = await enrichTasks(todayTasksRaw);
 
 	return {
 		today: todayStr,
@@ -72,7 +74,7 @@ export default async function handler(req, res) {
 		if (req.method !== 'GET') return res.status(405).end();
 		try {
 			const todayStr = format(new Date(), 'yyyy-MM-dd');
-			const data = await getCached(`dashboard:${todayStr}`, CACHE_TTL_MS, buildDashboardData);
+			const data = await getCached(`dashboard:v2:${todayStr}`, CACHE_TTL_MS, buildDashboardData);
 			res.json({ data });
 		} catch (err) {
 			console.error('Dashboard error:', err.message);

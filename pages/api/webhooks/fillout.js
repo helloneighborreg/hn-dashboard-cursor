@@ -1,82 +1,65 @@
 /**
- * Fillout form submission webhook.
- * Configure in Fillout → Integrations → Webhook → POST to:
- *   https://your-domain.com/api/webhooks/fillout
+ * Fillout form submission webhook — marks the matching dashboard task completed.
  *
- * Include hidden fields or URL params echoed in the webhook body:
- *   task_id (preferred) or reservation_id
- * Optional: submissionId, pdfUrl / pdf_url (PDF export link from Fillout)
+ * Setup (Fillout → Integrate → Webhook):
+ *   POST https://your-domain.com/api/webhooks/fillout
+ *   Header: x-fillout-secret: <FILLOUT_WEBHOOK_SECRET>
  */
-import { getTaskById, getTaskByReservationId, updateTask } from '../../../lib/db';
+import { applyFilloutSubmissionToTask } from '../../../lib/filloutTaskUpdate';
 
-function pick(body, ...keys) {
-	for (const key of keys) {
-		const v = body?.[key];
-		if (v != null && String(v).trim() !== '') return String(v).trim();
-	}
-	return null;
-}
-
-function extractPayload(body) {
-	const data = body?.data || body?.submission || body;
-	return {
-		taskId: pick(body, 'task_id', 'taskId') || pick(data, 'task_id', 'taskId'),
-		reservationId:
-			pick(body, 'reservation_id', 'reservationId') ||
-			pick(data, 'reservation_id', 'reservationId'),
-		submissionId:
-			pick(body, 'submissionId', 'submission_id', 'id') ||
-			pick(data, 'submissionId', 'submission_id', 'id'),
-		pdfUrl:
-			pick(body, 'pdfUrl', 'pdf_url', 'pdf') ||
-			pick(data, 'pdfUrl', 'pdf_url', 'pdf'),
-	};
-}
-
-export default async function handler(req, res) {
-	if (req.method !== 'POST') return res.status(405).end();
-
+function verifySecret(req, res) {
 	const secret = (process.env.FILLOUT_WEBHOOK_SECRET || '').trim();
 	if (process.env.NODE_ENV === 'production' && !secret) {
-		return res.status(503).json({ error: 'FILLOUT_WEBHOOK_SECRET is not configured' });
+		res.status(503).json({ error: 'FILLOUT_WEBHOOK_SECRET is not configured' });
+		return false;
 	}
 	if (secret) {
 		const header = req.headers['x-fillout-secret'] || req.headers['x-webhook-secret'];
 		if (header !== secret) {
-			return res.status(401).json({ error: 'Invalid webhook secret' });
+			res.status(401).json({ error: 'Invalid webhook secret' });
+			return false;
 		}
 	}
+	return true;
+}
+
+export default async function handler(req, res) {
+	if (req.method !== 'POST') return res.status(405).end();
+	if (!verifySecret(req, res)) return;
 
 	try {
-		const { taskId, reservationId, submissionId, pdfUrl } = extractPayload(req.body);
+		const result = await applyFilloutSubmissionToTask(req.body);
 
-		let task = null;
-		if (taskId) task = await getTaskById(taskId);
-		if (!task && reservationId) task = await getTaskByReservationId(reservationId);
-
-		if (!task) {
+		if (!result.ok) {
+			console.warn('Fillout webhook: task not found', {
+				taskId: result.taskId,
+				reservationId: result.reservationId,
+			});
 			return res.status(404).json({
-				error: 'Task not found',
-				hint: 'Pass task_id or reservation_id in the Fillout webhook payload (hidden field or URL param).',
+				error: result.error,
+				hint: 'Ensure the Fillout form receives task_id (or reservation_id) from the checklist URL parameters.',
+				received: { taskId: result.taskId, reservationId: result.reservationId },
 			});
 		}
 
-		const notes = [
-			task.notes,
-			submissionId ? `Fillout submission: ${submissionId}` : null,
-			pdfUrl ? `Checklist PDF: ${pdfUrl}` : null,
-		]
-			.filter(Boolean)
-			.join('\n');
+		if (result.already_completed) {
+			return res.json({
+				ok: true,
+				task_id: result.task.id,
+				status: result.task.status,
+				already_completed: true,
+			});
+		}
 
-		const updated = await updateTask(task.id, {
-			status: 'completed',
-			fillout_submission_id: submissionId || task.fillout_submission_id,
-			checklist_pdf_url: pdfUrl || task.checklist_pdf_url,
-			notes: notes || task.notes,
+		if (result.updated) {
+			console.info('Fillout webhook: task updated', { task_id: result.task.id });
+		}
+
+		return res.json({
+			ok: true,
+			task_id: result.task.id,
+			status: result.task.status,
 		});
-
-		return res.json({ ok: true, task_id: updated.id, status: updated.status });
 	} catch (err) {
 		console.error('Fillout webhook error:', err.message);
 		return res.status(500).json({ error: err.message });

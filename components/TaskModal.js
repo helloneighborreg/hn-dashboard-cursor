@@ -3,10 +3,12 @@ import { X } from 'lucide-react';
 
 import { ASSIGNEES } from '../lib/constants';
 import { getPropertyCode } from '../lib/hospitable';
+import DateInput from './DateInput';
+import { todayIso } from '../lib/dates';
 const TASK_TYPES = ['turnover', 'maintenance', 'inspection', 'other'];
 
 export default function TaskModal({ properties, onClose, onSaved }) {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayIso();
   const [form, setForm] = useState({
     title: '',
     property_id: '',
@@ -98,9 +100,7 @@ export default function TaskModal({ properties, onClose, onSaved }) {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="label">Due date *</label>
-              <input
-                type="date"
-                className="input"
+              <DateInput
                 value={form.due_date}
                 onChange={(e) => setForm((f) => ({ ...f, due_date: e.target.value }))}
                 required

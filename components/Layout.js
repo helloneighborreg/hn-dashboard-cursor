@@ -3,10 +3,11 @@ import { useRouter } from 'next/router';
 import Link from 'next/link';
 import {
   LayoutDashboard, Building2, CalendarDays, Calendar, CheckSquare,
-  DollarSign, LogOut, Menu, X, ChevronRight,
+  DollarSign, LogOut, Menu, X, ChevronRight, TrendingUp, Receipt,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useAuth } from './AuthContext';
+import { BrandLogo } from './Logo';
 import { homePathForRole, navItemsForRole, roleLabel } from '../lib/roles';
 
 const NAV_ICONS = {
@@ -16,7 +17,22 @@ const NAV_ICONS = {
   '/reservations': CalendarDays,
   '/tasks': CheckSquare,
   '/financials': DollarSign,
+  '/income': TrendingUp,
+  '/expenses': Receipt,
 };
+
+function navLinkClass(active) {
+  return clsx(
+    'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors group',
+    active
+      ? 'bg-brand-500 text-white'
+      : 'text-white/70 hover:bg-white/10 hover:text-white',
+  );
+}
+
+function isNavActive(pathname, href) {
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
 
 function userInitials(name) {
   if (!name) return '?';
@@ -61,17 +77,11 @@ export default function Layout({ children, title }) {
         )}
       >
         <div className="flex items-center justify-between px-5 py-5 border-b border-white/10">
-          <Link href={homeHref} onClick={() => setSidebarOpen(false)}>
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-md bg-brand-500 flex items-center justify-center">
-                <span className="text-white font-bold text-sm">HN</span>
-              </div>
-              <div>
-                <p className="text-white font-semibold text-sm leading-tight">Hello Neighbor</p>
-                <p className="text-brand-300 text-xs">Real Estate Group</p>
-              </div>
-            </div>
-          </Link>
+          <BrandLogo
+            variant="sidebar"
+            href={homeHref}
+            onClick={() => setSidebarOpen(false)}
+          />
           <button
             className="lg:hidden text-white/60 hover:text-white"
             onClick={() => setSidebarOpen(false)}
@@ -81,24 +91,42 @@ export default function Layout({ children, title }) {
         </div>
 
         <nav className="flex-1 py-4 px-3 space-y-0.5 overflow-y-auto">
-          {navItems.map(({ href, label, icon: Icon }) => {
-            const active = router.pathname.startsWith(href);
+          {navItems.filter((item) => !item.parent).map((item) => {
+            const Icon = item.icon;
+            const active = isNavActive(router.pathname, item.href);
+            const childItems = navItems.filter((child) => child.parent === item.href);
+
             return (
-              <Link
-                key={href}
-                href={href}
-                onClick={() => setSidebarOpen(false)}
-                className={clsx(
-                  'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors group',
-                  active
-                    ? 'bg-brand-500 text-white'
-                    : 'text-white/70 hover:bg-white/10 hover:text-white'
-                )}
-              >
-                <Icon size={18} className={clsx(active ? 'text-white' : 'text-white/50 group-hover:text-white')} />
-                {label}
-                {active && <ChevronRight size={14} className="ml-auto" />}
-              </Link>
+              <div key={item.href}>
+                <Link
+                  href={item.href}
+                  onClick={() => setSidebarOpen(false)}
+                  className={navLinkClass(active && !childItems.some((child) => isNavActive(router.pathname, child.href)))}
+                >
+                  <Icon size={18} className={clsx(active ? 'text-white' : 'text-white/50 group-hover:text-white')} />
+                  {item.label}
+                  {active && !childItems.some((child) => isNavActive(router.pathname, child.href)) && (
+                    <ChevronRight size={14} className="ml-auto" />
+                  )}
+                </Link>
+
+                {childItems.map((child) => {
+                  const ChildIcon = child.icon;
+                  const childActive = isNavActive(router.pathname, child.href);
+                  return (
+                    <Link
+                      key={child.href}
+                      href={child.href}
+                      onClick={() => setSidebarOpen(false)}
+                      className={clsx(navLinkClass(childActive), 'mt-0.5 ml-4')}
+                    >
+                      <ChildIcon size={16} className={clsx(childActive ? 'text-white' : 'text-white/50 group-hover:text-white')} />
+                      {child.label}
+                      {childActive && <ChevronRight size={14} className="ml-auto" />}
+                    </Link>
+                  );
+                })}
+              </div>
             );
           })}
         </nav>
@@ -133,12 +161,7 @@ export default function Layout({ children, title }) {
           >
             <Menu size={22} />
           </button>
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded bg-brand-500 flex items-center justify-center">
-              <span className="text-white font-bold text-xs">HN</span>
-            </div>
-            <span className="font-semibold text-dark text-sm">{title || 'Hello Neighbor'}</span>
-          </div>
+          <BrandLogo variant="header" title={title} />
         </header>
 
         <main className="flex-1 w-full max-w-full p-4 lg:p-8 overflow-y-auto overflow-x-hidden">

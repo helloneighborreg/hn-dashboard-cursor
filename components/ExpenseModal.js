@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { X } from 'lucide-react';
+import DateInput from './DateInput';
+import { todayIso } from '../lib/dates';
 
 export const EXPENSE_CATEGORIES = [
   'Cleaning', 'Maintenance', 'Supplies', 'Utilities', 'Insurance',
@@ -9,7 +11,7 @@ export const EXPENSE_CATEGORIES = [
 
 export default function ExpenseModal({ properties, onClose, onSaved, title = 'Add Transaction' }) {
   const [form, setForm] = useState({
-    date: new Date().toISOString().slice(0, 10),
+    date: todayIso(),
     property_id: '',
     category: '',
     vendor: '',
@@ -60,9 +62,7 @@ export default function ExpenseModal({ properties, onClose, onSaved, title = 'Ad
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="label">Date *</label>
-              <input
-                type="date"
-                className="input"
+              <DateInput
                 value={form.date}
                 onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
                 required

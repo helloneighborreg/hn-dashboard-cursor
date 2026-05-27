@@ -1,10 +1,12 @@
+import Link from 'next/link';
 import {
 	BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid,
 	Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell,
 } from 'recharts';
 import { CHART_COLORS, fmt$, fmtPct } from './format';
+import { formatMonthKey } from '../../lib/dates';
 
-export default function FinancialsCharts({ data, summary, onAddExpense }) {
+export default function FinancialsCharts({ data, summary }) {
 	return (
 		<>
 			<div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
@@ -14,7 +16,7 @@ export default function FinancialsCharts({ data, summary, onAddExpense }) {
 						<ResponsiveContainer width="100%" height={220}>
 							<BarChart data={data.monthly_chart} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
 								<CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
-								<XAxis dataKey="month" tick={{ fontSize: 11 }} />
+								<XAxis dataKey="month" tick={{ fontSize: 11 }} tickFormatter={formatMonthKey} />
 								<YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
 								<Tooltip formatter={(v) => fmt$(v)} />
 								<Legend wrapperStyle={{ fontSize: '12px' }} />
@@ -123,9 +125,9 @@ export default function FinancialsCharts({ data, summary, onAddExpense }) {
 					) : (
 						<div className="text-center py-10">
 							<p className="text-muted text-sm">No expenses recorded</p>
-							<button type="button" onClick={onAddExpense} className="btn-primary mt-3 text-sm">
+							<Link href="/expenses" className="btn-primary mt-3 text-sm inline-flex">
 								Add Expense
-							</button>
+							</Link>
 						</div>
 					)}
 				</div>
@@ -138,7 +140,7 @@ export default function FinancialsCharts({ data, summary, onAddExpense }) {
 						<ResponsiveContainer width="100%" height={240}>
 							<LineChart data={data.monthly_chart} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
 								<CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
-								<XAxis dataKey="month" tick={{ fontSize: 11 }} />
+								<XAxis dataKey="month" tick={{ fontSize: 11 }} tickFormatter={formatMonthKey} />
 								<YAxis yAxisId="left" tick={{ fontSize: 11 }} tickFormatter={(v) => `$${v}`} />
 								<YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11 }} tickFormatter={(v) => `${v}%`} />
 								<Tooltip

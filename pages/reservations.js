@@ -2,12 +2,14 @@ import { useState, useEffect, useMemo } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { Filter, RefreshCw } from 'lucide-react';
-import { format } from 'date-fns';
 import Layout from '../components/Layout';
 import Badge from '../components/Badge';
+import DateInput from '../components/DateInput';
 import ReservationPanel, { reservationGuestName } from '../components/ReservationPanel';
 import { PageLoader, ErrorState, EmptyState } from '../components/LoadingSpinner';
 import { fetchJson } from '../lib/apiClient';
+import { formatDateOrDash, parseIsoWallClockTime } from '../lib/dates';
+import { formatClock } from '../lib/taskDisplay';
 import { groupReservationsByTimeline, reservationCheckInDate, reservationCheckOutDate } from '../lib/reservationDates';
 import { requireAuth } from '../lib/auth';
 
@@ -15,16 +17,12 @@ const PLATFORMS = ['', 'airbnb', 'homeaway', 'booking_com', 'direct'];
 const STATUSES  = ['', 'accepted', 'cancelled', 'pending', 'inquiry'];
 
 function fmt(dateStr) {
-  if (!dateStr) return '—';
-  try {
-    const s = String(dateStr).slice(0, 10);
-    return format(new Date(`${s}T12:00:00`), 'MMM d, yyyy');
-  } catch { return dateStr; }
+  return formatDateOrDash(dateStr);
 }
 
 function fmtTime(dateStr) {
-  if (!dateStr) return '';
-  try { return format(new Date(dateStr), 'h:mm a'); } catch { return ''; }
+  const time = parseIsoWallClockTime(dateStr);
+  return time ? formatClock(time) : '';
 }
 
 export default function ReservationsPage() {
@@ -37,6 +35,7 @@ export default function ReservationsPage() {
     property: '', status: '', platform: '', start: '', end: '',
   });
   const [search, setSearch] = useState('');
+  const [meta, setMeta] = useState(null);
   const [selected, setSelected] = useState(null);
 
   async function load() {
@@ -55,7 +54,10 @@ export default function ReservationsPage() {
       if (filters.end) params.set('end', filters.end);
 
       const json = await fetchJson('/api/reservations?' + params);
-      if (json) setReservations(json.data || []);
+      if (json) {
+        setReservations(json.data || []);
+        setMeta(json.meta || null);
+      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -100,6 +102,13 @@ export default function ReservationsPage() {
         : tab === 'cancelled' ? cancelled
           : past;
 
+  const tabLabels = {
+    future: 'Future',
+    active: 'Active',
+    past: 'Past',
+    cancelled: 'Cancelled',
+  };
+
   function applyFilters() { load(); }
 
   return (
@@ -117,7 +126,17 @@ export default function ReservationsPage() {
         <div className="flex items-start justify-between mb-6 gap-4">
           <div>
             <h1 className="text-2xl font-bold text-dark">Reservations</h1>
-            <p className="text-muted text-sm mt-0.5">{filtered.length} total</p>
+            <p className="text-muted text-sm mt-0.5">
+              {filtered.length} loaded
+              {meta?.date_from && meta?.date_to && !filters.start && !filters.end
+                ? ` · check-in ${meta.date_from} to ${meta.date_to}`
+                : ''}
+              {' · '}
+              {displayed.length} on {tabLabels[tab]} tab
+            </p>
+            <p className="text-muted text-xs mt-1">
+              Switch tabs to see Future, Active, Past, and Cancelled reservations.
+            </p>
           </div>
           <button onClick={load} className="btn-secondary text-xs gap-1.5 flex-shrink-0">
             <RefreshCw size={14} /> Refresh
@@ -153,11 +172,11 @@ export default function ReservationsPage() {
             </div>
             <div>
               <label className="label">Check-in from</label>
-              <input type="date" className="input" value={filters.start} onChange={(e) => setFilters(f => ({ ...f, start: e.target.value }))} />
+              <DateInput value={filters.start} onChange={(e) => setFilters(f => ({ ...f, start: e.target.value }))} />
             </div>
             <div>
               <label className="label">Check-in to</label>
-              <input type="date" className="input" value={filters.end} onChange={(e) => setFilters(f => ({ ...f, end: e.target.value }))} />
+              <DateInput value={filters.end} onChange={(e) => setFilters(f => ({ ...f, end: e.target.value }))} />
             </div>
             <div className="flex items-end">
               <button onClick={applyFilters} className="btn-primary w-full justify-center gap-1.5">

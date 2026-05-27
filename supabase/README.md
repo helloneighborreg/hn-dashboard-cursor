@@ -92,28 +92,56 @@ Parameters sent automatically:
 
 ### 2. Completion webhook
 
-When a cleaner submits the form, Fillout can call your app to mark the task **completed** and store the submission ID + PDF link.
+When a cleaner submits the form, Fillout can call your app to mark the task **completed** and store the submission ID + PDF link. This runs **alongside** your Notion/PDF integrations — add it as a second integration on the same form.
 
 ```env
 FILLOUT_WEBHOOK_SECRET=choose-a-long-random-string
 ```
 
-**Fillout setup:** Integrations → Webhook → POST to:
+**Fillout setup:** Integrate → Webhook → POST to:
 
 `https://your-deployed-domain.com/api/webhooks/fillout`
 
-Add header `x-fillout-secret: <same as FILLOUT_WEBHOOK_SECRET>` if using a secret.
+Add header `x-fillout-secret: <same as FILLOUT_WEBHOOK_SECRET>`.
 
-Include in the webhook body (hidden fields on the form, prefilled from URL params):
+**Critical:** Each checklist link from the dashboard includes `?task_id=…&reservation_id=…` (and other fields). In Fillout, create **URL parameter** hidden fields for at least:
 
-- `task_id` (required to find the task)
-- `reservation_id` (fallback)
-- `submissionId` / `submission_id` (from Fillout)
-- `pdfUrl` / `pdf_url` (PDF export URL if Fillout provides it)
+| URL param | Purpose |
+|-----------|---------|
+| `task_id` | Primary key — used to mark the correct task complete |
+| `reservation_id` | Fallback lookup (booking code, e.g. HM9CABAAY9) |
+
+Set each field’s default value to the matching URL parameter name (Fillout → field settings → prefilled from URL).
+
+Fillout sends nested JSON (`submission.urlParameters`, `submission.questions`, `submission.documents`). The webhook parser reads all of these automatically. You can also map custom body fields in Fillout’s webhook “Advanced view” if needed.
+
+Optional fields stored on the task:
+
+- `submissionId` — Fillout submission ID (included automatically)
+- PDF URL — shown in the **PDF** column on the tasks page. Map your generated document to `pdf_url` in Fillout’s webhook **Advanced view** body, or include it in `submission.documents`.
 
 Run migration `supabase/migrations/20260522_task_fillout.sql` for `fillout_submission_id` and `checklist_pdf_url` columns.
 
 **Status dot colors:** red = unassigned, green = assigned, blue = completed (after Fillout submit).
+
+### Backfill completed tasks + PDF links
+
+After webhooks are configured, backfill historical Fillout submissions (PDF column + completion status):
+
+1. Generate an API key at https://build.fillout.com/home/settings/developer
+2. Add to `env.local`:
+   ```env
+   FILLOUT_API_TOKEN=sk_prod_...
+   ```
+3. Run locally:
+   ```bash
+   npm run db:backfill-fillout
+   ```
+   Preview first with `npm run db:backfill-fillout -- --dry-run`
+
+Or POST as admin to `/api/tasks/backfill-fillout` on your deployed app (same env var on Vercel).
+
+The script scans both checklist forms (Cascades + Kirkwood), matches submissions to tasks via `reservation_id` / `task_id`, and stores `checklist_pdf_url` from Fillout’s generated documents.
 
 ### Multiple forms by property group (recommended for this portfolio)
 

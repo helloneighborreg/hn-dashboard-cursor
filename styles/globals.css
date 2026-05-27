@@ -51,6 +51,12 @@ html {
   .table-head {
     @apply px-4 py-2.5 text-left text-xs font-semibold text-muted uppercase tracking-wide;
   }
+  .table-head-sticky {
+    @apply sticky top-0 z-10 bg-gray-50 border-b border-border;
+  }
+  .transactions-table-scroll {
+    @apply overflow-auto max-h-[70vh];
+  }
 }
 
 /* Scrollbar */

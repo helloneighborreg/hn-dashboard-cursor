@@ -1,7 +1,8 @@
 import {
   X, User, Home, CalendarDays, Clock, Users, Tag, ExternalLink,
 } from 'lucide-react';
-import { format, parseISO, differenceInDays } from 'date-fns';
+import { differenceInDays, parseISO } from 'date-fns';
+import { formatDateOrDash } from '../lib/dates';
 
 const PLATFORM_STYLES = {
   airbnb:      { bg: '#E31C5F', text: '#fff', label: 'Airbnb' },
@@ -25,8 +26,7 @@ export function reservationGuestName(resv) {
 }
 
 function fmtDate(str) {
-  if (!str) return '—';
-  return format(parseISO(str.slice(0, 10)), 'MMM d, yyyy');
+  return formatDateOrDash(str);
 }
 
 function DetailRow({ icon: Icon, label, value, mono }) {

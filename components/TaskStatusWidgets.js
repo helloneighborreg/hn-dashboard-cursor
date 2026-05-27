@@ -31,20 +31,33 @@ export const STATUS_WIDGETS = [
 	},
 ];
 
-export default function TaskStatusWidgets({ counts }) {
+export default function TaskStatusWidgets({ counts, onSelect }) {
+	const tabKeys = new Set(['unassigned', 'assigned', 'completed']);
+
 	return (
 		<div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6 w-full">
-			{STATUS_WIDGETS.map(({ key, label, border, bg, text }) => (
-				<div key={key} className={`card border p-3 sm:p-4 min-w-0 ${border} ${bg}`}>
-					<div className="flex items-center gap-2 mb-2">
-						<StatusKindIcon kind={key} size={16} />
-						<p className={`text-xs font-medium uppercase tracking-wide opacity-80 ${text}`}>
-							{label}
-						</p>
-					</div>
-					<p className={`text-xl sm:text-2xl font-bold ${text}`}>{counts[key] ?? 0}</p>
-				</div>
-			))}
+			{STATUS_WIDGETS.map(({ key, label, border, bg, text }) => {
+				const clickable = Boolean(onSelect && tabKeys.has(key));
+				const Tag = clickable ? 'button' : 'div';
+				return (
+					<Tag
+						key={key}
+						type={clickable ? 'button' : undefined}
+						onClick={clickable ? () => onSelect(key) : undefined}
+						className={`card border p-3 sm:p-4 min-w-0 text-left ${border} ${bg}${
+							clickable ? ' cursor-pointer hover:brightness-[0.98] transition-[filter]' : ''
+						}`}
+					>
+						<div className="flex items-center gap-2 mb-2">
+							<StatusKindIcon kind={key} size={16} />
+							<p className={`text-xs font-medium uppercase tracking-wide opacity-80 ${text}`}>
+								{label}
+							</p>
+						</div>
+						<p className={`text-xl sm:text-2xl font-bold ${text}`}>{counts[key] ?? 0}</p>
+					</Tag>
+				);
+			})}
 		</div>
 	);
 }

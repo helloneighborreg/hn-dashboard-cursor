@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { Eye, EyeOff, Lock } from 'lucide-react';
+import { BrandLogo } from '../components/Logo';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -38,13 +39,8 @@ export default function LoginPage() {
       </Head>
       <div className="min-h-screen bg-gradient-to-br from-brand-900 via-brand-800 to-dark flex items-center justify-center p-4">
         <div className="w-full max-w-sm">
-          {/* Logo area */}
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-brand-500 mb-4 shadow-lg">
-              <span className="text-white text-2xl font-bold">HN</span>
-            </div>
-            <h1 className="text-white text-2xl font-bold">Hello Neighbor</h1>
-            <p className="text-brand-300 text-sm mt-1">Real Estate Group · Operations</p>
+          <div className="mb-8">
+            <BrandLogo variant="login" />
           </div>
 
           {/* Card */}

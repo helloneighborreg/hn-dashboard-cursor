@@ -2,6 +2,7 @@ import { withAuth, isAdmin, isCleaner } from '../../../lib/auth';
 import { getTaskById, updateTask, deleteTask } from '../../../lib/db';
 import { notifyTaskAssigned, notifyTaskScheduleChanged } from '../../../lib/notify';
 import { withChecklistUrl } from '../../../lib/checklistUrl';
+import { enrichTasks } from '../../../lib/taskEnrich';
 import { taskScheduleChanged } from '../../../lib/taskSchedule';
 
 function taskBelongsToCleaner(task, user) {
@@ -18,7 +19,8 @@ export default async function handler(req, res) {
 			if (isCleaner(session.user) && !taskBelongsToCleaner(task, session.user)) {
 				return res.status(403).json({ error: 'Forbidden' });
 			}
-			return res.json({ data: withChecklistUrl(task) });
+			const enriched = await enrichTasks([task]);
+			return res.json({ data: withChecklistUrl(enriched[0]) });
 		}
 		if (req.method === 'PATCH') {
 			if (!isAdmin(session.user)) {
@@ -30,7 +32,8 @@ export default async function handler(req, res) {
 
 			const prevAssignee = task.assignee;
 			const updated = await updateTask(id, req.body);
-			const enriched = withChecklistUrl(updated);
+			const [enrichedRow] = await enrichTasks([updated]);
+			const enriched = withChecklistUrl(enrichedRow);
 			const newAssignee =
 				req.body.assignee !== undefined ? req.body.assignee || null : enriched?.assignee;
 

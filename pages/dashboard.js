@@ -5,8 +5,8 @@ import {
   Building2, LogIn, LogOut as LogOutIcon, CheckSquare,
   RefreshCw, CalendarDays, Clock, ArrowRight, Plus,
 } from 'lucide-react';
-import { format } from 'date-fns';
-import { taskHeadline, taskGuestSubtitle, formatClock } from '../lib/taskDisplay';
+import { taskHeadline, taskGuestSubtitle, formatClock, reservationHeadline } from '../lib/taskDisplay';
+import { formatDateOrDash } from '../lib/dates';
 import { fetchJson } from '../lib/apiClient';
 import Layout from '../components/Layout';
 import StatCard from '../components/StatCard';
@@ -26,7 +26,7 @@ function reservationSubtitle(r, mode) {
 function reservationFooter(r, mode) {
   if (mode === 'checkout') {
     const d = r.check_out || r.departure_date;
-    return d ? format(new Date(d), 'MMM d, yyyy') : '—';
+    return formatDateOrDash(d);
   }
   return `${r.nights} night${r.nights !== 1 ? 's' : ''}`;
 }
@@ -43,7 +43,7 @@ function ReservationList({ items, emptyMsg, subtitle = 'code', footer = 'nights'
             className="w-full py-3 flex items-start justify-between gap-3 text-left hover:bg-gray-50 transition-colors rounded-lg px-1 -mx-1 cursor-pointer"
           >
             <div className="min-w-0">
-              <p className="text-sm font-mono font-semibold text-dark tracking-wide truncate">{r.property_name}</p>
+              <p className="text-sm font-mono font-semibold text-dark tracking-wide truncate">{reservationHeadline(r)}</p>
               <p className="text-xs text-muted mt-0.5">{reservationSubtitle(r, subtitle)}</p>
             </div>
             <div className="text-right flex-shrink-0">
@@ -138,7 +138,7 @@ export default function DashboardPage() {
 
   useEffect(() => { load(); }, []);
 
-  const today = data?.today ? format(new Date(data.today + 'T12:00:00'), 'EEEE, MMMM d, yyyy') : '';
+  const today = data?.today ? formatDateOrDash(data.today) : '';
 
   return (
     <>

@@ -1,5 +1,6 @@
 import { withAuth } from '../../../lib/auth';
-import { getProperties, getReservations, getPropertyCode, platformLabel, buildPropertyMap } from '../../../lib/hospitable';
+import { getProperties, getReservations, platformLabel, buildPropertyMap, withReservationPropertyName } from '../../../lib/hospitable';
+import { parseHostFinancials } from '../../../lib/hospitableFinancials';
 import { getExpenses } from '../../../lib/db';
 
 export default async function handler(req, res) {
@@ -30,39 +31,9 @@ export default async function handler(req, res) {
       const resvData = reservations
         .filter((r) => r.status !== 'cancelled' && r.status !== 'declined')
         .map((r) => {
-          const prop = propMap[r.property_id];
-          const fin = r.financials?.host;
-          const guestFees = fin?.guest_fees || [];
-          const hostFees  = fin?.host_fees  || [];
+          const row = withReservationPropertyName(r, propMap);
+          const fin = parseHostFinancials(r.financials?.host);
 
-          // Hospitable returns amounts in cents
-          const revenue = fin?.revenue?.amount != null ? fin.revenue.amount / 100 : 0;
-
-          // Base accommodation fare (nightly rate × nights)
-          const accommodationFare = fin?.accommodation_fare?.amount != null
-            ? fin.accommodation_fare.amount / 100
-            : 0;
-
-          // Taxes — may be a dedicated field or embedded in guest_fees
-          const taxFromField = fin?.taxes?.total?.amount != null ? fin.taxes.total.amount / 100 : null;
-          const taxFromFees  = guestFees
-            .filter((f) => /tax/i.test(f.label || f.type || ''))
-            .reduce((s, f) => s + Math.abs(f.amount ?? 0) / 100, 0);
-          const taxes = taxFromField ?? taxFromFees;
-
-          // Individual guest fee items (excluding taxes already captured above)
-          const feeItems = guestFees
-            .filter((f) => !/tax/i.test(f.label || f.type || ''))
-            .map((f) => ({ label: f.label || f.type || 'Fee', amount: Math.abs(f.amount ?? 0) / 100 }));
-
-          // Platform / host fees (commission etc.)
-          const platformFees = hostFees.reduce((s, f) => s + Math.abs(f.amount ?? 0) / 100, 0);
-
-          // Convenience lookups for common fees
-          const cleaningFee = feeItems.find((f) => /clean/i.test(f.label))?.amount ?? 0;
-          const petFee      = feeItems.find((f) => /pet/i.test(f.label))?.amount  ?? 0;
-
-          // Guest name
           const guestName = r.guest
             ? [r.guest.first_name, r.guest.last_name].filter(Boolean).join(' ')
             : null;
@@ -72,21 +43,16 @@ export default async function handler(req, res) {
             code: r.code,
             platform: r.platform,
             platform_label: platformLabel(r.platform),
-            property_id: r.property_id,
-            property_name: getPropertyCode(prop) || r.property_id,
+            property_id: row.property_id,
+            property_name: row.property_name,
             check_in:  r.check_in  || r.arrival_date,
             check_out: r.check_out || r.departure_date,
             nights: r.nights,
             guests: r.guests?.total || 0,
             guest_name: guestName,
-            revenue,
-            accommodation_fare: accommodationFare,
-            fee_items: feeItems,
-            cleaning_fee: cleaningFee,
-            pet_fee:      petFee,
-            taxes,
-            platform_fees: platformFees,
-            owner_payout: revenue,
+            revenue: fin.revenue,
+            fees_by_label: fin.fees_by_label,
+            owner_payout: fin.revenue,
             month: (r.check_in || r.arrival_date || '').slice(0, 7),
           };
         });

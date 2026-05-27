@@ -14,6 +14,7 @@ import {
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import clsx from 'clsx';
 import { getTaskStatusIndicator } from '../lib/constants';
+import { formatDate } from '../lib/dates';
 import { taskHeadline, formatClock } from '../lib/taskDisplay';
 import TaskStatusIndicator from './TaskStatusIndicator';
 
@@ -177,7 +178,7 @@ export default function TaskCalendarView({ tasks, month, onMonthChange, onTaskSe
 									<button
 										type="button"
 										onClick={() => setOverflowDay({
-											label: format(day, 'EEEE, MMM d'),
+											label: formatDate(day),
 											tasks: dayTasks.slice(MAX_CHIPS),
 										})}
 										className="text-[10px] text-brand-600 font-medium px-0.5 hover:underline"

@@ -7,6 +7,7 @@ import {
 import Layout from '../components/Layout';
 import ReservationPanel, { reservationGuestName } from '../components/ReservationPanel';
 import { fetchJson } from '../lib/apiClient';
+import { formatDateRange } from '../lib/dates';
 import { requireAuth } from '../lib/auth';
 
 const COL_W    = 42;
@@ -101,7 +102,7 @@ export default function CalendarPage() {
                 <ChevronLeft size={16} />
               </button>
               <span className="px-4 py-2 text-sm font-medium text-dark whitespace-nowrap select-none">
-                {format(startDate, 'MMM d')} – {format(endDate, 'MMM d, yyyy')}
+                {formatDateRange(startDate, endDate)}
               </span>
               <button onClick={next} className="px-2.5 py-2 hover:bg-gray-50 transition-colors text-dark">
                 <ChevronRight size={16} />

@@ -1,4 +1,5 @@
 import { Filter } from 'lucide-react';
+import DateInput from './DateInput';
 import { ASSIGNEES } from '../lib/constants';
 
 export default function TaskFiltersPanel({
@@ -8,6 +9,7 @@ export default function TaskFiltersPanel({
 	isUnassigned,
 	onApply,
 	showAssigneeFilter = true,
+	showStatusFilter = false,
 }) {
 	return (
 		<div className="card p-4 mb-5">
@@ -25,7 +27,7 @@ export default function TaskFiltersPanel({
 						))}
 					</select>
 				</div>
-				{!isUnassigned && (
+				{showStatusFilter && (
 					<div>
 						<label className="label">Status</label>
 						<select
@@ -54,8 +56,7 @@ export default function TaskFiltersPanel({
 				)}
 				<div>
 					<label className="label">Due from</label>
-					<input
-						type="date"
+					<DateInput
 						className="input w-full"
 						value={filters.date_from}
 						onChange={(e) => setFilters((f) => ({ ...f, date_from: e.target.value }))}
@@ -63,8 +64,7 @@ export default function TaskFiltersPanel({
 				</div>
 				<div>
 					<label className="label">Due to</label>
-					<input
-						type="date"
+					<DateInput
 						className="input w-full"
 						value={filters.date_to}
 						onChange={(e) => setFilters((f) => ({ ...f, date_to: e.target.value }))}

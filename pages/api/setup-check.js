@@ -18,6 +18,11 @@ function buildCheckResponse() {
 		dashboard_users_set: Boolean(process.env.DASHBOARD_USERS?.trim()),
 		dashboard_password_set: Boolean(process.env.DASHBOARD_PASSWORD?.trim()),
 		session_secret_set: Boolean(process.env.SESSION_SECRET?.trim()),
+		fillout_forms_set: Boolean(process.env.FILLOUT_CHECKLIST_FORMS?.trim() || process.env.FILLOUT_CHECKLIST_BASE_URL?.trim()),
+		fillout_webhook_secret_set: Boolean(process.env.FILLOUT_WEBHOOK_SECRET?.trim()),
+		fillout_api_token_set: Boolean(process.env.FILLOUT_API_TOKEN?.trim() || process.env.FILLOUT_API_KEY?.trim()),
+		fillout_webhook_url: '/api/webhooks/fillout',
+		fillout_backfill_url: '/api/tasks/backfill-fillout',
 		hint:
 			!token
 				? 'Add HOSPITABLE_API_TOKEN in Vercel → Settings → Environment Variables → Production, then Redeploy.'
