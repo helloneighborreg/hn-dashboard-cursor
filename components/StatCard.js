@@ -1,6 +1,6 @@
 import clsx from 'clsx';
 
-export default function StatCard({ label, value, sub, icon: Icon, color = 'brand', onClick }) {
+export default function StatCard({ label, value, sub, icon: Icon, color = 'brand', onClick, className }) {
   const colors = {
     brand:  { bg: 'bg-brand-50',   icon: 'text-brand-500',  border: 'border-brand-100' },
     green:  { bg: 'bg-green-50',   icon: 'text-green-600',  border: 'border-green-100' },
@@ -14,8 +14,9 @@ export default function StatCard({ label, value, sub, icon: Icon, color = 'brand
     <div
       onClick={onClick}
       className={clsx(
-        'bg-white rounded-xl border border-border shadow-card p-4 sm:p-5 flex items-start gap-3 sm:gap-4 w-full min-w-0',
-        onClick && 'cursor-pointer hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-150'
+        'bg-white rounded-xl border border-border shadow-card p-4 sm:p-5 flex items-start gap-3 sm:gap-4 w-full min-w-0 h-full min-h-[7.5rem]',
+        onClick && 'cursor-pointer hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-150',
+        className,
       )}
     >
       {Icon && (

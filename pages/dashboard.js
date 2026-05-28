@@ -232,21 +232,20 @@ export default function DashboardPage() {
 
         {data && !loading && (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-6 sm:mb-8 w-full">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-6 sm:mb-8 w-full auto-rows-fr">
               <StatCard label="Occupied Now" value={data.stats.occupied_count} icon={Building2} color="brand" />
               <StatCard label="Check-ins Today" value={data.stats.checkins_today} icon={LogIn} color="green" />
               <StatCard label="Checkouts Today" value={data.stats.checkouts_today} icon={LogOutIcon} color="amber" />
-              <StatCard label="Tasks Due Today" value={data.stats.tasks_today} icon={CheckSquare} color={data.stats.tasks_today > 0 ? 'red' : 'brand'} />
-              <Link href="/tasks" className="block">
+              <StatCard label="Tasks Due Today" value={data.stats.tasks_today} icon={CheckSquare} color="amber" />
+              <Link href="/tasks" className="block h-full">
                 <StatCard
                   label="Unassigned Tasks"
                   value={data.stats.tasks_unassigned ?? 0}
                   icon={CheckSquare}
                   color={(data.stats.tasks_unassigned ?? 0) > 0 ? 'red' : 'brand'}
-                  sub="Needs assignee"
                 />
               </Link>
-              <Link href="/tasks?tab=completed" className="block">
+              <Link href="/tasks?tab=completed" className="block h-full">
                 <StatCard
                   label="Completed Tasks"
                   value={taskCounts.completed}
@@ -254,13 +253,12 @@ export default function DashboardPage() {
                   color="green"
                 />
               </Link>
-              <Link href="/tasks?tab=overdue" className="block">
+              <Link href="/tasks?tab=overdue" className="block h-full">
                 <StatCard
                   label="Overdue Tasks"
                   value={taskCounts.overdue}
                   icon={AlertCircle}
-                  color={taskCounts.overdue > 0 ? 'red' : 'brand'}
-                  sub={taskCounts.overdue > 0 ? 'Needs attention' : undefined}
+                  color="red"
                 />
               </Link>
               <StatCard label="Upcoming Check-ins" value={data.stats.upcoming_checkins} icon={CalendarDays} color="brand" />
