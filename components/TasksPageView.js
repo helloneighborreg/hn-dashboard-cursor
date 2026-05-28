@@ -5,7 +5,7 @@ import { RefreshCw } from 'lucide-react';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
 import Layout from './Layout';
 import { PageLoader, ErrorState, EmptyState } from './LoadingSpinner';
-import { ASSIGNEES, isTaskAssigned, statusFromAssignee, taskIsOverdue } from '../lib/constants';
+import { ASSIGNEES, isTaskAssigned, statusFromAssignee, sortTasksByDateDesc, taskIsOverdue } from '../lib/constants';
 import {
 	taskHeadline,
 	taskGuestSubtitle,
@@ -281,6 +281,8 @@ export default function TasksPageView() {
 	});
 
 	const monthKey = format(calendarMonth, 'yyyy-MM');
+
+	const displayTasks = useMemo(() => sortTasksByDateDesc(tasks), [tasks]);
 
 	useEffect(() => {
 		if (!limitedView) {
@@ -632,7 +634,7 @@ export default function TasksPageView() {
 						)
 						: isCalendar ? (
 							<TaskCalendarView
-								tasks={tasks}
+								tasks={displayTasks}
 								month={calendarMonth}
 								onMonthChange={setCalendarMonth}
 								onTaskSelect={setSelectedTask}
@@ -641,7 +643,7 @@ export default function TasksPageView() {
 						: (
 							<>
 								<div className="space-y-3 lg:hidden">
-									{tasks.map((task) => (
+									{displayTasks.map((task) => (
 										<TaskItem
 											key={task.id}
 											task={task}
@@ -670,7 +672,7 @@ export default function TasksPageView() {
 											</tr>
 										</thead>
 										<tbody className="divide-y divide-border">
-											{tasks.map((task) => (
+											{displayTasks.map((task) => (
 												<TaskItem
 													key={task.id}
 													task={task}

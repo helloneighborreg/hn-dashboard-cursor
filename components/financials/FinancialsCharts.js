@@ -37,7 +37,7 @@ export default function FinancialsCharts({ data, summary }) {
 							<BarChart data={data.by_property} layout="vertical" margin={{ top: 5, right: 5, left: 80, bottom: 5 }}>
 								<CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
 								<XAxis type="number" tick={{ fontSize: 11 }} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
-								<YAxis dataKey="property_name" type="category" tick={{ fontSize: 10 }} width={80} />
+								<YAxis dataKey="property_name" type="category" tick={{ fontSize: 10 }} width={140} />
 								<Tooltip formatter={(v) => fmt$(v)} />
 								<Bar dataKey="revenue" fill="#5B9AB8" name="Revenue" radius={[0, 4, 4, 0]} />
 							</BarChart>

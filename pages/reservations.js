@@ -251,7 +251,7 @@ export default function ReservationsPage() {
                             <p className="font-medium text-dark">{reservationGuestName(r) || '—'}</p>
                           </td>
                           <td className="table-cell">
-                            <p className="font-mono text-sm font-semibold text-dark tracking-wide">{r.property_name}</p>
+                            <p className="text-sm font-semibold text-dark">{r.property_name}</p>
                           </td>
                           <td className="table-cell">
                             <p>{fmt(reservationCheckInDate(r))}</p>

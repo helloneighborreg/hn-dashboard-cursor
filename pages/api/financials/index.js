@@ -1,5 +1,6 @@
 import { withAuth } from '../../../lib/auth';
 import { getProperties, getReservations, platformLabel, buildPropertyMap, withReservationPropertyName } from '../../../lib/hospitable';
+import { buildPropertyCodeToNameMap, formatPropertyNameForRow } from '../../../lib/codes';
 import { parseHostFinancials } from '../../../lib/hospitableFinancials';
 import { getExpenses } from '../../../lib/db';
 
@@ -11,6 +12,7 @@ export default async function handler(req, res) {
     try {
       const properties = await getProperties();
       const propMap = buildPropertyMap(properties);
+      const codeToNameMap = buildPropertyCodeToNameMap(properties);
       const ids = property ? [property] : properties.map((p) => p.id);
 
       // Fetch reservations with financials + guest embedded
@@ -25,7 +27,9 @@ export default async function handler(req, res) {
       if (property) expFilters.property_id = property;
       if (date_from) expFilters.date_from = date_from;
       if (date_to) expFilters.date_to = date_to;
-      const manualExpenses = await getExpenses(expFilters);
+      const manualExpenses = (await getExpenses(expFilters)).map((e) =>
+        formatPropertyNameForRow(e, codeToNameMap, propMap),
+      );
       const totalManualExpenses = manualExpenses.reduce((s, e) => s + e.amount, 0);
 
       const resvData = reservations
@@ -106,9 +110,10 @@ export default async function handler(req, res) {
       });
       manualExpenses.forEach((e) => {
         const propertyId = e.property_id || 'unknown';
+        const property_name = e.property_name || propertyId;
         byProperty[propertyId] = byProperty[propertyId] || {
           property_id: propertyId,
-          property_name: e.property_name || propertyId,
+          property_name,
           revenue: 0,
           nights: 0,
           reservations: 0,

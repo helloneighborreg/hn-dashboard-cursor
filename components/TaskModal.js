@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { X } from 'lucide-react';
 
 import { ASSIGNEES } from '../lib/constants';
-import { getPropertyCode } from '../lib/hospitable';
+import { getPropertyDisplayName } from '../lib/hospitable';
 import DateInput from './DateInput';
 import { todayIso } from '../lib/dates';
 const TASK_TYPES = ['turnover', 'maintenance', 'inspection', 'other'];
@@ -38,7 +38,7 @@ export default function TaskModal({ properties, onClose, onSaved }) {
         body: JSON.stringify({
           title: form.title.trim(),
           property_id: form.property_id,
-          property_name: getPropertyCode(prop) || '',
+          property_name: getPropertyDisplayName(prop) || '',
           due_date: form.due_date,
           due_time: form.due_time || '16:00',
           checkout_date: form.due_date,

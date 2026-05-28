@@ -1,5 +1,6 @@
 import { withAuth } from '../../../lib/auth';
 import { getCached } from '../../../lib/cache';
+import { sortTasksByDateDesc } from '../../../lib/constants';
 import { getTasksForToday, getUnassignedTasksCount } from '../../../lib/db';
 import { enrichTasks } from '../../../lib/taskEnrich';
 import {
@@ -46,7 +47,7 @@ async function buildDashboardData() {
 		getTasksForToday(),
 		getUnassignedTasksCount(),
 	]);
-	const todayTasks = await enrichTasks(todayTasksRaw);
+	const todayTasks = sortTasksByDateDesc(await enrichTasks(todayTasksRaw));
 
 	return {
 		today: todayStr,

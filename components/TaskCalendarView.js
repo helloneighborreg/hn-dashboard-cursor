@@ -13,7 +13,7 @@ import {
 } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import clsx from 'clsx';
-import { getTaskStatusIndicator } from '../lib/constants';
+import { getTaskStatusIndicator, sortTasksByDateDesc } from '../lib/constants';
 import { formatDate } from '../lib/dates';
 import { taskHeadline, formatClock } from '../lib/taskDisplay';
 import TaskStatusIndicator from './TaskStatusIndicator';
@@ -86,6 +86,9 @@ export default function TaskCalendarView({ tasks, month, onMonthChange, onTaskSe
 			if (!key) continue;
 			if (!map[key]) map[key] = [];
 			map[key].push(task);
+		}
+		for (const key of Object.keys(map)) {
+			map[key] = sortTasksByDateDesc(map[key]);
 		}
 		return map;
 	}, [tasks]);

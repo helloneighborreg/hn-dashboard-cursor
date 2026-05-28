@@ -75,7 +75,7 @@ export default function TaskDetailModal({ task, onClose, showAssignee = false })
 					</div>
 
 					<div className="space-y-3">
-						<DetailRow icon={Home} label="Property" value={task.property_name} mono />
+						<DetailRow icon={Home} label="Property" value={task.property_name} />
 						<DetailRow
 							icon={CalendarDays}
 							label="Check-out"

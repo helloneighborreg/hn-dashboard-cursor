@@ -93,7 +93,7 @@ export default function ReservationPanel({ resv, propName, onClose }) {
           </div>
 
           <div className="space-y-3">
-            <DetailRow icon={Home} label="Property" value={propertyLabel} mono />
+            <DetailRow icon={Home} label="Property" value={propertyLabel} />
             <DetailRow icon={CalendarDays} label="Check-in" value={fmtDate(arrStr)} />
             <DetailRow icon={CalendarDays} label="Check-out" value={fmtDate(depStr)} />
             <DetailRow
