@@ -7,6 +7,7 @@ export const STATUS_WIDGETS = [
 		border: 'border-red-100',
 		bg: 'bg-red-50',
 		text: 'text-red-700',
+		activeRing: 'ring-red-300',
 	},
 	{
 		key: 'assigned',
@@ -14,6 +15,7 @@ export const STATUS_WIDGETS = [
 		border: 'border-yellow-100',
 		bg: 'bg-yellow-50',
 		text: 'text-yellow-800',
+		activeRing: 'ring-yellow-300',
 	},
 	{
 		key: 'completed',
@@ -21,6 +23,7 @@ export const STATUS_WIDGETS = [
 		border: 'border-green-100',
 		bg: 'bg-green-50',
 		text: 'text-green-700',
+		activeRing: 'ring-green-300',
 	},
 	{
 		key: 'overdue',
@@ -28,11 +31,19 @@ export const STATUS_WIDGETS = [
 		border: 'border-red-200',
 		bg: 'bg-red-50',
 		text: 'text-red-600',
+		activeRing: 'ring-red-400',
 	},
 ];
 
-export default function TaskStatusWidgets({ counts, onSelect, visibleKeys }) {
-	const tabKeys = new Set(['unassigned', 'assigned', 'completed']);
+export default function TaskStatusWidgets({
+	counts,
+	onSelect,
+	visibleKeys,
+	clickableKeys,
+	activeKey,
+}) {
+	const defaultClickable = ['unassigned', 'assigned', 'completed'];
+	const clickable = new Set(clickableKeys ?? defaultClickable);
 	const widgets = visibleKeys
 		? STATUS_WIDGETS.filter(({ key }) => visibleKeys.includes(key))
 		: STATUS_WIDGETS;
@@ -40,17 +51,19 @@ export default function TaskStatusWidgets({ counts, onSelect, visibleKeys }) {
 
 	return (
 		<div className={`grid grid-cols-2 ${gridCols} gap-3 sm:gap-4 mb-6 w-full`}>
-			{widgets.map(({ key, label, border, bg, text }) => {
-				const clickable = Boolean(onSelect && tabKeys.has(key));
-				const Tag = clickable ? 'button' : 'div';
+			{widgets.map(({ key, label, border, bg, text, activeRing }) => {
+				const isClickable = Boolean(onSelect && clickable.has(key));
+				const isActive = activeKey === key;
+				const Tag = isClickable ? 'button' : 'div';
 				return (
 					<Tag
 						key={key}
-						type={clickable ? 'button' : undefined}
-						onClick={clickable ? () => onSelect(key) : undefined}
+						type={isClickable ? 'button' : undefined}
+						onClick={isClickable ? () => onSelect(key) : undefined}
+						aria-pressed={isClickable ? isActive : undefined}
 						className={`card border p-3 sm:p-4 min-w-0 text-left ${border} ${bg}${
-							clickable ? ' cursor-pointer hover:brightness-[0.98] transition-[filter]' : ''
-						}`}
+							isClickable ? ' cursor-pointer hover:brightness-[0.98] transition-[filter]' : ''
+						}${isActive ? ` ring-2 ring-offset-1 ${activeRing}` : ''}`}
 					>
 						<div className="flex items-center gap-2 mb-2">
 							<StatusKindIcon kind={key} size={16} />

@@ -29,13 +29,16 @@ function buildScopeFilters(query, session) {
 }
 
 function applyTabFilter(filters, query, session) {
-	const { unassigned, assigned, completed } = query;
+	const { unassigned, assigned, completed, overdue } = query;
 
 	if (hasLimitedTasksView(session.user)) {
 		if (completed === 'true') {
 			return { ...filters, status: 'completed' };
 		}
-		return { ...filters, assigned: true, exclude_completed: true };
+		if (overdue === 'true') {
+			return { ...filters, assigned: true, exclude_completed: true, overdue: true };
+		}
+		return { ...filters, assigned: true, exclude_completed: true, exclude_overdue: true };
 	}
 
 	const { status: _status, ...rest } = filters;
@@ -45,11 +48,14 @@ function applyTabFilter(filters, query, session) {
 		const { assignee: _assignee, ...completedRest } = rest;
 		return { ...completedRest, status: 'completed' };
 	}
+	if (overdue === 'true') {
+		return { ...rest, assigned: true, exclude_completed: true, overdue: true };
+	}
 	if (unassigned === 'true') {
 		return { ...rest, unassigned: true, exclude_completed: true };
 	}
 	if (assigned === 'true') {
-		return { ...rest, assigned: true, exclude_completed: true };
+		return { ...rest, assigned: true, exclude_completed: true, exclude_overdue: true };
 	}
 	return filters;
 }

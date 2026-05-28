@@ -23,13 +23,10 @@ import SegmentedToggle from './SegmentedToggle';
 import { useAuth } from './AuthContext';
 import { hasLimitedTasksView } from '../lib/roles';
 
+const LIMITED_WIDGET_KEYS = ['assigned', 'completed', 'overdue'];
+
 const TAB_OPTIONS = [
 	{ value: 'unassigned', label: 'Unassigned' },
-	{ value: 'assigned', label: 'Assigned' },
-	{ value: 'completed', label: 'Completed' },
-];
-
-const CLEANER_TAB_OPTIONS = [
 	{ value: 'assigned', label: 'Assigned' },
 	{ value: 'completed', label: 'Completed' },
 ];
@@ -245,8 +242,14 @@ export default function TasksPageView() {
 	const { isAdmin, user } = useAuth();
 	const limitedView = hasLimitedTasksView(user);
 	const tab = limitedView
-		? router.query.tab === 'completed' ? 'completed' : 'assigned'
-		: router.query.tab === 'assigned'
+		? router.query.tab === 'completed'
+			? 'completed'
+			: router.query.tab === 'overdue'
+				? 'overdue'
+				: 'assigned'
+		: router.query.tab === 'overdue'
+			? 'overdue'
+			: router.query.tab === 'assigned'
 			? 'assigned'
 			: router.query.tab === 'completed'
 				? 'completed'
@@ -255,6 +258,7 @@ export default function TasksPageView() {
 	const isUnassigned = tab === 'unassigned';
 	const isAssigned = tab === 'assigned';
 	const isCompleted = tab === 'completed';
+	const isOverdue = tab === 'overdue';
 	const isCalendar = view === 'calendar';
 	const readOnly = limitedView;
 	const [tasks, setTasks] = useState([]);
@@ -304,6 +308,7 @@ export default function TasksPageView() {
 		const params = new URLSearchParams();
 		if (includeTab) {
 			if (isCompleted) params.set('completed', 'true');
+			else if (isOverdue) params.set('overdue', 'true');
 			else if (isUnassigned) params.set('unassigned', 'true');
 			else params.set('assigned', 'true');
 		}
@@ -342,6 +347,7 @@ export default function TasksPageView() {
 		isUnassigned,
 		isAssigned,
 		isCompleted,
+		isOverdue,
 		isCalendar,
 		monthKey,
 		router.query.property_id,
@@ -416,10 +422,10 @@ export default function TasksPageView() {
 
 	const setTab = useCallback((next) => {
 		const query = { ...router.query };
-		if (next === 'unassigned') delete query.tab;
+		if (next === 'unassigned' || (limitedView && next === 'assigned')) delete query.tab;
 		else query.tab = next;
 		router.replace({ pathname: '/tasks', query }, undefined, { shallow: true });
-	}, [router]);
+	}, [router, limitedView]);
 
 	const setView = useCallback((next) => {
 		const query = { ...router.query };
@@ -460,8 +466,9 @@ export default function TasksPageView() {
 
 	function taskStaysOnTab(updated) {
 		if (isCompleted) return updated.status === 'completed';
+		if (isOverdue) return taskIsOverdue(updated);
 		if (isUnassigned) return !isTaskAssigned(updated) && updated.status !== 'completed';
-		return isTaskAssigned(updated) && updated.status !== 'completed';
+		return isTaskAssigned(updated) && updated.status !== 'completed' && !taskIsOverdue(updated);
 	}
 
 	function handleUpdate(updated) {
@@ -479,12 +486,16 @@ export default function TasksPageView() {
 	const tabSummary = limitedView
 		? isCompleted
 			? `${tasks.length} completed by you`
-			: `${tasks.length} assigned to you`
+			: isOverdue
+				? `${tasks.length} overdue`
+				: `${tasks.length} assigned to you`
 		: isCompleted
 			? `${tasks.length} completed`
-			: isUnassigned
-				? `${tasks.length} awaiting assignee`
-				: `${tasks.length} assigned`;
+			: isOverdue
+				? `${tasks.length} overdue`
+				: isUnassigned
+					? `${tasks.length} awaiting assignee`
+					: `${tasks.length} assigned`;
 
 	return (
 		<>
@@ -509,9 +520,6 @@ export default function TasksPageView() {
 						</div>
 						{isAdmin && (
 							<SegmentedToggle value={tab} onChange={setTab} options={TAB_OPTIONS} />
-						)}
-						{limitedView && (
-							<SegmentedToggle value={tab} onChange={setTab} options={CLEANER_TAB_OPTIONS} />
 						)}
 						<SegmentedToggle value={view} onChange={setView} options={VIEW_OPTIONS} />
 					</div>
@@ -539,14 +547,13 @@ export default function TasksPageView() {
 					</div>
 				</div>
 
-				{!limitedView && (
-					<TaskStatusWidgets
-						counts={statusCounts}
-						onSelect={(key) => {
-							if (key === 'assigned' || key === 'completed' || key === 'unassigned') setTab(key);
-						}}
-					/>
-				)}
+				<TaskStatusWidgets
+					counts={statusCounts}
+					activeKey={tab}
+					onSelect={setTab}
+					visibleKeys={limitedView ? LIMITED_WIDGET_KEYS : undefined}
+					clickableKeys={limitedView ? LIMITED_WIDGET_KEYS : ['unassigned', 'assigned', 'completed']}
+				/>
 
 				{flash && (
 					<div
@@ -585,8 +592,11 @@ export default function TasksPageView() {
 							<EmptyState
 								title={
 									limitedView
-										? isCompleted ? 'No completed tasks' : 'No tasks assigned'
+										? isCompleted ? 'No completed tasks'
+											: isOverdue ? 'No overdue tasks'
+												: 'No tasks assigned'
 										: isCompleted ? 'No completed tasks'
+											: isOverdue ? 'No overdue tasks'
 											: isUnassigned ? 'No unassigned tasks'
 												: 'No assigned tasks'
 								}
@@ -596,10 +606,14 @@ export default function TasksPageView() {
 										: limitedView
 											? isCompleted
 												? 'Your completed tasks will appear here.'
-												: 'You have no tasks assigned right now. Check back later or contact your admin.'
+												: isOverdue
+													? 'You have no overdue tasks right now.'
+													: 'You have no tasks assigned right now. Check back later or contact your admin.'
 											: isCompleted
 												? 'Completed tasks will appear here after you mark them done.'
-												: isUnassigned
+												: isOverdue
+													? 'Overdue tasks appear here when due dates pass.'
+													: isUnassigned
 													? 'New turnovers appear here after you sync from Reservations.'
 													: 'Assign someone on the Unassigned tab to move a task here.'
 								}
