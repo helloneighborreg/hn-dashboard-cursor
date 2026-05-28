@@ -1,4 +1,5 @@
-import { withAuth, isAdmin, isCleaner } from '../../../lib/auth';
+import { withAuth, isAdmin } from '../../../lib/auth';
+import { hasLimitedTasksView } from '../../../lib/roles';
 import { getTasks, createTask, getTasksForToday } from '../../../lib/db';
 import { countTasksByIndicator } from '../../../lib/constants';
 import { getChecklistUrl } from '../../../lib/propertyChecklists';
@@ -11,14 +12,14 @@ function buildScopeFilters(query, session) {
 	const { property_id, assignee, due_date, date_from, date_to, type, status } = query;
 	const filters = {};
 
-	if (isCleaner(session.user)) {
+	if (hasLimitedTasksView(session.user)) {
 		filters.assignee = session.user.name;
 	} else if (assignee) {
 		filters.assignee = assignee;
 	}
 
 	if (property_id) filters.property_id = property_id;
-	if (!isCleaner(session.user) && status) filters.status = status;
+	if (!hasLimitedTasksView(session.user) && status) filters.status = status;
 	if (type) filters.type = type;
 	if (due_date) filters.due_date = due_date;
 	if (date_from) filters.date_from = date_from;
@@ -30,7 +31,7 @@ function buildScopeFilters(query, session) {
 function applyTabFilter(filters, query, session) {
 	const { unassigned, assigned, completed } = query;
 
-	if (isCleaner(session.user)) {
+	if (hasLimitedTasksView(session.user)) {
 		if (completed === 'true') {
 			return { ...filters, status: 'completed' };
 		}
@@ -64,7 +65,8 @@ export default async function handler(req, res) {
 
         const rows = today === 'true' ? await getTasksForToday() : await getTasks(listFilters);
         const enriched = await enrichTasks(rows);
-        const data = isCleaner(session.user)
+        const limitedView = hasLimitedTasksView(session.user);
+        const data = limitedView
           ? enriched.filter((t) => t.assignee === session.user.name).map(withChecklistUrl)
           : enriched.map(withChecklistUrl);
 
@@ -73,7 +75,7 @@ export default async function handler(req, res) {
             ? await getTasksForToday()
             : await getTasks(scopeFilters);
           const countEnriched = await enrichTasks(countRows);
-          const scoped = isCleaner(session.user)
+          const scoped = limitedView
             ? countEnriched.filter((t) => t.assignee === session.user.name)
             : countEnriched;
           return res.json({ counts: countTasksByIndicator(scoped) });
@@ -83,7 +85,7 @@ export default async function handler(req, res) {
           ? await getTasksForToday()
           : await getTasks(scopeFilters);
         const countEnriched = await enrichTasks(countRows);
-        const scoped = isCleaner(session.user)
+        const scoped = limitedView
           ? countEnriched.filter((t) => t.assignee === session.user.name)
           : countEnriched;
         const counts = countTasksByIndicator(scoped);

@@ -21,6 +21,7 @@ import TaskCalendarView from './TaskCalendarView';
 import TaskDetailModal from './TaskDetailModal';
 import SegmentedToggle from './SegmentedToggle';
 import { useAuth } from './AuthContext';
+import { hasLimitedTasksView } from '../lib/roles';
 
 const TAB_OPTIONS = [
 	{ value: 'unassigned', label: 'Unassigned' },
@@ -241,8 +242,9 @@ function TaskItem({ task, variant, onUpdate, onAssigneeChanged, showAdmin, readO
 
 export default function TasksPageView() {
 	const router = useRouter();
-	const { isAdmin, isCleaner } = useAuth();
-	const tab = isCleaner
+	const { isAdmin, user } = useAuth();
+	const limitedView = hasLimitedTasksView(user);
+	const tab = limitedView
 		? router.query.tab === 'completed' ? 'completed' : 'assigned'
 		: router.query.tab === 'assigned'
 			? 'assigned'
@@ -254,7 +256,7 @@ export default function TasksPageView() {
 	const isAssigned = tab === 'assigned';
 	const isCompleted = tab === 'completed';
 	const isCalendar = view === 'calendar';
-	const readOnly = isCleaner;
+	const readOnly = limitedView;
 	const [tasks, setTasks] = useState([]);
 	const [statusCounts, setStatusCounts] = useState({
 		unassigned: 0, assigned: 0, completed: 0, overdue: 0,
@@ -277,15 +279,15 @@ export default function TasksPageView() {
 	const monthKey = format(calendarMonth, 'yyyy-MM');
 
 	useEffect(() => {
-		if (!isCleaner) {
+		if (!limitedView) {
 			fetchJson('/api/properties')
 				.then((json) => { if (json) setProperties(json.data || []); })
 				.catch(() => setProperties([]));
 		}
-	}, [isCleaner]);
+	}, [limitedView]);
 
 	const filterProperties = useMemo(() => {
-		if (!isCleaner) return properties;
+		if (!limitedView) return properties;
 		const seen = new Map();
 		for (const task of tasks) {
 			if (task.property_id && !seen.has(task.property_id)) {
@@ -296,7 +298,7 @@ export default function TasksPageView() {
 			}
 		}
 		return [...seen.values()].sort((a, b) => a.name.localeCompare(b.name));
-	}, [isCleaner, properties, tasks]);
+	}, [limitedView, properties, tasks]);
 
 	const buildTaskParams = useCallback((includeTab = true) => {
 		const params = new URLSearchParams();
@@ -474,7 +476,7 @@ export default function TasksPageView() {
 		refreshCounts();
 	}
 
-	const tabSummary = isCleaner
+	const tabSummary = limitedView
 		? isCompleted
 			? `${tasks.length} completed by you`
 			: `${tasks.length} assigned to you`
@@ -487,7 +489,7 @@ export default function TasksPageView() {
 	return (
 		<>
 			<Head>
-				<title>{`${isCleaner ? 'My Tasks' : 'Tasks'} — Hello Neighbor`}</title>
+				<title>{`${limitedView ? 'My Tasks' : 'Tasks'} — Hello Neighbor`}</title>
 			</Head>
 			<Layout title="">
 				{selectedTask && (
@@ -501,14 +503,14 @@ export default function TasksPageView() {
 					<div className="min-w-0 space-y-3">
 						<div>
 							<h1 className="text-xl sm:text-2xl font-bold text-dark">
-								{isCleaner ? 'My Tasks' : 'Tasks'}
+								{limitedView ? 'My Tasks' : 'Tasks'}
 							</h1>
 							<p className="text-muted text-sm mt-0.5">{tabSummary}</p>
 						</div>
 						{isAdmin && (
 							<SegmentedToggle value={tab} onChange={setTab} options={TAB_OPTIONS} />
 						)}
-						{isCleaner && (
+						{limitedView && (
 							<SegmentedToggle value={tab} onChange={setTab} options={CLEANER_TAB_OPTIONS} />
 						)}
 						<SegmentedToggle value={view} onChange={setView} options={VIEW_OPTIONS} />
@@ -537,14 +539,14 @@ export default function TasksPageView() {
 					</div>
 				</div>
 
-				<TaskStatusWidgets
-					counts={statusCounts}
-					onSelect={(key) => {
-						if (key === 'assigned' || key === 'completed') setTab(key);
-						else if (!isCleaner && key === 'unassigned') setTab(key);
-					}}
-					visibleKeys={isCleaner ? ['assigned', 'completed', 'overdue'] : undefined}
-				/>
+				{!limitedView && (
+					<TaskStatusWidgets
+						counts={statusCounts}
+						onSelect={(key) => {
+							if (key === 'assigned' || key === 'completed' || key === 'unassigned') setTab(key);
+						}}
+					/>
+				)}
 
 				{flash && (
 					<div
@@ -582,7 +584,7 @@ export default function TasksPageView() {
 						? (
 							<EmptyState
 								title={
-									isCleaner
+									limitedView
 										? isCompleted ? 'No completed tasks' : 'No tasks assigned'
 										: isCompleted ? 'No completed tasks'
 											: isUnassigned ? 'No unassigned tasks'
@@ -591,7 +593,7 @@ export default function TasksPageView() {
 								message={
 									isCalendar
 										? 'No tasks due in this month with the current filters.'
-										: isCleaner
+										: limitedView
 											? isCompleted
 												? 'Your completed tasks will appear here.'
 												: 'You have no tasks assigned right now. Check back later or contact your admin.'
@@ -606,7 +608,7 @@ export default function TasksPageView() {
 										<button type="button" onClick={syncTasks} disabled={syncing} className="btn-primary mt-2">
 											{syncing ? 'Syncing…' : 'Sync Tasks Now'}
 										</button>
-									) : !isCleaner && isAssigned ? (
+									) : !limitedView && isAssigned ? (
 										<button type="button" onClick={() => setTab('unassigned')} className="btn-primary mt-2">
 											View unassigned tasks
 										</button>
