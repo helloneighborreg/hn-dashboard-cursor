@@ -3,7 +3,7 @@ import Head from 'next/head';
 import Link from 'next/link';
 import {
   Building2, LogIn, LogOut as LogOutIcon, CheckSquare,
-  RefreshCw, CalendarDays, Clock, ArrowRight, Plus,
+  RefreshCw, CalendarDays, Clock, ArrowRight, Plus, CircleCheckBig, AlertCircle,
 } from 'lucide-react';
 import { taskHeadline, taskGuestSubtitle, formatClock, reservationHeadline } from '../lib/taskDisplay';
 import { formatDateOrDash } from '../lib/dates';
@@ -83,6 +83,7 @@ function TaskList({ items }) {
 
 export default function DashboardPage() {
   const [data, setData] = useState(null);
+  const [taskCounts, setTaskCounts] = useState({ completed: 0, overdue: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [syncing, setSyncing] = useState(false);
@@ -92,12 +93,30 @@ export default function DashboardPage() {
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [showTransactionModal, setShowTransactionModal] = useState(false);
 
+  async function loadTaskCounts() {
+    try {
+      const params = new URLSearchParams({ counts_only: 'true', _: String(Date.now()) });
+      const json = await fetchJson('/api/tasks?' + params);
+      if (json?.counts) {
+        setTaskCounts({
+          completed: json.counts.completed ?? 0,
+          overdue: json.counts.overdue ?? 0,
+        });
+      }
+    } catch {
+      // Keep existing counts on failure.
+    }
+  }
+
   async function load() {
     setLoading(true);
     setError('');
     try {
-      const json = await fetchJson('/api/dashboard');
-      if (json) setData(json.data);
+      const [dashJson] = await Promise.all([
+        fetchJson('/api/dashboard'),
+        loadTaskCounts(),
+      ]);
+      if (dashJson) setData(dashJson.data);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -225,6 +244,23 @@ export default function DashboardPage() {
                   icon={CheckSquare}
                   color={(data.stats.tasks_unassigned ?? 0) > 0 ? 'red' : 'brand'}
                   sub="Needs assignee"
+                />
+              </Link>
+              <Link href="/tasks?tab=completed" className="block">
+                <StatCard
+                  label="Completed Tasks"
+                  value={taskCounts.completed}
+                  icon={CircleCheckBig}
+                  color="green"
+                />
+              </Link>
+              <Link href="/tasks?tab=overdue" className="block">
+                <StatCard
+                  label="Overdue Tasks"
+                  value={taskCounts.overdue}
+                  icon={AlertCircle}
+                  color={taskCounts.overdue > 0 ? 'red' : 'brand'}
+                  sub={taskCounts.overdue > 0 ? 'Needs attention' : undefined}
                 />
               </Link>
               <StatCard label="Upcoming Check-ins" value={data.stats.upcoming_checkins} icon={CalendarDays} color="brand" />
