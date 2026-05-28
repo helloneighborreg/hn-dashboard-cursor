@@ -7,20 +7,18 @@ import { enrichTasks } from '../../../lib/taskEnrich';
 import { notifyTaskAssigned } from '../../../lib/notify';
 import { v4 as uuidv4 } from 'uuid';
 
-function buildBaseFilters(query, session) {
-	const { property_id, status, assignee, due_date, date_from, date_to, type } = query;
+function buildScopeFilters(query, session) {
+	const { property_id, assignee, due_date, date_from, date_to, type, status } = query;
 	const filters = {};
 
 	if (isCleaner(session.user)) {
-		filters.assigned = true;
 		filters.assignee = session.user.name;
-		filters.exclude_completed = true;
 	} else if (assignee) {
 		filters.assignee = assignee;
 	}
 
 	if (property_id) filters.property_id = property_id;
-	if (status) filters.status = status;
+	if (!isCleaner(session.user) && status) filters.status = status;
 	if (type) filters.type = type;
 	if (due_date) filters.due_date = due_date;
 	if (date_from) filters.date_from = date_from;
@@ -30,10 +28,16 @@ function buildBaseFilters(query, session) {
 }
 
 function applyTabFilter(filters, query, session) {
-	if (isCleaner(session.user)) return filters;
+	const { unassigned, assigned, completed } = query;
+
+	if (isCleaner(session.user)) {
+		if (completed === 'true') {
+			return { ...filters, status: 'completed' };
+		}
+		return { ...filters, assigned: true, exclude_completed: true };
+	}
 
 	const { status: _status, ...rest } = filters;
-	const { unassigned, assigned, completed } = query;
 
 	if (completed === 'true') {
 		// Completed tab shows every completed task — not scoped to one assignee.
@@ -55,8 +59,8 @@ export default async function handler(req, res) {
       if (req.method === 'GET') {
         res.setHeader('Cache-Control', 'no-store');
         const { today, counts_only } = req.query;
-        const baseFilters = buildBaseFilters(req.query, session);
-        const listFilters = applyTabFilter(baseFilters, req.query, session);
+        const scopeFilters = buildScopeFilters(req.query, session);
+        const listFilters = applyTabFilter(scopeFilters, req.query, session);
 
         const rows = today === 'true' ? await getTasksForToday() : await getTasks(listFilters);
         const enriched = await enrichTasks(rows);
@@ -67,7 +71,7 @@ export default async function handler(req, res) {
         if (counts_only === 'true') {
           const countRows = today === 'true'
             ? await getTasksForToday()
-            : await getTasks(baseFilters);
+            : await getTasks(scopeFilters);
           const countEnriched = await enrichTasks(countRows);
           const scoped = isCleaner(session.user)
             ? countEnriched.filter((t) => t.assignee === session.user.name)
@@ -77,7 +81,7 @@ export default async function handler(req, res) {
 
         const countRows = today === 'true'
           ? await getTasksForToday()
-          : await getTasks(baseFilters);
+          : await getTasks(scopeFilters);
         const countEnriched = await enrichTasks(countRows);
         const scoped = isCleaner(session.user)
           ? countEnriched.filter((t) => t.assignee === session.user.name)

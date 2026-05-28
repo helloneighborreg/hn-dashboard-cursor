@@ -28,6 +28,11 @@ const TAB_OPTIONS = [
 	{ value: 'completed', label: 'Completed' },
 ];
 
+const CLEANER_TAB_OPTIONS = [
+	{ value: 'assigned', label: 'Assigned' },
+	{ value: 'completed', label: 'Completed' },
+];
+
 const VIEW_OPTIONS = [
 	{ value: 'list', label: 'List' },
 	{ value: 'calendar', label: 'Calendar' },
@@ -238,7 +243,7 @@ export default function TasksPageView() {
 	const router = useRouter();
 	const { isAdmin, isCleaner } = useAuth();
 	const tab = isCleaner
-		? 'assigned'
+		? router.query.tab === 'completed' ? 'completed' : 'assigned'
 		: router.query.tab === 'assigned'
 			? 'assigned'
 			: router.query.tab === 'completed'
@@ -470,7 +475,9 @@ export default function TasksPageView() {
 	}
 
 	const tabSummary = isCleaner
-		? `${tasks.length} assigned to you`
+		? isCompleted
+			? `${tasks.length} completed by you`
+			: `${tasks.length} assigned to you`
 		: isCompleted
 			? `${tasks.length} completed`
 			: isUnassigned
@@ -501,6 +508,9 @@ export default function TasksPageView() {
 						{isAdmin && (
 							<SegmentedToggle value={tab} onChange={setTab} options={TAB_OPTIONS} />
 						)}
+						{isCleaner && (
+							<SegmentedToggle value={tab} onChange={setTab} options={CLEANER_TAB_OPTIONS} />
+						)}
 						<SegmentedToggle value={view} onChange={setView} options={VIEW_OPTIONS} />
 					</div>
 					<div className="flex flex-col gap-2 w-full md:w-auto md:flex-row md:items-center">
@@ -527,7 +537,14 @@ export default function TasksPageView() {
 					</div>
 				</div>
 
-				<TaskStatusWidgets counts={statusCounts} onSelect={isAdmin ? setTab : undefined} />
+				<TaskStatusWidgets
+					counts={statusCounts}
+					onSelect={(key) => {
+						if (key === 'assigned' || key === 'completed') setTab(key);
+						else if (!isCleaner && key === 'unassigned') setTab(key);
+					}}
+					visibleKeys={isCleaner ? ['assigned', 'completed', 'overdue'] : undefined}
+				/>
 
 				{flash && (
 					<div
@@ -565,7 +582,8 @@ export default function TasksPageView() {
 						? (
 							<EmptyState
 								title={
-									isCleaner ? 'No tasks assigned'
+									isCleaner
+										? isCompleted ? 'No completed tasks' : 'No tasks assigned'
 										: isCompleted ? 'No completed tasks'
 											: isUnassigned ? 'No unassigned tasks'
 												: 'No assigned tasks'
@@ -574,7 +592,9 @@ export default function TasksPageView() {
 									isCalendar
 										? 'No tasks due in this month with the current filters.'
 										: isCleaner
-											? 'You have no tasks assigned right now. Check back later or contact your admin.'
+											? isCompleted
+												? 'Your completed tasks will appear here.'
+												: 'You have no tasks assigned right now. Check back later or contact your admin.'
 											: isCompleted
 												? 'Completed tasks will appear here after you mark them done.'
 												: isUnassigned

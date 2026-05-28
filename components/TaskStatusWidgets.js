@@ -31,12 +31,16 @@ export const STATUS_WIDGETS = [
 	},
 ];
 
-export default function TaskStatusWidgets({ counts, onSelect }) {
+export default function TaskStatusWidgets({ counts, onSelect, visibleKeys }) {
 	const tabKeys = new Set(['unassigned', 'assigned', 'completed']);
+	const widgets = visibleKeys
+		? STATUS_WIDGETS.filter(({ key }) => visibleKeys.includes(key))
+		: STATUS_WIDGETS;
+	const gridCols = widgets.length === 3 ? 'sm:grid-cols-3' : 'sm:grid-cols-4';
 
 	return (
-		<div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6 w-full">
-			{STATUS_WIDGETS.map(({ key, label, border, bg, text }) => {
+		<div className={`grid grid-cols-2 ${gridCols} gap-3 sm:gap-4 mb-6 w-full`}>
+			{widgets.map(({ key, label, border, bg, text }) => {
 				const clickable = Boolean(onSelect && tabKeys.has(key));
 				const Tag = clickable ? 'button' : 'div';
 				return (
