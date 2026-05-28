@@ -28,6 +28,10 @@ function reservationFooter(r, mode) {
     const d = r.check_out || r.departure_date;
     return formatDateOrDash(d);
   }
+  if (mode === 'checkin') {
+    const d = r.check_in || r.arrival_date;
+    return formatDateOrDash(d);
+  }
   return `${r.nights} night${r.nights !== 1 ? 's' : ''}`;
 }
 
@@ -235,7 +239,13 @@ export default function DashboardPage() {
                     View all <ArrowRight size={12} />
                   </Link>
                 </div>
-                <ReservationList items={data.occupied} emptyMsg="No units occupied today" subtitle="guest-only" onSelect={setSelected} />
+                <ReservationList
+                  items={data.occupied}
+                  emptyMsg="No units occupied today"
+                  subtitle="guest-only"
+                  footer="checkout"
+                  onSelect={setSelected}
+                />
               </div>
 
               <div className="card p-5">
@@ -245,7 +255,13 @@ export default function DashboardPage() {
                     View all <ArrowRight size={12} />
                   </Link>
                 </div>
-                <ReservationList items={data.upcoming_check_ins} emptyMsg="No upcoming check-ins" subtitle="guest-only" onSelect={setSelected} />
+                <ReservationList
+                  items={data.upcoming_check_ins}
+                  emptyMsg="No upcoming check-ins"
+                  subtitle="guest-only"
+                  footer="checkin"
+                  onSelect={setSelected}
+                />
               </div>
 
               <div className="card p-5">
