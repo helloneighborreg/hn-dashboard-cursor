@@ -1,6 +1,6 @@
 import { withAuth, isAdmin, isCleaner } from '../../../lib/auth';
 import { getTaskById, updateTask, deleteTask } from '../../../lib/db';
-import { notifyTaskAssigned, notifyTaskScheduleChanged } from '../../../lib/notify';
+import { notifyTaskAssigned, notifyTaskScheduleChanged, notifyIfTaskCompleted } from '../../../lib/notify';
 import { withChecklistUrl } from '../../../lib/checklistUrl';
 import { enrichTasks } from '../../../lib/taskEnrich';
 import { taskScheduleChanged } from '../../../lib/taskSchedule';
@@ -54,7 +54,15 @@ export default async function handler(req, res) {
 				}
 			}
 
-			return res.json({ data: enriched, notified });
+			let completionNotified = null;
+			try {
+				completionNotified = await notifyIfTaskCompleted(task, updated);
+			} catch (err) {
+				console.error('Task completion notify failed:', err.message);
+				completionNotified = { skipped: true, reason: 'error' };
+			}
+
+			return res.json({ data: enriched, notified, completionNotified });
 		}
 		if (req.method === 'DELETE') {
 			if (!isAdmin(session.user)) {

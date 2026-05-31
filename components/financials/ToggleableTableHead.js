@@ -26,23 +26,29 @@ export function ToggleableTableHead({ label, onHide, align = 'left', className }
 	);
 }
 
-export function HiddenColumnsBar({ columns, labels, onShow }) {
-	if (!columns.length) return null;
+export function HiddenColumnsBar({ columns, labels, onShow, hint = 'Click the icon beside a column name to hide it.' }) {
+	if (!hint && columns.length === 0) return null;
 
 	return (
-		<div className="flex flex-wrap items-center gap-2 mb-3 text-xs">
-			<span className="text-muted">Hidden columns:</span>
-			{columns.map((key) => (
-				<button
-					key={key}
-					type="button"
-					onClick={() => onShow(key)}
-					className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-gray-100 text-muted hover:bg-gray-200 hover:text-dark transition-colors"
-				>
-					<Eye size={11} />
-					{labels[key] || key}
-				</button>
-			))}
+		<div className="flex flex-wrap items-center gap-x-3 gap-y-2 mb-3 px-4 pt-4 text-xs text-muted">
+			{hint && <span>{hint}</span>}
+			{hint && columns.length > 0 && <span aria-hidden="true">·</span>}
+			{columns.length > 0 && (
+				<>
+					<span className="text-dark/70">Hidden columns:</span>
+					{columns.map((key) => (
+						<button
+							key={key}
+							type="button"
+							onClick={() => onShow(key)}
+							className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-gray-100 text-muted hover:bg-gray-200 hover:text-dark transition-colors"
+						>
+							<Eye size={11} />
+							{labels[key] || key}
+						</button>
+					))}
+				</>
+			)}
 		</div>
 	);
 }

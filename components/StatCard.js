@@ -1,21 +1,24 @@
+import Link from 'next/link';
 import clsx from 'clsx';
 
-export default function StatCard({ label, value, sub, icon: Icon, color = 'brand', onClick, className }) {
+export default function StatCard({ label, value, sub, icon: Icon, color = 'brand', onClick, href, className }) {
   const colors = {
     brand:  { bg: 'bg-brand-50',   icon: 'text-brand-500',  border: 'border-brand-100' },
     green:  { bg: 'bg-green-50',   icon: 'text-green-600',  border: 'border-green-100' },
     amber:  { bg: 'bg-amber-50',   icon: 'text-amber-600',  border: 'border-amber-100' },
+    blue:   { bg: 'bg-blue-50',    icon: 'text-blue-600',   border: 'border-blue-100' },
     red:    { bg: 'bg-red-50',     icon: 'text-red-500',    border: 'border-red-100' },
     purple: { bg: 'bg-purple-50',  icon: 'text-purple-600', border: 'border-purple-100' },
   };
   const c = colors[color] || colors.brand;
+  const interactive = Boolean(onClick || href);
 
-  return (
+  const card = (
     <div
       onClick={onClick}
       className={clsx(
         'bg-white rounded-xl border border-border shadow-card p-4 sm:p-5 flex items-start gap-3 sm:gap-4 w-full min-w-0 h-full min-h-[7.5rem]',
-        onClick && 'cursor-pointer hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-150',
+        interactive && 'cursor-pointer hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-150',
         className,
       )}
     >
@@ -31,4 +34,14 @@ export default function StatCard({ label, value, sub, icon: Icon, color = 'brand
       </div>
     </div>
   );
+
+  if (href) {
+    return (
+      <Link href={href} className="block h-full">
+        {card}
+      </Link>
+    );
+  }
+
+  return card;
 }

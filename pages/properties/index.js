@@ -2,8 +2,10 @@ import { useState, useEffect, useMemo } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Search, MapPin, Bed, Bath, Users, Wifi } from 'lucide-react';
+import { MapPin, Bed, Bath, Users, Wifi } from 'lucide-react';
 import Layout from '../../components/Layout';
+import PageActionButtons from '../../components/PageActionButtons';
+import PageSearchInput from '../../components/PageSearchInput';
 import { PageLoader, ErrorState, EmptyState } from '../../components/LoadingSpinner';
 import Badge from '../../components/Badge';
 import { fetchJson } from '../../lib/apiClient';
@@ -109,20 +111,19 @@ export default function PropertiesPage() {
   return (
     <>
       <Head><title>Properties — Hello Neighbor</title></Head>
-      <Layout title="Properties">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+      <Layout title="">
+        <div className="flex flex-col gap-4 mb-6 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <h1 className="text-2xl font-bold text-dark">Properties</h1>
             <p className="text-muted text-sm mt-0.5">{properties.length} total properties</p>
           </div>
-          <div className="relative w-full sm:w-72">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
-            <input
-              className="input pl-9"
+          <div className="flex flex-wrap items-center gap-2 justify-end w-full lg:w-auto">
+            <PageSearchInput
               placeholder="Search properties…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
+            <PageActionButtons onRefresh={load} refreshing={loading} />
           </div>
         </div>
 

@@ -1,7 +1,7 @@
 import { withAuth, isAdmin } from '../../../lib/auth';
 import { hasLimitedTasksView } from '../../../lib/roles';
 import { getTasks, createTask, getTasksForToday } from '../../../lib/db';
-import { countTasksByIndicator } from '../../../lib/constants';
+import { countTasksByIndicator, sortTasksByDateAsc, sortTasksByDateDesc } from '../../../lib/constants';
 import { getChecklistUrl } from '../../../lib/propertyChecklists';
 import { withChecklistUrl } from '../../../lib/checklistUrl';
 import { enrichTasks } from '../../../lib/taskEnrich';
@@ -29,35 +29,39 @@ function buildScopeFilters(query, session) {
 }
 
 function applyTabFilter(filters, query, session) {
-	const { unassigned, assigned, completed, overdue } = query;
+	const { unassigned, assigned, completed, overdue, calendar } = query;
+	const isCalendar = calendar === 'true';
 
 	if (hasLimitedTasksView(session.user)) {
 		if (completed === 'true') {
 			return { ...filters, status: 'completed' };
 		}
 		if (overdue === 'true') {
-			return { ...filters, assigned: true, exclude_completed: true, overdue: true };
+			return { ...filters, assigned: true, exclude_completed: true, overdue: true, sort_soonest: true };
 		}
-		return { ...filters, assigned: true, exclude_completed: true, exclude_overdue: true };
+		return { ...filters, assigned: true, exclude_completed: true, exclude_overdue: true, sort_soonest: true };
 	}
 
-	const { status: _status, ...rest } = filters;
+	const { status: scopeStatus, ...rest } = filters;
 
 	if (completed === 'true') {
-		// Completed tab shows every completed task — not scoped to one assignee.
-		const { assignee: _assignee, ...completedRest } = rest;
-		return { ...completedRest, status: 'completed' };
+		return { ...rest, status: 'completed' };
 	}
 	if (overdue === 'true') {
-		return { ...rest, assigned: true, exclude_completed: true, overdue: true };
+		const base = { ...rest, assigned: true, exclude_completed: true, overdue: true, sort_soonest: true };
+		return scopeStatus ? { ...base, status: scopeStatus } : base;
 	}
 	if (unassigned === 'true') {
-		return { ...rest, unassigned: true, exclude_completed: true };
+		const base = { ...rest, unassigned: true, exclude_completed: true, sort_soonest: true };
+		return scopeStatus ? { ...base, status: scopeStatus } : base;
 	}
 	if (assigned === 'true') {
-		return { ...rest, assigned: true, exclude_completed: true, exclude_overdue: true };
+		const base = { ...rest, assigned: true, sort_soonest: true };
+		if (scopeStatus) return { ...base, status: scopeStatus };
+		if (isCalendar) return { ...base, exclude_completed: true };
+		return { ...base, exclude_completed: true, exclude_overdue: true };
 	}
-	return filters;
+	return { ...rest, unassigned: true, exclude_completed: true, sort_soonest: true };
 }
 
 export default async function handler(req, res) {
@@ -72,9 +76,15 @@ export default async function handler(req, res) {
         const rows = today === 'true' ? await getTasksForToday() : await getTasks(listFilters);
         const enriched = await enrichTasks(rows);
         const limitedView = hasLimitedTasksView(session.user);
-        const data = limitedView
+        let data = limitedView
           ? enriched.filter((t) => t.assignee === session.user.name).map(withChecklistUrl)
           : enriched.map(withChecklistUrl);
+
+        if (listFilters.sort_soonest) {
+          data = sortTasksByDateAsc(data);
+        } else if (listFilters.status === 'completed') {
+          data = sortTasksByDateDesc(data);
+        }
 
         if (counts_only === 'true') {
           const countRows = today === 'true'

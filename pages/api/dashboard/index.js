@@ -1,6 +1,6 @@
 import { withAuth } from '../../../lib/auth';
 import { getCached } from '../../../lib/cache';
-import { sortTasksByDateDesc } from '../../../lib/constants';
+import { sortTasksByDateAsc } from '../../../lib/constants';
 import { getTasksForToday, getUnassignedTasksCount } from '../../../lib/db';
 import { enrichTasks } from '../../../lib/taskEnrich';
 import {
@@ -12,6 +12,10 @@ import {
 	reservationCheckOut,
 	withReservationPropertyName,
 } from '../../../lib/hospitable';
+import {
+	sortReservationsByCheckInAsc,
+	sortReservationsByCheckOutAsc,
+} from '../../../lib/reservationDates';
 import { format, addDays } from 'date-fns';
 
 const CACHE_TTL_MS = 60_000;
@@ -37,17 +41,23 @@ async function buildDashboardData() {
 	const ci = reservationCheckIn;
 	const co = reservationCheckOut;
 
-	const occupied = active.filter((r) => ci(r) <= todayStr && co(r) > todayStr).map(wp);
+	const occupied = sortReservationsByCheckOutAsc(
+		active.filter((r) => ci(r) <= todayStr && co(r) > todayStr).map(wp),
+	);
 	const checkInsToday = active.filter((r) => ci(r) === todayStr).map(wp);
 	const checkOutsToday = active.filter((r) => co(r) === todayStr).map(wp);
-	const upcomingCheckIns = active.filter((r) => ci(r) > todayStr && ci(r) <= in7days).map(wp);
-	const upcomingCheckOuts = active.filter((r) => co(r) > todayStr && co(r) <= in7days).map(wp);
+	const upcomingCheckIns = sortReservationsByCheckInAsc(
+		active.filter((r) => ci(r) > todayStr && ci(r) <= in7days).map(wp),
+	);
+	const upcomingCheckOuts = sortReservationsByCheckOutAsc(
+		active.filter((r) => co(r) > todayStr && co(r) <= in7days).map(wp),
+	);
 
 	const [todayTasksRaw, unassignedCount] = await Promise.all([
 		getTasksForToday(),
 		getUnassignedTasksCount(),
 	]);
-	const todayTasks = sortTasksByDateDesc(await enrichTasks(todayTasksRaw));
+	const todayTasks = sortTasksByDateAsc(await enrichTasks(todayTasksRaw));
 
 	return {
 		today: todayStr,
@@ -75,7 +85,7 @@ export default async function handler(req, res) {
 		if (req.method !== 'GET') return res.status(405).end();
 		try {
 			const todayStr = format(new Date(), 'yyyy-MM-dd');
-			const data = await getCached(`dashboard:v2:${todayStr}`, CACHE_TTL_MS, buildDashboardData);
+			const data = await getCached(`dashboard:v3:${todayStr}`, CACHE_TTL_MS, buildDashboardData);
 			res.json({ data });
 		} catch (err) {
 			console.error('Dashboard error:', err.message);

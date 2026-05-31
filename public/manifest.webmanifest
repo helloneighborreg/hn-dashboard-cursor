@@ -1,0 +1,27 @@
+{
+  "name": "Hello Neighbor Dashboard",
+  "short_name": "Hello Neighbor",
+  "description": "Hello Neighbor Real Estate Group operations dashboard",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1A2F3A",
+  "theme_color": "#5B9AB8",
+  "icons": [
+    {
+      "src": "/favicon-32x32.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    },
+    {
+      "src": "/logo-icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

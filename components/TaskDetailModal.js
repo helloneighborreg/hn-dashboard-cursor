@@ -103,7 +103,7 @@ export default function TaskDetailModal({ task, onClose, showAssignee = false })
 				</div>
 
 				<div className="p-4 border-t border-border space-y-2">
-					{task.checklist_url && (
+					{task.checklist_url && task.status !== 'completed' && (
 						<a
 							href={task.checklist_url}
 							target="_blank"
@@ -114,6 +114,17 @@ export default function TaskDetailModal({ task, onClose, showAssignee = false })
 							Open Checklist
 						</a>
 					)}
+					{task.completed_checklist_url && (
+						<a
+							href={task.completed_checklist_url}
+							target="_blank"
+							rel="noopener noreferrer"
+							className="flex items-center justify-center gap-2 w-full btn-secondary text-sm"
+						>
+							<ExternalLink size={14} />
+							View Completed Checklist
+						</a>
+					)}
 					{task.checklist_pdf_url && (
 						<a
 							href={task.checklist_pdf_url}
@@ -122,7 +133,7 @@ export default function TaskDetailModal({ task, onClose, showAssignee = false })
 							className="flex items-center justify-center gap-2 w-full btn-secondary text-sm"
 						>
 							<ExternalLink size={14} />
-							View Completed Checklist
+							View PDF
 						</a>
 					)}
 				</div>

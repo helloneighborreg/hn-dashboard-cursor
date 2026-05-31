@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
 import dynamic from 'next/dynamic';
-import { RefreshCw, DollarSign, TrendingUp, Home, BarChart3 } from 'lucide-react';
+import { DollarSign, TrendingUp, Home, BarChart3 } from 'lucide-react';
 import Layout from '../components/Layout';
+import PageActionButtons from '../components/PageActionButtons';
 import StatCard from '../components/StatCard';
 import { PageLoader, ErrorState } from '../components/LoadingSpinner';
 import FinancialsFilters from '../components/financials/FinancialsFilters';
@@ -64,14 +65,12 @@ export default function FinancialsPage() {
     <>
       <Head><title>Financials — Hello Neighbor</title></Head>
       <Layout title="">
-        <div className="flex items-start justify-between mb-6 gap-4">
+        <div className="flex flex-col gap-4 mb-6 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h1 className="text-2xl font-bold text-dark">Financials</h1>
             <p className="text-muted text-sm mt-0.5">Revenue, expenses & performance</p>
           </div>
-          <button type="button" onClick={load} className="btn-secondary text-xs gap-1.5">
-            <RefreshCw size={14} /> Refresh
-          </button>
+          <PageActionButtons onRefresh={load} refreshing={loading} />
         </div>
 
         <FinancialsFilters

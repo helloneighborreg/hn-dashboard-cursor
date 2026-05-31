@@ -1,10 +1,11 @@
 import { useState, useEffect, useMemo } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
-import { Filter, RefreshCw } from 'lucide-react';
 import Layout from '../components/Layout';
+import PageActionButtons from '../components/PageActionButtons';
+import PageSearchInput from '../components/PageSearchInput';
+import ReservationFiltersPanel from '../components/ReservationFiltersPanel';
 import Badge from '../components/Badge';
-import DateInput from '../components/DateInput';
 import ReservationPanel, { reservationGuestName } from '../components/ReservationPanel';
 import { PageLoader, ErrorState, EmptyState } from '../components/LoadingSpinner';
 import { fetchJson } from '../lib/apiClient';
@@ -13,8 +14,22 @@ import { formatClock } from '../lib/taskDisplay';
 import { groupReservationsByTimeline, reservationCheckInDate, reservationCheckOutDate } from '../lib/reservationDates';
 import { requireAuth } from '../lib/auth';
 
-const PLATFORMS = ['', 'airbnb', 'homeaway', 'booking_com', 'direct'];
-const STATUSES  = ['', 'accepted', 'cancelled', 'pending', 'inquiry'];
+const VALID_TABS = new Set(['future', 'active', 'past', 'cancelled']);
+
+function filtersFromQuery(query = {}) {
+  return {
+    property: typeof query.property === 'string' ? query.property : '',
+    status: typeof query.status === 'string' ? query.status : '',
+    platform: typeof query.platform === 'string' ? query.platform : '',
+    start: typeof query.start === 'string' ? query.start : '',
+    end: typeof query.end === 'string' ? query.end : '',
+  };
+}
+
+function tabFromQuery(query = {}) {
+  const tab = typeof query.tab === 'string' ? query.tab : '';
+  return VALID_TABS.has(tab) ? tab : 'active';
+}
 
 function fmt(dateStr) {
   return formatDateOrDash(dateStr);
@@ -31,14 +46,13 @@ export default function ReservationsPage() {
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [filters, setFilters] = useState({
-    property: '', status: '', platform: '', start: '', end: '',
-  });
+  const [filters, setFilters] = useState(() => filtersFromQuery(router.query));
   const [search, setSearch] = useState('');
-  const [meta, setMeta] = useState(null);
   const [selected, setSelected] = useState(null);
+  const [tab, setTab] = useState(() => tabFromQuery(router.query));
+  const [initializedFromQuery, setInitializedFromQuery] = useState(false);
 
-  async function load() {
+  async function load(overrides = {}) {
     setLoading(true); setError('');
     try {
       const propsJson = await fetchJson('/api/properties');
@@ -46,17 +60,17 @@ export default function ReservationsPage() {
       const props = propsJson.data || [];
       setProperties(props);
 
+      const active = { ...filters, ...overrides };
       const params = new URLSearchParams();
-      if (filters.property) params.set('property', filters.property);
-      if (filters.status) params.set('status', filters.status);
-      if (filters.platform) params.set('platform', filters.platform);
-      if (filters.start) params.set('start', filters.start);
-      if (filters.end) params.set('end', filters.end);
+      if (active.property) params.set('property', active.property);
+      if (active.status) params.set('status', active.status);
+      if (active.platform) params.set('platform', active.platform);
+      if (active.start) params.set('start', active.start);
+      if (active.end) params.set('end', active.end);
 
       const json = await fetchJson('/api/reservations?' + params);
       if (json) {
         setReservations(json.data || []);
-        setMeta(json.meta || null);
       }
     } catch (err) {
       setError(err.message);
@@ -65,7 +79,15 @@ export default function ReservationsPage() {
     }
   }
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    if (!router.isReady || initializedFromQuery) return;
+    const nextFilters = filtersFromQuery(router.query);
+    const nextTab = tabFromQuery(router.query);
+    setFilters(nextFilters);
+    setTab(nextTab);
+    setInitializedFromQuery(true);
+    load(nextFilters);
+  }, [router.isReady, router.query, initializedFromQuery]);
 
   useEffect(() => {
     const code = router.query.code;
@@ -95,21 +117,23 @@ export default function ReservationsPage() {
     [filtered],
   );
 
-  const [tab, setTab] = useState('active');
   const displayed =
     tab === 'future' ? future
       : tab === 'active' ? active
         : tab === 'cancelled' ? cancelled
           : past;
 
-  const tabLabels = {
-    future: 'Future',
-    active: 'Active',
-    past: 'Past',
-    cancelled: 'Cancelled',
-  };
-
   function applyFilters() { load(); }
+
+  function selectTab(nextTab) {
+    setTab(nextTab);
+    const query = { ...router.query, tab: nextTab };
+    if (!filters.start) delete query.start;
+    else query.start = filters.start;
+    if (!filters.end) delete query.end;
+    else query.end = filters.end;
+    router.replace({ pathname: router.pathname, query }, undefined, { shallow: true });
+  }
 
   return (
     <>
@@ -123,75 +147,25 @@ export default function ReservationsPage() {
           />
         )}
 
-        <div className="flex items-start justify-between mb-6 gap-4">
+        <div className="flex flex-col gap-4 mb-6 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <h1 className="text-2xl font-bold text-dark">Reservations</h1>
-            <p className="text-muted text-sm mt-0.5">
-              {filtered.length} loaded
-              {meta?.date_from && meta?.date_to && !filters.start && !filters.end
-                ? ` · check-in ${meta.date_from} to ${meta.date_to}`
-                : ''}
-              {' · '}
-              {displayed.length} on {tabLabels[tab]} tab
-            </p>
-            <p className="text-muted text-xs mt-1">
-              Switch tabs to see Future, Active, Past, and Cancelled reservations.
-            </p>
           </div>
-          <button onClick={load} className="btn-secondary text-xs gap-1.5 flex-shrink-0">
-            <RefreshCw size={14} /> Refresh
-          </button>
-        </div>
-
-        {/* Filters */}
-        <div className="card p-4 mb-5">
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-            <div>
-              <label className="label">Property</label>
-              <select className="select" value={filters.property} onChange={(e) => setFilters(f => ({ ...f, property: e.target.value }))}>
-                <option value="">All properties</option>
-                {properties.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="label">Status</label>
-              <select className="select" value={filters.status} onChange={(e) => setFilters(f => ({ ...f, status: e.target.value }))}>
-                <option value="">All statuses</option>
-                {STATUSES.slice(1).map((s) => <option key={s} value={s} className="capitalize">{s}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="label">Platform</label>
-              <select className="select" value={filters.platform} onChange={(e) => setFilters(f => ({ ...f, platform: e.target.value }))}>
-                <option value="">All platforms</option>
-                <option value="airbnb">Airbnb</option>
-                <option value="homeaway">VRBO</option>
-                <option value="booking_com">Booking.com</option>
-                <option value="direct">Direct</option>
-              </select>
-            </div>
-            <div>
-              <label className="label">Check-in from</label>
-              <DateInput value={filters.start} onChange={(e) => setFilters(f => ({ ...f, start: e.target.value }))} />
-            </div>
-            <div>
-              <label className="label">Check-in to</label>
-              <DateInput value={filters.end} onChange={(e) => setFilters(f => ({ ...f, end: e.target.value }))} />
-            </div>
-            <div className="flex items-end">
-              <button onClick={applyFilters} className="btn-primary w-full justify-center gap-1.5">
-                <Filter size={14} /> Apply
-              </button>
-            </div>
+          <div className="flex flex-wrap items-center gap-2 justify-end w-full lg:w-auto">
+            <PageSearchInput
+              placeholder="Search code, property…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            <PageActionButtons onRefresh={load} refreshing={loading} />
           </div>
         </div>
 
-        {/* Search */}
-        <input
-          className="input mb-4"
-          placeholder="Search by code, property, or platform…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
+        <ReservationFiltersPanel
+          filters={filters}
+          setFilters={setFilters}
+          properties={properties}
+          onApply={applyFilters}
         />
 
         {/* Tabs */}
@@ -204,7 +178,7 @@ export default function ReservationsPage() {
           ].map(({ key, label }) => (
             <button
               key={key}
-              onClick={() => setTab(key)}
+              onClick={() => selectTab(key)}
               className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
                 tab === key ? 'border-brand-500 text-brand-600' : 'border-transparent text-muted hover:text-dark'
               }`}

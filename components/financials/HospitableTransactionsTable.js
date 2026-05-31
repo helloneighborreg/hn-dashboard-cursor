@@ -52,10 +52,12 @@ export default function HospitableTransactionsTable({ reservations, summary }) {
 
 	return (
 		<>
-			<p className="text-xs text-muted mb-4">
-				Each Hospitable fee type is shown in its own column. Click the icon beside a column name to hide it.
-			</p>
-			<HiddenColumnsBar columns={hiddenColumns} labels={columnLabels} onShow={show} />
+			<HiddenColumnsBar
+				columns={hiddenColumns}
+				labels={columnLabels}
+				onShow={show}
+				hint="Each Hospitable fee type is shown in its own column. Click the icon beside a column name to hide it."
+			/>
 			<div className="transactions-table-scroll">
 				<table className="w-full text-sm">
 					<thead>

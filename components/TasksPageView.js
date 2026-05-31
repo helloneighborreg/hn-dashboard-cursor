@@ -1,11 +1,11 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
-import { RefreshCw } from 'lucide-react';
-import { format, startOfMonth, endOfMonth } from 'date-fns';
+import { RefreshCw, ListChecks, FileText } from 'lucide-react';
+import { format, startOfMonth } from 'date-fns';
 import Layout from './Layout';
 import { PageLoader, ErrorState, EmptyState } from './LoadingSpinner';
-import { ASSIGNEES, isTaskAssigned, statusFromAssignee, sortTasksByDateDesc, taskIsOverdue } from '../lib/constants';
+import { ASSIGNEES, isTaskAssigned, statusFromAssignee, sortTasksByDateAsc, sortTasksByDateDesc, taskIsOverdue } from '../lib/constants';
 import {
 	taskHeadline,
 	taskGuestSubtitle,
@@ -20,8 +20,33 @@ import TaskFiltersPanel from './TaskFiltersPanel';
 import TaskCalendarView from './TaskCalendarView';
 import TaskDetailModal from './TaskDetailModal';
 import SegmentedToggle from './SegmentedToggle';
+import PageActionButtons from './PageActionButtons';
+import PageSearchInput from './PageSearchInput';
 import { useAuth } from './AuthContext';
 import { hasLimitedTasksView } from '../lib/roles';
+import { tabFromPathname, taskPathForTab, TASK_TAB_PATHS } from '../lib/taskRoutes';
+import { taskFiltersFromQuery, taskFiltersToQuery, EMPTY_TASK_FILTERS } from '../lib/taskFilters';
+import { buildTaskFilterParams } from '../lib/taskCounts';
+import { useTaskCounts } from './TaskCountsContext';
+import { useColumnVisibility } from './financials/useColumnVisibility';
+import { ToggleableTableHead, HiddenColumnsBar } from './financials/ToggleableTableHead';
+
+const TASK_COLUMN_LABELS = {
+	status: 'Status',
+	task: 'Task',
+	checkout: 'Check-out',
+	due: 'Due',
+	assignee: 'Assignee',
+	checklist: 'Checklist',
+	pdf: 'PDF',
+	admin: 'Admin',
+};
+
+function adminTaskColumns(isCompleted) {
+	return isCompleted
+		? ['status', 'task', 'checkout', 'due', 'assignee', 'checklist', 'pdf']
+		: ['status', 'task', 'checkout', 'due', 'assignee', 'checklist', 'pdf', 'admin'];
+}
 
 const LIMITED_WIDGET_KEYS = ['assigned', 'completed', 'overdue'];
 
@@ -70,16 +95,18 @@ function useTaskActions(task, onUpdate, onAssigneeChanged) {
 	return { patch, saving };
 }
 
-function ChecklistLink({ url }) {
+function ChecklistLink({ url, label = 'Open checklist' }) {
 	if (!url) return <span className="text-xs text-muted">—</span>;
 	return (
 		<a
 			href={url}
 			target="_blank"
 			rel="noopener noreferrer"
-			className="btn-secondary text-xs whitespace-nowrap inline-flex"
+			className="inline-flex items-center justify-center w-8 h-8 border border-border rounded text-muted hover:text-dark hover:bg-gray-50 transition-colors"
+			title={label}
+			aria-label={label}
 		>
-			Open Checklist
+			<ListChecks size={16} />
 		</a>
 	);
 }
@@ -91,18 +118,24 @@ function ChecklistPdfLink({ url }) {
 			href={url}
 			target="_blank"
 			rel="noopener noreferrer"
-			className="btn-secondary text-xs whitespace-nowrap inline-flex"
+			className="inline-flex items-center justify-center w-8 h-8 border border-border rounded text-muted hover:text-dark hover:bg-gray-50 transition-colors"
+			title="View PDF"
+			aria-label="View PDF"
 		>
-			View PDF
+			<FileText size={16} />
 		</a>
 	);
 }
 
-function TaskItem({ task, variant, onUpdate, onAssigneeChanged, showAdmin, readOnly, assigneeReadOnly }) {
+function TaskItem({ task, variant, onUpdate, onAssigneeChanged, showAdmin, readOnly, assigneeReadOnly, isColumnVisible, isCompletedTab }) {
 	const { patch, saving } = useTaskActions(task, onUpdate, onAssigneeChanged);
 	const isOverdue = taskIsOverdue(task);
 	const completed = task.status === 'completed';
 	const isCard = variant === 'card';
+
+	function showCol(key) {
+		return !isColumnVisible || isColumnVisible(key);
+	}
 
 	function setAssignee(value) {
 		const assignee = value || null;
@@ -130,6 +163,9 @@ function TaskItem({ task, variant, onUpdate, onAssigneeChanged, showAdmin, readO
 	) : (
 		<AdminCompleteButton onConfirm={markComplete} disabled={saving} size={isCard ? 'md' : 'sm'} />
 	);
+
+	const checklistUrl = isCompletedTab ? task.completed_checklist_url : task.checklist_url;
+	const checklistLabel = isCompletedTab ? 'View completed checklist' : 'Open checklist';
 
 	if (isCard) {
 		return (
@@ -167,8 +203,8 @@ function TaskItem({ task, variant, onUpdate, onAssigneeChanged, showAdmin, readO
 				</dl>
 
 				<div className="flex items-center gap-2 flex-wrap">
-					<ChecklistLink url={task.checklist_url} />
-					<ChecklistPdfLink url={task.checklist_pdf_url} />
+					<ChecklistLink url={checklistUrl} label={checklistLabel} />
+					{!isCompletedTab && <ChecklistPdfLink url={task.checklist_pdf_url} />}
 				</div>
 
 				{showAdmin && (
@@ -195,42 +231,54 @@ function TaskItem({ task, variant, onUpdate, onAssigneeChanged, showAdmin, readO
 
 	return (
 		<tr className="hover:bg-gray-50 transition-colors">
-			<td className="table-cell w-12">
-				<TaskStatusIndicator task={task} />
-			</td>
-			<td className="table-cell">
-				<div className="min-w-0">
-					<p className="text-sm font-semibold font-mono tracking-wide text-dark">
-						{taskHeadline(task)}
+			{showCol('status') && (
+				<td className="table-cell w-12">
+					<TaskStatusIndicator task={task} />
+				</td>
+			)}
+			{showCol('task') && (
+				<td className="table-cell">
+					<div className="min-w-0">
+						<p className="text-sm font-semibold font-mono tracking-wide text-dark">
+							{taskHeadline(task)}
+						</p>
+						<p className="text-xs text-muted mt-0.5">{taskGuestSubtitle(task)}</p>
+					</div>
+				</td>
+			)}
+			{showCol('checkout') && (
+				<td className="table-cell">
+					<p className="text-sm text-dark">{formatDateShort(task.checkout_date || task.due_date)}</p>
+					<p className="text-xs text-muted">{formatClock(task.start_time || '10:00')}</p>
+				</td>
+			)}
+			{showCol('due') && (
+				<td className="table-cell">
+					<p className={`text-sm ${isOverdue ? 'text-red-600 font-semibold' : 'text-dark'}`}>
+						{formatDateShort(task.due_date)}
 					</p>
-					<p className="text-xs text-muted mt-0.5">{taskGuestSubtitle(task)}</p>
-				</div>
-			</td>
-			<td className="table-cell">
-				<p className="text-sm text-dark">{formatDateShort(task.checkout_date || task.due_date)}</p>
-				<p className="text-xs text-muted">{formatClock(task.start_time || '10:00')}</p>
-			</td>
-			<td className="table-cell">
-				<p className={`text-sm ${isOverdue ? 'text-red-600 font-semibold' : 'text-dark'}`}>
-					{formatDateShort(task.due_date)}
-				</p>
-				<p className="text-xs text-muted">{formatClock(task.due_time || '16:00')}</p>
-				{isOverdue && <span className="text-xs text-red-600 font-medium">Overdue</span>}
-			</td>
-			{(assigneeReadOnly || !readOnly) && (
+					<p className="text-xs text-muted">{formatClock(task.due_time || '16:00')}</p>
+					{isOverdue && <span className="text-xs text-red-600 font-medium">Overdue</span>}
+				</td>
+			)}
+			{showCol('assignee') && (assigneeReadOnly || !readOnly) && (
 				<td className="table-cell">
 					{assigneeReadOnly
 						? <span className="text-sm text-dark">{task.assignee || '—'}</span>
 						: assigneeSelect}
 				</td>
 			)}
-			<td className="table-cell">
-				<ChecklistLink url={task.checklist_url} />
-			</td>
-			<td className="table-cell">
-				<ChecklistPdfLink url={task.checklist_pdf_url} />
-			</td>
-			{showAdmin && (
+			{showCol('checklist') && (
+				<td className="table-cell">
+					<ChecklistLink url={checklistUrl} label={checklistLabel} />
+				</td>
+			)}
+			{showCol('pdf') && (
+				<td className="table-cell">
+					<ChecklistPdfLink url={task.checklist_pdf_url} />
+				</td>
+			)}
+			{showCol('admin') && showAdmin && (
 				<td className="table-cell">{adminControl}</td>
 			)}
 		</tr>
@@ -241,19 +289,13 @@ export default function TasksPageView() {
 	const router = useRouter();
 	const { isAdmin, user } = useAuth();
 	const limitedView = hasLimitedTasksView(user);
-	const tab = limitedView
-		? router.query.tab === 'completed'
-			? 'completed'
-			: router.query.tab === 'overdue'
-				? 'overdue'
-				: 'assigned'
-		: router.query.tab === 'overdue'
-			? 'overdue'
-			: router.query.tab === 'assigned'
-			? 'assigned'
-			: router.query.tab === 'completed'
-				? 'completed'
-				: 'unassigned';
+	const routeTab = tabFromPathname(router.pathname);
+	const tab = routeTab
+		|| (router.query.tab === 'completed' ? 'completed'
+			: router.query.tab === 'overdue' ? 'overdue'
+				: router.query.tab === 'assigned' ? 'assigned'
+					: router.query.tab === 'unassigned' ? 'unassigned'
+						: limitedView ? 'assigned' : 'unassigned');
 	const view = router.query.view === 'calendar' ? 'calendar' : 'list';
 	const isUnassigned = tab === 'unassigned';
 	const isAssigned = tab === 'assigned';
@@ -261,10 +303,10 @@ export default function TasksPageView() {
 	const isOverdue = tab === 'overdue';
 	const isCalendar = view === 'calendar';
 	const readOnly = limitedView;
+	const adminColumns = useMemo(() => adminTaskColumns(isCompleted), [isCompleted]);
+	const { isVisible: isAdminColumnVisible, hide: hideColumn, show: showColumn, hiddenColumns } = useColumnVisibility(adminColumns);
+	const { counts: statusCounts, setTaskCounts, refreshTaskCounts: refreshGlobalTaskCounts } = useTaskCounts();
 	const [tasks, setTasks] = useState([]);
-	const [statusCounts, setStatusCounts] = useState({
-		unassigned: 0, assigned: 0, completed: 0, overdue: 0,
-	});
 	const [properties, setProperties] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [refreshing, setRefreshing] = useState(false);
@@ -275,14 +317,30 @@ export default function TasksPageView() {
 	const [flash, setFlash] = useState(null);
 	const [calendarMonth, setCalendarMonth] = useState(() => startOfMonth(new Date()));
 	const [selectedTask, setSelectedTask] = useState(null);
-	const [filters, setFilters] = useState({
-		property_id: '', status: '', assignee: '', date_from: '', date_to: '',
-		today: false,
-	});
+	const [filters, setFilters] = useState(EMPTY_TASK_FILTERS);
+	const [search, setSearch] = useState('');
 
 	const monthKey = format(calendarMonth, 'yyyy-MM');
 
-	const displayTasks = useMemo(() => sortTasksByDateDesc(tasks), [tasks]);
+	const filteredTasks = useMemo(() => {
+		if (!search.trim()) return tasks;
+		const q = search.toLowerCase();
+		return tasks.filter(
+			(t) =>
+				taskHeadline(t).toLowerCase().includes(q)
+				|| taskGuestSubtitle(t).toLowerCase().includes(q)
+				|| t.property_name?.toLowerCase().includes(q)
+				|| t.assignee?.toLowerCase().includes(q)
+				|| t.title?.toLowerCase().includes(q)
+				|| t.id?.toLowerCase().includes(q)
+				|| t.reservation_id?.toLowerCase().includes(q),
+		);
+	}, [tasks, search]);
+
+	const displayTasks = useMemo(() => {
+		if (isCompleted) return sortTasksByDateDesc(filteredTasks);
+		return sortTasksByDateAsc(filteredTasks);
+	}, [filteredTasks, isCompleted]);
 
 	useEffect(() => {
 		if (!limitedView) {
@@ -307,65 +365,43 @@ export default function TasksPageView() {
 	}, [limitedView, properties, tasks]);
 
 	const buildTaskParams = useCallback((includeTab = true) => {
-		const params = new URLSearchParams();
+		const applied = router.isReady ? taskFiltersFromQuery(router.query) : filters;
+		const params = buildTaskFilterParams(applied, { isCalendar, monthKey });
 		if (includeTab) {
 			if (isCompleted) params.set('completed', 'true');
 			else if (isOverdue) params.set('overdue', 'true');
 			else if (isUnassigned) params.set('unassigned', 'true');
 			else params.set('assigned', 'true');
 		}
-		const propertyId = router.query.property_id;
-		if (propertyId) params.set('property_id', String(propertyId));
-		if (filters.property_id) params.set('property_id', filters.property_id);
-		if (filters.status && includeTab && isAssigned) params.set('status', filters.status);
-		if (filters.assignee && !isCompleted) params.set('assignee', filters.assignee);
-
-		if (filters.today) {
-			params.set('today', 'true');
-		} else if (isCalendar) {
-			const [year, month] = monthKey.split('-').map(Number);
-			const monthDate = new Date(year, month - 1, 1);
-			const monthStart = format(startOfMonth(monthDate), 'yyyy-MM-dd');
-			const monthEnd = format(endOfMonth(monthDate), 'yyyy-MM-dd');
-			const dateFrom = filters.date_from && filters.date_from > monthStart ? filters.date_from : monthStart;
-			const dateTo = filters.date_to && filters.date_to < monthEnd ? filters.date_to : monthEnd;
-			if (dateFrom <= dateTo) {
-				params.set('date_from', dateFrom);
-				params.set('date_to', dateTo);
-			}
-		} else {
-			if (filters.date_from) params.set('date_from', filters.date_from);
-			if (filters.date_to) params.set('date_to', filters.date_to);
-		}
-
 		return params;
 	}, [
-		filters.property_id,
-		filters.status,
-		filters.assignee,
-		filters.date_from,
-		filters.date_to,
-		filters.today,
+		filters,
+		router.isReady,
+		router.query.property_id,
+		router.query.assignee,
+		router.query.status,
+		router.query.date_from,
+		router.query.date_to,
+		router.query.today,
 		isUnassigned,
 		isAssigned,
 		isCompleted,
 		isOverdue,
 		isCalendar,
 		monthKey,
-		router.query.property_id,
 	]);
 
 	const refreshCounts = useCallback(async () => {
-		try {
-			const params = buildTaskParams(false);
-			params.set('counts_only', 'true');
-			params.set('_', String(Date.now()));
-			const json = await fetchJson('/api/tasks?' + params);
-			if (json?.counts) setStatusCounts(json.counts);
-		} catch {
-			// Keep existing counts on refresh failure.
-		}
-	}, [buildTaskParams]);
+		const applied = router.isReady ? taskFiltersFromQuery(router.query) : filters;
+		await refreshGlobalTaskCounts(applied, { isCalendar, monthKey });
+	}, [
+		filters,
+		router.isReady,
+		router.query,
+		isCalendar,
+		monthKey,
+		refreshGlobalTaskCounts,
+	]);
 
 	const loadTasks = useCallback(async () => {
 		const generation = ++fetchGenerationRef.current;
@@ -379,7 +415,7 @@ export default function TasksPageView() {
 			if (generation !== fetchGenerationRef.current) return;
 			if (json) {
 				setTasks(json.data || []);
-				if (json.counts) setStatusCounts(json.counts);
+				if (json.counts) setTaskCounts(json.counts);
 			}
 		} catch (err) {
 			if (generation !== fetchGenerationRef.current) return;
@@ -390,7 +426,7 @@ export default function TasksPageView() {
 			setRefreshing(false);
 			hasLoadedOnce.current = true;
 		}
-	}, [buildTaskParams]);
+	}, [buildTaskParams, setTaskCounts]);
 
 	async function syncTasks() {
 		setSyncing(true);
@@ -411,30 +447,69 @@ export default function TasksPageView() {
 
 	useEffect(() => {
 		if (!router.isReady) return;
-		const fromUrl = router.query.property_id;
-		if (typeof fromUrl === 'string' && fromUrl) {
-			setFilters((f) => (f.property_id === fromUrl ? f : { ...f, property_id: fromUrl }));
+		if (router.pathname !== '/tasks') return;
+		const tabParam = router.query.tab;
+		if (typeof tabParam !== 'string' || !TASK_TAB_PATHS[tabParam]) return;
+		const { tab: _tab, ...rest } = router.query;
+		router.replace({ pathname: TASK_TAB_PATHS[tabParam], query: rest }, undefined, { shallow: false });
+	}, [router.isReady, router.pathname, router.query.tab]);
+
+	useEffect(() => {
+		if (!router.isReady) return;
+		setFilters(taskFiltersFromQuery(router.query));
+	}, [router.isReady, router.pathname, router.query.property_id, router.query.assignee, router.query.status, router.query.date_from, router.query.date_to, router.query.today]);
+
+	const applyFilters = useCallback(() => {
+		const query = taskFiltersToQuery(filters, router.query);
+		if (router.query.view === 'calendar') {
+			query.view = 'calendar';
+			delete query.today;
+			delete query.date_from;
+			delete query.date_to;
 		}
-	}, [router.isReady, router.query.property_id]);
+		router.replace({ pathname: router.pathname, query }, undefined, { shallow: true });
+	}, [filters, router]);
+
+	const setTab = useCallback((next) => {
+		const query = taskFiltersToQuery(filters, router.query);
+		if (router.query.view === 'calendar') {
+			query.view = 'calendar';
+			delete query.today;
+			delete query.date_from;
+			delete query.date_to;
+		}
+		router.replace({ pathname: taskPathForTab(next), query }, undefined, { shallow: false });
+	}, [router, filters]);
+
+	const setView = useCallback((next) => {
+		const query = taskFiltersToQuery(filters, router.query);
+		if (next === 'calendar') {
+			query.view = 'calendar';
+			delete query.today;
+			delete query.date_from;
+			delete query.date_to;
+		} else {
+			delete query.view;
+		}
+		router.replace({ pathname: router.pathname, query }, undefined, { shallow: true });
+	}, [router, filters]);
 
 	useEffect(() => {
 		if (!router.isReady) return;
 		loadTasks();
-	}, [router.isReady, tab, view, monthKey, loadTasks]);
-
-	const setTab = useCallback((next) => {
-		const query = { ...router.query };
-		if (next === 'unassigned' || (limitedView && next === 'assigned')) delete query.tab;
-		else query.tab = next;
-		router.replace({ pathname: '/tasks', query }, undefined, { shallow: true });
-	}, [router, limitedView]);
-
-	const setView = useCallback((next) => {
-		const query = { ...router.query };
-		if (next === 'calendar') query.view = 'calendar';
-		else delete query.view;
-		router.replace({ pathname: '/tasks', query }, undefined, { shallow: true });
-	}, [router]);
+	}, [
+		router.isReady,
+		tab,
+		view,
+		monthKey,
+		loadTasks,
+		router.query.property_id,
+		router.query.assignee,
+		router.query.status,
+		router.query.date_from,
+		router.query.date_to,
+		router.query.today,
+	]);
 
 	const handleAssigneeChanged = useCallback(({ assignee, notified, error: assigneeError }) => {
 		if (assigneeError) {
@@ -446,7 +521,7 @@ export default function TasksPageView() {
 		let message = `Assigned to ${assignee}.`;
 		if (tab === 'unassigned') {
 			setTab('assigned');
-			message += ' Switched to the Assigned tab.';
+			message += ' Switched to Assigned.';
 		}
 
 		if (notified?.emailed || notified?.texted) {
@@ -477,27 +552,13 @@ export default function TasksPageView() {
 		if (!taskStaysOnTab(updated)) {
 			setTasks((prev) => prev.filter((t) => t.id !== updated.id));
 			if (updated.status === 'completed' && isAssigned) {
-				setFlash({ type: 'success', message: 'Task marked completed. View it on the Completed tab.' });
+				setFlash({ type: 'success', message: 'Task marked completed. View it under Tasks → Completed.' });
 			}
 		} else {
 			setTasks((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
 		}
 		refreshCounts();
 	}
-
-	const tabSummary = limitedView
-		? isCompleted
-			? `${tasks.length} completed by you`
-			: isOverdue
-				? `${tasks.length} overdue`
-				: `${tasks.length} assigned to you`
-		: isCompleted
-			? `${tasks.length} completed`
-			: isOverdue
-				? `${tasks.length} overdue`
-				: isUnassigned
-					? `${tasks.length} awaiting assignee`
-					: `${tasks.length} assigned`;
 
 	return (
 		<>
@@ -518,34 +579,24 @@ export default function TasksPageView() {
 							<h1 className="text-xl sm:text-2xl font-bold text-dark">
 								{limitedView ? 'My Tasks' : 'Tasks'}
 							</h1>
-							<p className="text-muted text-sm mt-0.5">{tabSummary}</p>
 						</div>
 						{isAdmin && (
 							<SegmentedToggle value={tab} onChange={setTab} options={TAB_OPTIONS} />
 						)}
 						<SegmentedToggle value={view} onChange={setView} options={VIEW_OPTIONS} />
 					</div>
-					<div className="flex flex-col gap-2 w-full md:w-auto md:flex-row md:items-center">
-						{isUnassigned && isAdmin && (
-							<button
-								type="button"
-								onClick={syncTasks}
-								disabled={syncing}
-								className="btn-secondary text-xs gap-1.5 justify-center w-full md:w-auto"
-							>
-								<RefreshCw size={14} className={syncing ? 'animate-spin' : ''} />
-								{syncing ? 'Syncing…' : 'Sync from Reservations'}
-							</button>
-						)}
-						<button
-							type="button"
-							onClick={loadTasks}
-							disabled={refreshing || loading}
-							className="btn-secondary text-xs gap-1.5 justify-center w-full md:w-auto"
-						>
-							<RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
-							{refreshing ? 'Refreshing…' : 'Refresh'}
-						</button>
+					<div className="flex flex-wrap items-center gap-2 justify-end w-full md:w-auto flex-shrink-0">
+						<PageSearchInput
+							placeholder="Search tasks…"
+							value={search}
+							onChange={(e) => setSearch(e.target.value)}
+						/>
+						<PageActionButtons
+							onRefresh={loadTasks}
+							onSynced={loadTasks}
+							showSync={isUnassigned && isAdmin}
+							refreshing={refreshing || loading}
+						/>
 					</div>
 				</div>
 
@@ -554,7 +605,7 @@ export default function TasksPageView() {
 					activeKey={tab}
 					onSelect={setTab}
 					visibleKeys={limitedView ? LIMITED_WIDGET_KEYS : undefined}
-					clickableKeys={limitedView ? LIMITED_WIDGET_KEYS : ['unassigned', 'assigned', 'completed']}
+					clickableKeys={limitedView ? LIMITED_WIDGET_KEYS : ['unassigned', 'assigned', 'completed', 'overdue']}
 				/>
 
 				{flash && (
@@ -574,10 +625,9 @@ export default function TasksPageView() {
 					filters={filters}
 					setFilters={setFilters}
 					properties={filterProperties}
-					isUnassigned={isUnassigned}
-					onApply={loadTasks}
-					showAssigneeFilter={isAdmin && !isCompleted}
-					showStatusFilter={isAssigned}
+					onApply={applyFilters}
+					isAdmin={isAdmin}
+					isCalendar={isCalendar}
 				/>
 
 				{loading && <PageLoader message="Loading tasks…" />}
@@ -632,6 +682,13 @@ export default function TasksPageView() {
 								}
 							/>
 						)
+						: displayTasks.length === 0
+							? (
+								<EmptyState
+									title="No tasks match your search"
+									message="Try a different search term"
+								/>
+							)
 						: isCalendar ? (
 							<TaskCalendarView
 								tasks={displayTasks}
@@ -653,22 +710,45 @@ export default function TasksPageView() {
 											showAdmin={isAdmin && !isCompleted}
 											readOnly={readOnly}
 											assigneeReadOnly={isCompleted}
+											isCompletedTab={isCompleted}
 										/>
 									))}
 								</div>
 
 								<div className="card overflow-x-auto hidden lg:block">
+									{isAdmin && (
+										<HiddenColumnsBar
+											columns={hiddenColumns}
+											labels={TASK_COLUMN_LABELS}
+											onShow={showColumn}
+											hint=""
+										/>
+									)}
 									<table className="w-full min-w-[900px]">
 										<thead className="bg-gray-50 border-b border-border">
 											<tr>
-												<th className="table-head">Status</th>
-												<th className="table-head">Task</th>
-												<th className="table-head">Check-out</th>
-												<th className="table-head">Due</th>
-												{(!readOnly || isCompleted) && <th className="table-head">Assignee</th>}
-												<th className="table-head">Checklist</th>
-												<th className="table-head">PDF</th>
-												{isAdmin && !isCompleted && <th className="table-head">Admin</th>}
+												{isAdmin ? (
+													adminColumns.map((key) =>
+														isAdminColumnVisible(key) ? (
+															<ToggleableTableHead
+																key={key}
+																label={TASK_COLUMN_LABELS[key]}
+																onHide={() => hideColumn(key)}
+																className={key === 'status' ? 'w-12' : undefined}
+															/>
+														) : null,
+													)
+												) : (
+													<>
+														<th className="table-head">Status</th>
+														<th className="table-head">Task</th>
+														<th className="table-head">Check-out</th>
+														<th className="table-head">Due</th>
+														{(!readOnly || isCompleted) && <th className="table-head">Assignee</th>}
+														<th className="table-head">Checklist</th>
+														<th className="table-head">PDF</th>
+													</>
+												)}
 											</tr>
 										</thead>
 										<tbody className="divide-y divide-border">
@@ -682,6 +762,8 @@ export default function TasksPageView() {
 													showAdmin={isAdmin && !isCompleted}
 													readOnly={readOnly}
 													assigneeReadOnly={isCompleted}
+													isColumnVisible={isAdmin ? isAdminColumnVisible : undefined}
+													isCompletedTab={isCompleted}
 												/>
 											))}
 										</tbody>

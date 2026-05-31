@@ -1,6 +1,7 @@
 import { format } from 'date-fns';
 import { Filter } from 'lucide-react';
 import DateInput from '../DateInput';
+import FilterPanel, { FilterField } from '../FilterPanel';
 import { ISO_DATE_FMT, todayIso } from '../../lib/dates';
 
 const PRESETS = [
@@ -26,14 +27,34 @@ const PRESETS = [
 	},
 ];
 
+function countActiveFilters(filters) {
+	return filters.property ? 1 : 0;
+}
+
+function filterSummary(filters, properties) {
+	const parts = [];
+	if (filters.property) {
+		const prop = properties.find((p) => p.id === filters.property);
+		parts.push(prop?.name || 'Property');
+	}
+	if (filters.date_from || filters.date_to) {
+		parts.push(`${filters.date_from || '…'} – ${filters.date_to || '…'}`);
+	}
+	return parts.join(' · ') || 'All properties';
+}
+
 export default function FinancialsFilters({ filters, properties, onChange, onApply }) {
+	const activeCount = countActiveFilters(filters);
+
 	return (
-		<div className="card p-4 mb-5">
-			<div className="grid grid-cols-2 md:grid-cols-4 gap-3 items-end">
-				<div>
-					<label className="label">Property</label>
+		<FilterPanel
+			activeCount={activeCount}
+			summary={filterSummary(filters, properties)}
+		>
+			<div className="flex flex-wrap items-end gap-2">
+				<FilterField label="Property" className="w-36 sm:w-40">
 					<select
-						className="select"
+						className="select-compact"
 						value={filters.property}
 						onChange={(e) => onChange({ ...filters, property: e.target.value })}
 					>
@@ -42,38 +63,38 @@ export default function FinancialsFilters({ filters, properties, onChange, onApp
 							<option key={p.id} value={p.id}>{p.name}</option>
 						))}
 					</select>
-				</div>
-				<div>
-					<label className="label">Date from</label>
+				</FilterField>
+				<FilterField label="Date from" className="w-28 sm:w-32">
 					<DateInput
+						className="input-compact w-full"
 						value={filters.date_from}
 						onChange={(e) => onChange({ ...filters, date_from: e.target.value })}
 					/>
-				</div>
-				<div>
-					<label className="label">Date to</label>
+				</FilterField>
+				<FilterField label="Date to" className="w-28 sm:w-32">
 					<DateInput
+						className="input-compact w-full"
 						value={filters.date_to}
 						onChange={(e) => onChange({ ...filters, date_to: e.target.value })}
 					/>
-				</div>
-				<button type="button" onClick={onApply} className="btn-primary justify-center gap-1.5">
+				</FilterField>
+				<button type="button" onClick={() => onApply()} className="btn-primary text-xs gap-1.5 justify-center py-1.5">
 					<Filter size={14} /> Apply
 				</button>
 			</div>
 
-			<div className="flex flex-wrap gap-2 mt-3">
+			<div className="flex flex-wrap gap-1.5 mt-2">
 				{PRESETS.map(({ label, from, to }) => (
 					<button
 						key={label}
 						type="button"
 						onClick={() => onApply({ date_from: from(), date_to: to() })}
-						className="text-xs px-3 py-1 rounded-full border border-border hover:border-brand-400 hover:text-brand-600 transition-colors"
+						className="text-xs px-2.5 py-1 rounded-full border border-border hover:border-brand-400 hover:text-brand-600 transition-colors"
 					>
 						{label}
 					</button>
 				))}
 			</div>
-		</div>
+		</FilterPanel>
 	);
 }

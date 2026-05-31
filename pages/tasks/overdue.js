@@ -1,7 +1,7 @@
 import TasksPageView from '../../components/TasksPageView';
 import { requireAuth } from '../../lib/auth';
 
-export default function AssignedTasksPage() {
+export default function OverdueTasksPage() {
 	return <TasksPageView />;
 }
 

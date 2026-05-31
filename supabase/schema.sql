@@ -8,6 +8,7 @@ create table if not exists tasks (
 	guest_name text not null default '',
 	checklist_url text,
 	fillout_submission_id text,
+	checklist_submission_url text,
 	checklist_pdf_url text,
 	title text not null,
 	description text not null default '',

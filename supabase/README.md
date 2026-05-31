@@ -63,6 +63,13 @@ TWILIO_FROM_NUMBER=+15551234567
 
 If these are not set, assignment still works; notifications are skipped with a server log warning.
 
+When a task is marked **completed** (admin button or Fillout webhook), the app emails configured recipients with a link to the checklist (and PDF when available).
+
+```env
+# Who receives completion emails (comma-separated). Defaults to admin emails on DASHBOARD_USERS.
+TASK_COMPLETION_NOTIFY_EMAIL=you@example.com
+```
+
 ## Fillout checklist (recommended)
 
 The **Open Checklist** button builds a Fillout URL with task details as query parameters.
@@ -118,9 +125,10 @@ Fillout sends nested JSON (`submission.urlParameters`, `submission.questions`, `
 Optional fields stored on the task:
 
 - `submissionId` — Fillout submission ID (included automatically)
+- Completed checklist URL — stored as `checklist_submission_url` (Fillout edit link with all answers)
 - PDF URL — shown in the **PDF** column on the tasks page. Map your generated document to `pdf_url` in Fillout’s webhook **Advanced view** body, or include it in `submission.documents`.
 
-Run migration `supabase/migrations/20260522_task_fillout.sql` for `fillout_submission_id` and `checklist_pdf_url` columns.
+Run migration `supabase/migrations/20260522_task_fillout.sql` for `fillout_submission_id` and `checklist_pdf_url` columns, then `supabase/migrations/20260530_task_checklist_submission_url.sql` for the completed checklist link.
 
 **Status dot colors:** red = unassigned, green = assigned, blue = completed (after Fillout submit).
 
@@ -141,7 +149,7 @@ After webhooks are configured, backfill historical Fillout submissions (PDF colu
 
 Or POST as admin to `/api/tasks/backfill-fillout` on your deployed app (same env var on Vercel).
 
-The script scans both checklist forms (Cascades + Kirkwood), matches submissions to tasks via `reservation_id` / `task_id`, and stores `checklist_pdf_url` from Fillout’s generated documents.
+The script scans both checklist forms (Cascades + Kirkwood), matches submissions to tasks via `reservation_id` / `task_id`, and stores `checklist_submission_url` (Fillout edit link) and `checklist_pdf_url` from Fillout’s generated documents.
 
 ### Multiple forms by property group (recommended for this portfolio)
 

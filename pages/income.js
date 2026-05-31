@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import Head from 'next/head';
-import { RefreshCw } from 'lucide-react';
 import Layout from '../components/Layout';
+import PageActionButtons from '../components/PageActionButtons';
 import { PageLoader, ErrorState } from '../components/LoadingSpinner';
 import FinancialsFilters from '../components/financials/FinancialsFilters';
 import IncomePanel from '../components/financials/IncomePanel';
@@ -62,16 +62,14 @@ export default function IncomePage() {
 		<>
 			<Head><title>Income — Hello Neighbor</title></Head>
 			<Layout title="">
-				<div className="flex items-start justify-between mb-6 gap-4">
+				<div className="flex flex-col gap-4 mb-6 sm:flex-row sm:items-start sm:justify-between">
 					<div>
 						<h1 className="text-2xl font-bold text-dark">Income</h1>
 						<p className="text-muted text-sm mt-0.5">
 							Hospitable imports and bank feed revenue
 						</p>
 					</div>
-					<button type="button" onClick={() => load()} className="btn-secondary text-xs gap-1.5">
-						<RefreshCw size={14} /> Refresh
-					</button>
+					<PageActionButtons onRefresh={() => load()} refreshing={loading} />
 				</div>
 
 				<FinancialsFilters

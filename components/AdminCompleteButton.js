@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Settings } from 'lucide-react';
 import clsx from 'clsx';
 
 /**
@@ -47,13 +48,15 @@ export default function AdminCompleteButton({ onConfirm, disabled, size = 'md' }
 		<button
 			type="button"
 			className={clsx(
-				'btn-secondary whitespace-nowrap',
-				sm ? 'text-xs py-1 px-2' : 'text-xs py-1.5 px-2.5',
+				'inline-flex items-center justify-center w-8 h-8 border border-border rounded text-muted hover:text-dark hover:bg-gray-50 transition-colors',
+				disabled && 'opacity-50 cursor-not-allowed hover:bg-transparent hover:text-muted',
 			)}
 			disabled={disabled}
 			onClick={() => setArmed(true)}
+			title="Mark task complete"
+			aria-label="Mark task complete"
 		>
-			Mark complete
+			<Settings size={16} />
 		</button>
 	);
 }

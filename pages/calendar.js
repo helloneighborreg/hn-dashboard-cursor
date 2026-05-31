@@ -5,6 +5,7 @@ import {
   format, addDays, subDays, isToday, parseISO, differenceInDays,
 } from 'date-fns';
 import Layout from '../components/Layout';
+import PageActionButtons from '../components/PageActionButtons';
 import ReservationPanel, { reservationGuestName } from '../components/ReservationPanel';
 import { fetchJson } from '../lib/apiClient';
 import { formatDateRange } from '../lib/dates';
@@ -90,25 +91,27 @@ export default function CalendarPage() {
         )}
 
         {/* Page header */}
-        <div className="flex items-center justify-between mb-5 gap-4">
+        <div className="flex flex-col gap-4 mb-5 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <h1 className="text-2xl font-bold text-dark">Calendar</h1>
             <p className="text-muted text-sm mt-0.5">Reservation timeline across all properties</p>
           </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <button onClick={goToday} className="btn-secondary text-sm">Today</button>
-            <div className="flex items-center border border-border rounded-lg overflow-hidden divide-x divide-border bg-white">
-              <button onClick={prev} className="px-2.5 py-2 hover:bg-gray-50 transition-colors text-dark">
-                <ChevronLeft size={16} />
-              </button>
-              <span className="px-4 py-2 text-sm font-medium text-dark whitespace-nowrap select-none">
-                {formatDateRange(startDate, endDate)}
-              </span>
-              <button onClick={next} className="px-2.5 py-2 hover:bg-gray-50 transition-colors text-dark">
-                <ChevronRight size={16} />
-              </button>
+          <div className="flex flex-col gap-3 w-full lg:w-auto lg:items-end">
+            <PageActionButtons onRefresh={load} refreshing={loading} />
+            <div className="flex items-center gap-2 flex-shrink-0 self-end">
+              <button onClick={goToday} className="btn-secondary text-sm">Today</button>
+              <div className="flex items-center border border-border rounded-lg overflow-hidden divide-x divide-border bg-white">
+                <button onClick={prev} className="px-2.5 py-2 hover:bg-gray-50 transition-colors text-dark">
+                  <ChevronLeft size={16} />
+                </button>
+                <span className="px-4 py-2 text-sm font-medium text-dark whitespace-nowrap select-none">
+                  {formatDateRange(startDate, endDate)}
+                </span>
+                <button onClick={next} className="px-2.5 py-2 hover:bg-gray-50 transition-colors text-dark">
+                  <ChevronRight size={16} />
+                </button>
+              </div>
             </div>
-            <button onClick={load} className="btn-secondary text-sm">↺</button>
           </div>
         </div>
 

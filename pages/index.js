@@ -45,9 +45,6 @@ export default function LoginPage() {
 
           {/* Card */}
           <div className="bg-white rounded-2xl shadow-2xl p-8">
-            <h2 className="text-lg font-semibold text-dark mb-1">Welcome back</h2>
-            <p className="text-muted text-sm mb-6">Sign in to access the dashboard</p>
-
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="label">Username</label>
@@ -56,7 +53,7 @@ export default function LoginPage() {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   className="input"
-                  placeholder="e.g. brandi"
+                  placeholder="Username"
                   autoComplete="username"
                 />
               </div>
@@ -69,7 +66,7 @@ export default function LoginPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="input pl-9 pr-10"
-                    placeholder="Enter your password"
+                    placeholder="Password"
                     autoComplete="current-password"
                     required
                   />
