@@ -19,6 +19,7 @@ import TaskStatusWidgets from './TaskStatusWidgets';
 import TaskFiltersPanel from './TaskFiltersPanel';
 import TaskCalendarView from './TaskCalendarView';
 import TaskDetailModal from './TaskDetailModal';
+import TaskPetIndicator from './TaskPetIndicator';
 import SegmentedToggle from './SegmentedToggle';
 import PageActionButtons from './PageActionButtons';
 import PageSearchInput from './PageSearchInput';
@@ -176,7 +177,10 @@ function TaskItem({ task, variant, onUpdate, onAssigneeChanged, showAdmin, readO
 						<p className="text-sm font-semibold font-mono tracking-wide leading-snug text-dark">
 							{taskHeadline(task)}
 						</p>
-						<p className="text-xs text-muted mt-1">{taskGuestSubtitle(task)}</p>
+						<p className="text-xs text-muted mt-1 flex items-center gap-1.5">
+							<span className="truncate">{taskGuestSubtitle(task)}</span>
+							<TaskPetIndicator task={task} size={13} />
+						</p>
 					</div>
 				</div>
 
@@ -242,7 +246,10 @@ function TaskItem({ task, variant, onUpdate, onAssigneeChanged, showAdmin, readO
 						<p className="text-sm font-semibold font-mono tracking-wide text-dark">
 							{taskHeadline(task)}
 						</p>
-						<p className="text-xs text-muted mt-0.5">{taskGuestSubtitle(task)}</p>
+						<p className="text-xs text-muted mt-0.5 flex items-center gap-1.5">
+							<span className="truncate">{taskGuestSubtitle(task)}</span>
+							<TaskPetIndicator task={task} size={13} />
+						</p>
 					</div>
 				</td>
 			)}

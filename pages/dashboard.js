@@ -15,6 +15,7 @@ import StatCard from '../components/StatCard';
 import Badge from '../components/Badge';
 import { PageLoader, ErrorState } from '../components/LoadingSpinner';
 import ReservationPanel, { reservationGuestName } from '../components/ReservationPanel';
+import TaskPetIndicator from '../components/TaskPetIndicator';
 import { requireAuth } from '../lib/auth';
 
 function reservationSubtitle(r, mode) {
@@ -69,7 +70,10 @@ function TaskList({ items }) {
         <li key={t.id} className="py-3 flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="text-sm font-semibold font-mono text-dark tracking-wide truncate">{taskHeadline(t)}</p>
-            <p className="text-xs text-muted mt-0.5">{taskGuestSubtitle(t)}</p>
+            <p className="text-xs text-muted mt-0.5 flex items-center gap-1.5">
+              <span className="truncate">{taskGuestSubtitle(t)}</span>
+              <TaskPetIndicator task={t} size={12} />
+            </p>
             <p className="text-xs text-muted mt-0.5">
               Due {formatDateShort(t.due_date)} · {formatClock(t.due_time || '16:00')}
             </p>

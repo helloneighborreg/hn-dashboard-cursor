@@ -6,6 +6,8 @@ create table if not exists tasks (
 	property_id text,
 	property_name text not null default '',
 	guest_name text not null default '',
+	has_pets boolean not null default false,
+	pet_count integer not null default 0,
 	checklist_url text,
 	fillout_submission_id text,
 	checklist_submission_url text,

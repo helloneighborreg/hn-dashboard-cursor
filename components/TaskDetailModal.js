@@ -1,4 +1,4 @@
-import { X, Home, CalendarDays, Clock, User, FileText, ExternalLink } from 'lucide-react';
+import { X, Home, CalendarDays, Clock, User, FileText, ExternalLink, Cat } from 'lucide-react';
 import clsx from 'clsx';
 import { formatTaskStatus, getTaskStatusIndicator, taskIsOverdue } from '../lib/constants';
 import {
@@ -7,7 +7,9 @@ import {
 	formatDateShort,
 	formatClock,
 } from '../lib/taskDisplay';
+import { taskHasPets, taskPetLabel } from '../lib/reservationPets';
 import TaskStatusIndicator from './TaskStatusIndicator';
+import TaskPetIndicator from './TaskPetIndicator';
 
 function DetailRow({ icon: Icon, label, value, mono, highlight }) {
 	return (
@@ -96,8 +98,20 @@ export default function TaskDetailModal({ task, onClose, showAssignee = false })
 						{task.description?.trim() && (
 							<DetailRow icon={FileText} label="Description" value={task.description.trim()} />
 						)}
+						{taskHasPets(task) && (
+							<DetailRow
+								icon={Cat}
+								label="Notes"
+								value={
+									<span className="inline-flex items-center gap-1.5">
+										<TaskPetIndicator task={task} size={16} />
+										<span>{taskPetLabel(task)}</span>
+									</span>
+								}
+							/>
+						)}
 						{task.notes?.trim() && (
-							<DetailRow icon={FileText} label="Notes" value={task.notes.trim()} />
+							<DetailRow icon={FileText} label={taskHasPets(task) ? 'Other notes' : 'Notes'} value={task.notes.trim()} />
 						)}
 					</div>
 				</div>

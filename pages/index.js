@@ -17,10 +17,15 @@ export default function LoginPage() {
     setError('');
     setLoading(true);
     try {
+      const trimmedUsername = username.trim();
+      if (!trimmedUsername) {
+        setError('Username is required.');
+        return;
+      }
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: username.trim() || undefined, password }),
+        body: JSON.stringify({ username: trimmedUsername, password }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) { setError(data.error || 'Invalid username or password'); return; }
@@ -53,8 +58,9 @@ export default function LoginPage() {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   className="input"
-                  placeholder="Username"
+                  placeholder="e.g. brandi"
                   autoComplete="username"
+                  required
                 />
               </div>
               <div>
@@ -88,7 +94,7 @@ export default function LoginPage() {
 
               <button
                 type="submit"
-                disabled={loading || !password}
+                disabled={loading || !password || !username.trim()}
                 className="btn-primary w-full justify-center py-2.5"
               >
                 {loading ? 'Signing in…' : 'Sign in'}

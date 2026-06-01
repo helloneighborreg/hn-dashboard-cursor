@@ -16,7 +16,9 @@ import clsx from 'clsx';
 import { getTaskStatusIndicator, sortTasksByDateDesc } from '../lib/constants';
 import { formatDate } from '../lib/dates';
 import { taskHeadline, formatClock } from '../lib/taskDisplay';
+import { taskHasPets, taskPetLabel } from '../lib/reservationPets';
 import TaskStatusIndicator from './TaskStatusIndicator';
+import TaskPetIndicator from './TaskPetIndicator';
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MAX_CHIPS = 3;
@@ -38,9 +40,12 @@ function TaskChip({ task, onSelect }) {
 				'w-full text-left rounded px-1.5 py-0.5 text-[10px] leading-tight border truncate transition-opacity hover:opacity-80',
 				CHIP_CLASS[kind],
 			)}
-			title={`${taskHeadline(task)} · due ${formatClock(task.due_time || '16:00')}`}
+			title={`${taskHeadline(task)} · due ${formatClock(task.due_time || '16:00')}${taskHasPets(task) ? ` · ${taskPetLabel(task)}` : ''}`}
 		>
-			{taskHeadline(task)}
+			<span className="inline-flex items-center gap-0.5 max-w-full min-w-0">
+				{taskHasPets(task) && <TaskPetIndicator task={task} size={10} className="opacity-90" />}
+				<span className="truncate">{taskHeadline(task)}</span>
+			</span>
 		</button>
 	);
 }

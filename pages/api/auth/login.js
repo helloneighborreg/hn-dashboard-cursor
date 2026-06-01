@@ -8,6 +8,9 @@ export default async function handler(req, res) {
 	if (!password) return res.status(400).json({ error: 'Password required' });
 
 	const config = getAuthConfigStatus();
+	if (!username?.trim() && config.dashboard_user_count > 1) {
+		return res.status(400).json({ error: 'Username is required.' });
+	}
 	if (!config.login_ready) {
 		if (!config.session_secret_ok) {
 			return res.status(503).json({
