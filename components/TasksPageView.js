@@ -174,13 +174,13 @@ function TaskItem({ task, variant, onUpdate, onAssigneeChanged, showAdmin, readO
 				<div className="flex items-start gap-3 min-w-0">
 					<TaskStatusIndicator task={task} />
 					<div className="min-w-0 flex-1">
-						<div className="flex items-center gap-2 flex-wrap">
-							<p className="text-sm font-semibold font-mono tracking-wide leading-snug text-dark">
-								{taskHeadline(task)}
-							</p>
-							<TaskPetIndicator task={task} size={12} />
-						</div>
-						<p className="text-xs text-muted mt-1">{taskGuestSubtitle(task)}</p>
+						<p className="text-sm font-semibold font-mono tracking-wide leading-snug text-dark">
+							{taskHeadline(task)}
+						</p>
+						<p className="text-xs text-muted mt-1 flex items-center gap-1.5">
+							<span className="truncate">{taskGuestSubtitle(task)}</span>
+							<TaskPetIndicator task={task} size={13} />
+						</p>
 					</div>
 				</div>
 
@@ -243,13 +243,13 @@ function TaskItem({ task, variant, onUpdate, onAssigneeChanged, showAdmin, readO
 			{showCol('task') && (
 				<td className="table-cell">
 					<div className="min-w-0">
-						<div className="flex items-center gap-2 flex-wrap">
-							<p className="text-sm font-semibold font-mono tracking-wide text-dark">
-								{taskHeadline(task)}
-							</p>
-							<TaskPetIndicator task={task} size={12} />
-						</div>
-						<p className="text-xs text-muted mt-0.5">{taskGuestSubtitle(task)}</p>
+						<p className="text-sm font-semibold font-mono tracking-wide text-dark">
+							{taskHeadline(task)}
+						</p>
+						<p className="text-xs text-muted mt-0.5 flex items-center gap-1.5">
+							<span className="truncate">{taskGuestSubtitle(task)}</span>
+							<TaskPetIndicator task={task} size={13} />
+						</p>
 					</div>
 				</td>
 			)}
