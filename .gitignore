@@ -5,6 +5,7 @@ node_modules/
 .next/
 .open-next/
 out/
+.wrangler/
 
 # env / secrets — never commit these
 .env
