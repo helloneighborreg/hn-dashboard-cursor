@@ -1,5 +1,10 @@
 import { withAuth } from '../../../lib/auth';
-import { getBankConnection, saveBankConnection, upsertBankTransactions } from '../../../lib/db';
+import {
+	deleteBankTransactionsByExternalIds,
+	getBankConnection,
+	saveBankConnection,
+	upsertBankTransactions,
+} from '../../../lib/db';
 import { plaidConfigured, syncPlaidTransactions } from '../../../lib/plaid';
 
 export default async function handler(req, res) {
@@ -18,12 +23,13 @@ export default async function handler(req, res) {
 				});
 			}
 
-			const { transactions, cursor } = await syncPlaidTransactions(
+			const { transactions, removedIds, cursor } = await syncPlaidTransactions(
 				connection.access_token,
 				connection.cursor,
 			);
 
 			await upsertBankTransactions(transactions);
+			const removed = await deleteBankTransactionsByExternalIds(removedIds);
 
 			const syncedAt = new Date().toISOString();
 			await saveBankConnection({
@@ -37,7 +43,7 @@ export default async function handler(req, res) {
 
 			res.json({
 				syncedAt,
-				stats: { transactions: transactions.length },
+				stats: { transactions: transactions.length, removed },
 			});
 		} catch (err) {
 			console.error('Bank sync error:', err.response?.data || err.message);
