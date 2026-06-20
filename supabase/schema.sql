@@ -3,6 +3,7 @@
 create table if not exists tasks (
 	id uuid primary key,
 	reservation_id text not null,
+	hospitable_reservation_id text,
 	property_id text,
 	property_name text not null default '',
 	guest_name text not null default '',
@@ -14,6 +15,8 @@ create table if not exists tasks (
 	checklist_pdf_url text,
 	title text not null,
 	description text not null default '',
+	checkin_date date,
+	checkin_time text not null default '16:00',
 	due_date date not null,
 	due_time text not null default '16:00',
 	checkout_date date,
@@ -54,8 +57,10 @@ grant all on table public.expenses to service_role;
 grant all on table public.tasks to postgres;
 grant all on table public.expenses to postgres;
 
-alter table public.tasks disable row level security;
-alter table public.expenses disable row level security;
+-- RLS is enabled as defense-in-depth. The app uses the service_role key (BYPASSRLS),
+-- so this does not affect app access; it only blocks anon/authenticated roles.
+alter table public.tasks enable row level security;
+alter table public.expenses enable row level security;
 
 create table if not exists bank_connection (
 	id text primary key default 'default',
@@ -80,17 +85,26 @@ create table if not exists bank_transactions (
 	pending boolean not null default false,
 	category text not null default '',
 	property_id text,
+	reviewed boolean not null default false,
+	hidden boolean not null default false,
+	notes text not null default '',
+	matched_reservation_id text,
+	matched_payout_amount numeric(12, 2),
+	reservation_splits jsonb not null default '[]'::jsonb,
 	created_at timestamptz not null default now(),
 	updated_at timestamptz not null default now()
 );
 
 create index if not exists bank_transactions_date on bank_transactions (date desc);
 create index if not exists bank_transactions_account on bank_transactions (account_id);
+create index if not exists bank_transactions_reviewed on bank_transactions (reviewed);
+create index if not exists bank_transactions_hidden on bank_transactions (hidden);
+create index if not exists bank_transactions_matched_reservation on bank_transactions (matched_reservation_id) where matched_reservation_id is not null;
 
 grant all on table public.bank_connection to service_role;
 grant all on table public.bank_transactions to service_role;
 grant all on table public.bank_connection to postgres;
 grant all on table public.bank_transactions to postgres;
 
-alter table public.bank_connection disable row level security;
-alter table public.bank_transactions disable row level security;
+alter table public.bank_connection enable row level security;
+alter table public.bank_transactions enable row level security;

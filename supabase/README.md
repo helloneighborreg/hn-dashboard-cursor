@@ -10,6 +10,23 @@
 1. Project → **SQL Editor** → **New query**
 2. Paste contents of `schema.sql` → **Run**
 
+### Later schema changes (migrations)
+
+Files under `supabase/migrations/` are **not** applied when you deploy the app. Each time the app needs new columns, run the matching `.sql` file manually:
+
+1. [Supabase Dashboard](https://supabase.com/dashboard) → your project → **SQL Editor** → **New query**
+2. Open the migration file in this repo (e.g. `migrations/20260604_task_checkin.sql`), copy all of it, paste into the editor
+3. Click **Run** (you should see “Success”)
+4. Locally: `npm run db:check` — it will confirm columns like `checkin_date` exist
+
+| Migration | What it adds |
+|-----------|----------------|
+| `20260604_task_checkin.sql` | `checkin_date`, `checkin_time` on `tasks` (Hospitable check-in + change notifications) |
+| `20260605_task_hospitable_id.sql` | `hospitable_reservation_id` — match tasks when checkout date changes |
+| `20260524_bank_transactions.sql` | `bank_connection` + `bank_transactions` (Plaid import) |
+| `20260606_bank_transaction_categorization.sql` | `reviewed`, `hidden`, `notes` on bank transactions (Bookkeeping tab) |
+| `20260607_bank_transaction_reservation_match.sql` | `matched_reservation_id`, `matched_payout_amount` — link bank deposits to Hospitable payouts |
+
 ## 3. API keys
 
 Project → **Settings** → **API**:
@@ -42,7 +59,7 @@ node scripts/import-db-json.mjs
 
 ## Task assignment notifications (optional)
 
-When an assignee is set on a task, the app emails and/or texts them. The same contacts are notified when **checkout or due date/time changes** on an already-assigned task (including after syncing from reservations).
+When an assignee is set on a task, the app emails and/or texts them. The same contacts are also notified when **booking details change** on their assigned task (checkout/check-in times, guest, pets, etc.), including after syncing from Hospitable.
 
 ```env
 # Email/phone on dashboard users (recommended)
@@ -65,9 +82,14 @@ If these are not set, assignment still works; notifications are skipped with a s
 
 When a task is marked **completed** (admin button or Fillout webhook), the app emails configured recipients with a link to the checklist (and PDF when available).
 
+When a linked **booking changes** (checkout/due dates, guest, pets, etc.), one email goes to **all recipients on the same To: line** — the assignee (if any) plus admin emails. Unassigned tasks email admins only. SMS (optional) still goes to the assignee’s phone only.
+
 ```env
-# Who receives completion emails (comma-separated). Defaults to admin emails on DASHBOARD_USERS.
+# Who receives completion and task-change emails (comma-separated).
+# Defaults to admin emails on DASHBOARD_USERS.
 TASK_COMPLETION_NOTIFY_EMAIL=you@example.com
+# Optional override for change emails only (otherwise same as above)
+TASK_CHANGE_NOTIFY_EMAIL=you@example.com
 ```
 
 ## Fillout checklist (recommended)
@@ -81,20 +103,20 @@ The **Open Checklist** button builds a Fillout URL with task details as query pa
 FILLOUT_CHECKLIST_BASE_URL=https://forms.fillout.com/t/your-form-id
 
 # Optional: rename URL params to match your Fillout field URL parameter names
-# FILLOUT_URL_PARAM_MAP={"property":"property","guest":"guest","reservation_id":"reservation_id","task_id":"task_id"}
+# FILLOUT_URL_PARAM_MAP={"property":"Property","guest":"Guest","reservation_id":"ReservationID","checkout_date":"CheckOut","task_id":"TaskID"}
 ```
 
 In Fillout, set each field’s **default value** to the matching **URL parameter** (same names as above, unless you customized the map).
 
 Parameters sent automatically:
 
-| Parameter | Value |
+| Internal field | Fillout URL param (default map) |
 |-----------|--------|
-| `property` | Property code (e.g. CJC8303) |
-| `guest` | Guest name |
-| `reservation_id` | Booking code (e.g. HM9CABAAY9) |
-| `task_id` | Internal task UUID (for webhook) |
-| `checkout_date` | Checkout date |
+| `property` | Property code (e.g. CJC8303) → `Property` |
+| `guest` | Guest name → `Guest` |
+| `reservation_id` | Booking code (e.g. HM9CABAAY9) → `ReservationID` |
+| `task_id` | Internal task UUID (for webhook) → `TaskID` |
+| `checkout_date` | Checkout date → `CheckOut` |
 | `assignee` | Assignee name, if set |
 
 ### 2. Completion webhook
@@ -111,12 +133,12 @@ FILLOUT_WEBHOOK_SECRET=choose-a-long-random-string
 
 Add header `x-fillout-secret: <same as FILLOUT_WEBHOOK_SECRET>`.
 
-**Critical:** Each checklist link from the dashboard includes `?task_id=…&reservation_id=…` (and other fields). In Fillout, create **URL parameter** hidden fields for at least:
+**Critical:** Each checklist link from the dashboard includes `?TaskID=…&ReservationID=…` (and other fields). In Fillout, create **URL parameter** hidden fields for at least:
 
 | URL param | Purpose |
 |-----------|---------|
-| `task_id` | Primary key — used to mark the correct task complete |
-| `reservation_id` | Fallback lookup (booking code, e.g. HM9CABAAY9) |
+| `TaskID` | Primary key — used to mark the correct task complete |
+| `ReservationID` | Fallback lookup (booking code, e.g. HM9CABAAY9) |
 
 Set each field’s default value to the matching URL parameter name (Fillout → field settings → prefilled from URL).
 
