@@ -1,10 +1,18 @@
-import { getSession, authenticateUser, getAuthConfigStatus } from '../../../lib/auth';
+import { getSession, authenticateUser, getAuthConfigStatus, applyRememberMe } from '../../../lib/auth';
 import { homePathForRole } from '../../../lib/roles';
+import { getClientIp, rateLimit } from '../../../lib/rateLimit';
 
 export default async function handler(req, res) {
 	if (req.method !== 'POST') return res.status(405).end();
 
-	const { username, password } = req.body;
+	// Throttle password guessing: 10 attempts per IP per minute.
+	const limit = rateLimit(`login:${getClientIp(req)}`, { limit: 10, windowMs: 60_000 });
+	if (!limit.allowed) {
+		res.setHeader('Retry-After', String(limit.retryAfterSec));
+		return res.status(429).json({ error: 'Too many login attempts. Please try again shortly.' });
+	}
+
+	const { username, password, rememberMe } = req.body;
 	if (!password) return res.status(400).json({ error: 'Password required' });
 
 	const config = getAuthConfigStatus();
@@ -35,6 +43,11 @@ export default async function handler(req, res) {
 
 		const session = await getSession(req, res);
 		session.user = user;
+		// Default cookie is 7 days; "Remember me" extends it for easier login.
+		if (rememberMe) {
+			session.remember_me = true;
+			applyRememberMe(session);
+		}
 		await session.save();
 
 		return res.json({

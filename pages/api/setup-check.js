@@ -25,7 +25,7 @@ function buildCheckResponse() {
 		fillout_backfill_url: '/api/tasks/backfill-fillout',
 		hint:
 			!token
-				? 'Add HOSPITABLE_API_TOKEN in Vercel → Settings → Environment Variables → Production, then Redeploy.'
+				? 'Add HOSPITABLE_API_TOKEN in Cloudflare → Workers → Settings → Variables and Secrets, then redeploy with --keep-vars.'
 				: token.length < 20
 					? 'HOSPITABLE_API_TOKEN looks too short — paste the full token from Hospitable.'
 					: null,
