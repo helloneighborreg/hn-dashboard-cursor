@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Plus, RefreshCw } from 'lucide-react';
 import { fetchJson } from '../lib/apiClient';
+import { formatSyncResultAlert } from '../lib/syncResultMessage';
 import TaskModal from './TaskModal';
 import ExpenseModal from './ExpenseModal';
 import { useAuth } from './AuthContext';
@@ -48,9 +49,12 @@ export default function PageActionButtons({
 	async function syncTasks() {
 		setSyncing(true);
 		try {
-			await fetchJson('/api/tasks/sync', { method: 'POST' });
+			const json = await fetchJson('/api/tasks/sync', { method: 'POST' });
+			if (json) alert(formatSyncResultAlert(json));
 			onSynced?.();
 			onRefresh?.();
+		} catch (err) {
+			alert('Sync failed: ' + err.message);
 		} finally {
 			setSyncing(false);
 		}

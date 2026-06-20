@@ -26,7 +26,7 @@ const MAX_CHIPS = 3;
 const CHIP_CLASS = {
 	completed: 'bg-green-100 text-green-900 border-green-200',
 	assigned: 'bg-yellow-100 text-yellow-900 border-yellow-200',
-	unassigned: 'bg-red-100 text-red-900 border-red-200',
+	unassigned: 'bg-white text-dark border-border',
 	overdue: 'bg-red-50 text-red-800 border-red-300',
 };
 

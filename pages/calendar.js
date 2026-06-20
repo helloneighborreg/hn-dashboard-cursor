@@ -9,26 +9,13 @@ import PageActionButtons from '../components/PageActionButtons';
 import ReservationPanel, { reservationGuestName } from '../components/ReservationPanel';
 import { fetchJson } from '../lib/apiClient';
 import { formatDateRange } from '../lib/dates';
+import { platformStyle } from '../lib/platformStyles';
 import { requireAuth } from '../lib/auth';
 
 const COL_W    = 42;
 const ROW_H    = 48;
 const NAME_W   = 180;
 const NUM_DAYS = 28;
-
-const PLATFORM_STYLES = {
-  airbnb:      { bg: '#E31C5F', text: '#fff', label: 'Airbnb' },
-  homeaway:    { bg: '#00A699', text: '#fff', label: 'VRBO / HomeAway' },
-  vrbo:        { bg: '#00A699', text: '#fff', label: 'VRBO' },
-  booking_com: { bg: '#003580', text: '#fff', label: 'Booking.com' },
-  direct:      { bg: '#5B9AB8', text: '#fff', label: 'Direct' },
-  hospitable:  { bg: '#5B9AB8', text: '#fff', label: 'Direct' },
-  manual:      { bg: '#5B9AB8', text: '#fff', label: 'Direct / Manual' },
-};
-
-function platformStyle(p) {
-  return PLATFORM_STYLES[p] || { bg: '#9CA3AF', text: '#fff', label: p || 'Unknown' };
-}
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 

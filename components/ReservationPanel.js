@@ -3,20 +3,9 @@ import {
 } from 'lucide-react';
 import { differenceInDays, parseISO } from 'date-fns';
 import { formatDateOrDash } from '../lib/dates';
-
-const PLATFORM_STYLES = {
-  airbnb:      { bg: '#E31C5F', text: '#fff', label: 'Airbnb' },
-  homeaway:    { bg: '#00A699', text: '#fff', label: 'VRBO / HomeAway' },
-  vrbo:        { bg: '#00A699', text: '#fff', label: 'VRBO' },
-  booking_com: { bg: '#003580', text: '#fff', label: 'Booking.com' },
-  direct:      { bg: '#5B9AB8', text: '#fff', label: 'Direct' },
-  hospitable:  { bg: '#5B9AB8', text: '#fff', label: 'Direct' },
-  manual:      { bg: '#5B9AB8', text: '#fff', label: 'Direct / Manual' },
-};
-
-function platformStyle(p) {
-  return PLATFORM_STYLES[p] || { bg: '#9CA3AF', text: '#fff', label: p || 'Unknown' };
-}
+import { platformStyle } from '../lib/platformStyles';
+import { useEscapeKey } from '../lib/useEscapeKey';
+import { useFocusTrap } from '../lib/useFocusTrap';
 
 export function reservationGuestName(resv) {
   if (resv.guest?.first_name || resv.guest?.last_name) {
@@ -46,6 +35,8 @@ function DetailRow({ icon: Icon, label, value, mono }) {
 }
 
 export default function ReservationPanel({ resv, propName, onClose }) {
+  useEscapeKey(onClose);
+  const dialogRef = useFocusTrap();
   const propertyLabel = propName || resv.property_name;
   if (!resv) return null;
   const ps = platformStyle(resv.platform);
@@ -59,7 +50,14 @@ export default function ReservationPanel({ resv, propName, onClose }) {
         className="fixed inset-0 z-40 bg-black/30 backdrop-blur-[1px]"
         onClick={onClose}
       />
-      <div className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-sm bg-white shadow-2xl flex flex-col overflow-hidden">
+      <div
+        ref={dialogRef}
+        tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Reservation: ${name}`}
+        className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-sm bg-white shadow-2xl flex flex-col overflow-hidden focus:outline-none"
+      >
         <div className="flex items-center justify-between px-5 py-4 border-b border-border">
           <div className="flex items-center gap-3">
             <div
@@ -73,7 +71,7 @@ export default function ReservationPanel({ resv, propName, onClose }) {
               <p className="text-xs text-muted truncate">{ps.label}</p>
             </div>
           </div>
-          <button onClick={onClose} className="text-muted hover:text-dark p-1 rounded-lg hover:bg-gray-100">
+          <button type="button" onClick={onClose} aria-label="Close" className="text-muted hover:text-dark p-1 rounded-lg hover:bg-gray-100">
             <X size={18} />
           </button>
         </div>

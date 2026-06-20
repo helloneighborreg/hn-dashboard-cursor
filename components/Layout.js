@@ -3,15 +3,18 @@ import { useRouter } from 'next/router';
 import Link from 'next/link';
 import {
   LayoutDashboard, Building2, CalendarDays, Calendar, CheckSquare,
-  DollarSign, LogOut, Menu, X, ChevronRight, ChevronDown, TrendingUp, Receipt, CircleCheckBig,
+  DollarSign, LogOut, Menu, X, ChevronRight, ChevronDown, TrendingUp, Receipt, CircleCheckBig, Tags, FileBarChart,
   UserX, UserCheck, AlertCircle, ClipboardList, Package, Wrench, ExternalLink,
+  PanelLeftClose, PanelLeft,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useAuth } from './AuthContext';
 import { useTaskCounts } from './TaskCountsContext';
 import { BrandLogo } from './Logo';
 import { homePathForRole, navItemsForRole, roleLabel } from '../lib/roles';
-import { taskCountKeyForHref } from '../lib/taskCounts';
+import { fetchJson } from '../lib/apiClient';
+
+const SIDEBAR_COLLAPSED_KEY = 'hn-sidebar-collapsed';
 
 const NAV_ICONS = {
   '/dashboard': LayoutDashboard,
@@ -24,20 +27,40 @@ const NAV_ICONS = {
   '/tasks/overdue': AlertCircle,
   '/tasks/completed': CircleCheckBig,
   '/financials': DollarSign,
-  '/income': TrendingUp,
-  '/expenses': Receipt,
+  '/transactions': Tags,
+  '/reports': FileBarChart,
   '/forms': ClipboardList,
   '/forms/extra-charge': DollarSign,
   '/forms/supply-request': Package,
   '/forms/maintenance-request': Wrench,
 };
 
-function navLinkClass(active) {
+function navLinkClass(active, collapsed) {
   return clsx(
-    'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors group',
+    'flex items-center rounded-lg text-sm font-medium transition-colors group',
+    collapsed ? 'justify-center px-2 py-2.5' : 'gap-3 px-3 py-2.5',
     active
       ? 'bg-brand-500 text-white'
       : 'text-white/70 hover:bg-white/10 hover:text-white',
+  );
+}
+
+function NavTooltip({ label, collapsed, children }) {
+  if (!collapsed) return children;
+  return (
+    <div className="relative group/tip w-full">
+      {children}
+      <span
+        role="tooltip"
+        className={clsx(
+          'pointer-events-none absolute left-full top-1/2 z-50 ml-2 -translate-y-1/2',
+          'whitespace-nowrap rounded-md bg-gray-900 px-2.5 py-1.5 text-xs font-medium text-white shadow-lg',
+          'opacity-0 transition-opacity duration-150 group-hover/tip:opacity-100',
+        )}
+      >
+        {label}
+      </span>
+    </div>
   );
 }
 
@@ -52,16 +75,22 @@ function userInitials(name) {
   return name.slice(0, 2).toUpperCase();
 }
 
-function NavChildLink({ child, pathname, onNavigate, count }) {
+function taskNavCount(href, taskCounts) {
+  if (href === '/tasks/unassigned') return taskCounts?.unassigned ?? 0;
+  if (href === '/tasks/overdue') return taskCounts?.overdue ?? 0;
+  return undefined;
+}
+
+function NavChildLink({ child, pathname, onNavigate, count, collapsed }) {
   const ChildIcon = child.icon;
   const childActive = !child.externalUrl && isNavActive(pathname, child.href);
-  const className = clsx(navLinkClass(childActive), 'mt-0.5 ml-4');
+  const className = clsx(navLinkClass(childActive, collapsed), collapsed ? 'mt-0.5' : 'mt-0.5 ml-4');
 
   const content = (
     <>
-      <ChildIcon size={16} className={clsx(childActive ? 'text-white' : 'text-white/50 group-hover:text-white')} />
-      {child.label}
-      {count != null && (
+      <ChildIcon size={collapsed ? 18 : 16} className={clsx(childActive ? 'text-white' : 'text-white/50 group-hover:text-white flex-shrink-0')} />
+      {!collapsed && child.label}
+      {!collapsed && count != null && (
         <span
           className={clsx(
             'ml-auto text-xs font-semibold tabular-nums rounded-full px-1.5 py-0.5 min-w-[1.25rem] text-center',
@@ -71,41 +100,81 @@ function NavChildLink({ child, pathname, onNavigate, count }) {
           {count}
         </span>
       )}
-      {child.externalUrl && (
+      {!collapsed && child.externalUrl && (
         <ExternalLink size={12} className="ml-auto opacity-50 group-hover:opacity-80 flex-shrink-0" />
       )}
-      {childActive && count == null && !child.externalUrl && (
+      {!collapsed && childActive && count == null && !child.externalUrl && (
         <ChevronRight size={14} className="ml-auto" />
+      )}
+      {collapsed && count != null && count > 0 && (
+        <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-brand-400" aria-hidden />
       )}
     </>
   );
 
-  if (child.externalUrl) {
-    return (
-      <a
-        href={child.externalUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        onClick={onNavigate}
-        className={className}
-      >
-        {content}
-      </a>
-    );
-  }
-
-  return (
-    <Link href={child.href} onClick={onNavigate} className={className}>
+  const link = child.externalUrl ? (
+    <a
+      href={child.externalUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      onClick={onNavigate}
+      className={clsx(className, collapsed && 'relative')}
+    >
+      {content}
+    </a>
+  ) : (
+    <Link href={child.href} onClick={onNavigate} className={clsx(className, collapsed && 'relative')}>
       {content}
     </Link>
   );
+
+  return (
+    <NavTooltip label={child.label} collapsed={collapsed}>
+      {link}
+    </NavTooltip>
+  );
 }
 
-function NavSection({ item, childItems, pathname, expanded, onToggle, onNavigate, taskCounts }) {
+function NavSection({
+  item,
+  childItems,
+  pathname,
+  expanded,
+  onToggle,
+  onNavigate,
+  taskCounts,
+  collapsed,
+  onExpandSidebar,
+}) {
   const Icon = item.icon;
   const childActive = childItems.some((child) => !child.externalUrl && isNavActive(pathname, child.href));
   const parentActive = !item.toggleOnly && isNavActive(pathname, item.href);
   const highlightParent = parentActive && !childActive;
+  const sectionActive = highlightParent || childActive;
+
+  function handleCollapsedSectionClick() {
+    onExpandSidebar();
+    if (!expanded) onToggle();
+  }
+
+  if (collapsed) {
+    const collapsedButton = (
+      <button
+        type="button"
+        onClick={handleCollapsedSectionClick}
+        className={clsx(navLinkClass(sectionActive, true), 'w-full')}
+        aria-label={`${item.label} — expand sidebar`}
+      >
+        <Icon size={18} className={clsx(sectionActive ? 'text-white' : 'text-white/50 group-hover:text-white')} />
+      </button>
+    );
+
+    return (
+      <NavTooltip label={item.label} collapsed>
+        {collapsedButton}
+      </NavTooltip>
+    );
+  }
 
   if (item.toggleOnly) {
     return (
@@ -114,7 +183,7 @@ function NavSection({ item, childItems, pathname, expanded, onToggle, onNavigate
           type="button"
           onClick={onToggle}
           aria-expanded={expanded}
-          className={clsx(navLinkClass(false), 'w-full')}
+          className={clsx(navLinkClass(false, false), 'w-full')}
         >
           <Icon size={18} className="text-white/50 group-hover:text-white" />
           {item.label}
@@ -123,14 +192,15 @@ function NavSection({ item, childItems, pathname, expanded, onToggle, onNavigate
             : <ChevronRight size={16} className="ml-auto text-white/50" />}
         </button>
         {expanded && childItems.map((child) => {
-          const countKey = item.href === '/tasks' ? taskCountKeyForHref(child.href) : null;
+          const count = taskNavCount(child.href, taskCounts);
           return (
             <NavChildLink
               key={child.href}
               child={child}
               pathname={pathname}
               onNavigate={onNavigate}
-              count={countKey ? (taskCounts?.[countKey] ?? 0) : undefined}
+              count={count}
+              collapsed={false}
             />
           );
         })}
@@ -144,7 +214,7 @@ function NavSection({ item, childItems, pathname, expanded, onToggle, onNavigate
         <Link
           href={item.href}
           onClick={onNavigate}
-          className={clsx(navLinkClass(highlightParent), 'flex-1 min-w-0')}
+          className={clsx(navLinkClass(highlightParent, false), 'flex-1 min-w-0')}
         >
           <Icon size={18} className={clsx(highlightParent || childActive ? 'text-white' : 'text-white/50 group-hover:text-white')} />
           {item.label}
@@ -161,14 +231,15 @@ function NavSection({ item, childItems, pathname, expanded, onToggle, onNavigate
         </button>
       </div>
       {expanded && childItems.map((child) => {
-        const countKey = item.href === '/tasks' ? taskCountKeyForHref(child.href) : null;
+        const count = taskNavCount(child.href, taskCounts);
         return (
           <NavChildLink
             key={child.href}
             child={child}
             pathname={pathname}
             onNavigate={onNavigate}
-            count={countKey ? (taskCounts?.[countKey] ?? 0) : undefined}
+            count={count}
+            collapsed={false}
           />
         );
       })}
@@ -181,7 +252,41 @@ export default function Layout({ children, title }) {
   const { user } = useAuth();
   const { counts: taskCounts } = useTaskCounts();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarCollapsedDesktop, setSidebarCollapsedDesktop] = useState(false);
   const [expandedSections, setExpandedSections] = useState({});
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(SIDEBAR_COLLAPSED_KEY);
+      if (stored === 'true') setSidebarCollapsed(true);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)');
+    const sync = () => setSidebarCollapsedDesktop(mq.matches && sidebarCollapsed);
+    sync();
+    mq.addEventListener('change', sync);
+    return () => mq.removeEventListener('change', sync);
+  }, [sidebarCollapsed]);
+
+  const collapsed = sidebarCollapsedDesktop;
+
+  function setCollapsed(next) {
+    setSidebarCollapsed(next);
+    try {
+      localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(next));
+    } catch {
+      /* ignore */
+    }
+  }
+
+  function expandSidebar() {
+    setCollapsed(false);
+  }
 
   const navItems = useMemo(
     () => navItemsForRole(user?.role).map((item) => ({
@@ -231,12 +336,16 @@ export default function Layout({ children, title }) {
   const homeHref = user ? homePathForRole(user.role) : '/';
 
   async function handleLogout() {
-    await fetch('/api/auth/logout', { method: 'POST' });
+    try {
+      await fetchJson('/api/auth/logout', { method: 'POST', redirectOn401: false });
+    } catch {
+      // Navigate to login regardless of logout response.
+    }
     router.push('/');
   }
 
   return (
-    <div className="min-h-screen bg-bg flex overflow-x-hidden">
+    <div className="min-h-screen bg-bg flex">
       {sidebarOpen && (
         <div
           className="fixed inset-0 z-20 bg-black/40 lg:hidden"
@@ -246,25 +355,65 @@ export default function Layout({ children, title }) {
 
       <aside
         className={clsx(
-          'fixed inset-y-0 left-0 z-30 w-64 bg-dark flex flex-col transition-transform duration-300 lg:static lg:translate-x-0',
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+          'fixed inset-y-0 left-0 z-30 w-64 flex-shrink-0 bg-dark flex flex-col transition-all duration-300 lg:static lg:translate-x-0 overflow-visible',
+          collapsed && 'lg:w-[4.5rem]',
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full',
         )}
       >
-        <div className="flex items-center justify-between px-5 py-5 border-b border-white/10">
+        <div
+          className={clsx(
+            'flex items-center border-b border-white/10',
+            collapsed ? 'justify-center px-2 py-4' : 'justify-between px-5 py-5',
+          )}
+        >
           <BrandLogo
             variant="sidebar"
             href={homeHref}
             onClick={() => setSidebarOpen(false)}
+            compact={collapsed}
           />
-          <button
-            className="lg:hidden text-white/60 hover:text-white"
-            onClick={() => setSidebarOpen(false)}
-          >
-            <X size={18} />
-          </button>
+          {!collapsed && (
+            <button
+              type="button"
+              className="lg:hidden text-white/60 hover:text-white"
+              onClick={() => setSidebarOpen(false)}
+              aria-label="Close menu"
+            >
+              <X size={18} />
+            </button>
+          )}
         </div>
 
-        <nav className="flex-1 py-4 px-3 space-y-0.5 overflow-y-auto">
+        <div className={clsx('hidden lg:block', collapsed ? 'px-2 py-2' : 'px-3 py-2')}>
+          <NavTooltip
+            label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            collapsed={collapsed}
+          >
+            <button
+              type="button"
+              onClick={() => setCollapsed(!sidebarCollapsed)}
+              className={clsx(
+                navLinkClass(false, collapsed),
+                'w-full text-white/60 hover:text-white',
+              )}
+              aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            >
+              {collapsed
+                ? <PanelLeft size={18} />
+                : <PanelLeftClose size={18} />}
+              {!collapsed && <span>Collapse</span>}
+            </button>
+          </NavTooltip>
+        </div>
+
+        <nav
+          className={clsx(
+            'flex-1 py-2 space-y-0.5',
+            // Expanded: scroll vertically, clip horizontally (avoids a coerced overflow-x:auto
+            // scrollbar). Collapsed: keep overflow visible so icon tooltips can escape the rail.
+            collapsed ? 'px-2 overflow-visible' : 'px-3 overflow-y-auto overflow-x-hidden',
+          )}
+        >
           {parentItems.map((item) => {
             const childItems = navItems.filter((child) => child.parent === item.href);
 
@@ -279,51 +428,72 @@ export default function Layout({ children, title }) {
                   onToggle={() => toggleSection(item.href, childItems, item.toggleOnly)}
                   onNavigate={closeSidebar}
                   taskCounts={taskCounts}
+                  collapsed={collapsed}
+                  onExpandSidebar={expandSidebar}
                 />
               );
             }
 
             const Icon = item.icon;
             const active = isNavActive(router.pathname, item.href);
-            return (
+            const link = (
               <Link
-                key={item.href}
                 href={item.href}
                 onClick={closeSidebar}
-                className={navLinkClass(active)}
+                className={navLinkClass(active, collapsed)}
               >
-                <Icon size={18} className={clsx(active ? 'text-white' : 'text-white/50 group-hover:text-white')} />
-                {item.label}
-                {active && <ChevronRight size={14} className="ml-auto" />}
+                <Icon size={18} className={clsx(active ? 'text-white' : 'text-white/50 group-hover:text-white flex-shrink-0')} />
+                {!collapsed && item.label}
+                {!collapsed && active && <ChevronRight size={14} className="ml-auto" />}
               </Link>
+            );
+            return (
+              <NavTooltip key={item.href} label={item.label} collapsed={collapsed}>
+                {link}
+              </NavTooltip>
             );
           })}
         </nav>
 
-        <div className="p-4 border-t border-white/10">
+        <div className={clsx('border-t border-white/10', collapsed ? 'p-2' : 'p-4')}>
           {user && (
-            <div className="flex items-center gap-3 mb-3 px-2">
-              <div className="w-8 h-8 rounded-full bg-brand-500 flex items-center justify-center flex-shrink-0">
-                <span className="text-white text-xs font-bold">{userInitials(user.name)}</span>
-              </div>
-              <div className="min-w-0">
-                <p className="text-white text-sm font-medium truncate">{user.name}</p>
-                <p className="text-white/40 text-xs truncate">{roleLabel(user.role)}</p>
-              </div>
+            <div
+              className={clsx(
+                'flex items-center mb-3',
+                collapsed ? 'justify-center' : 'gap-3 px-2',
+              )}
+            >
+              <NavTooltip label={user.name} collapsed={collapsed}>
+                <div className="w-8 h-8 rounded-full bg-brand-500 flex items-center justify-center flex-shrink-0">
+                  <span className="text-white text-xs font-bold">{userInitials(user.name)}</span>
+                </div>
+              </NavTooltip>
+              {!collapsed && (
+                <div className="min-w-0">
+                  <p className="text-white text-sm font-medium truncate">{user.name}</p>
+                  <p className="text-white/40 text-xs truncate">{roleLabel(user.role)}</p>
+                </div>
+              )}
             </div>
           )}
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-white/60 hover:text-white hover:bg-white/10 transition-colors"
-          >
-            <LogOut size={16} />
-            Sign out
-          </button>
+          <NavTooltip label="Sign out" collapsed={collapsed}>
+            <button
+              type="button"
+              onClick={handleLogout}
+              className={clsx(
+                'w-full flex items-center rounded-lg text-sm text-white/60 hover:text-white hover:bg-white/10 transition-colors',
+                collapsed ? 'justify-center px-2 py-2.5' : 'gap-3 px-3 py-2.5',
+              )}
+            >
+              <LogOut size={collapsed ? 18 : 16} />
+              {!collapsed && 'Sign out'}
+            </button>
+          </NavTooltip>
         </div>
       </aside>
 
-      <div className="flex-1 flex flex-col min-w-0 w-full max-w-full lg:ml-0">
-        <header className="bg-white border-b border-border px-4 py-3 flex items-center gap-3 lg:hidden sticky top-0 z-10">
+      <div className="flex-1 flex flex-col min-w-0 w-full max-w-full overflow-hidden">
+        <header className="bg-white border-b border-border px-4 py-3 flex items-center gap-3 lg:hidden sticky top-0 z-10 shrink-0">
           <button
             onClick={() => setSidebarOpen(true)}
             className="text-dark hover:text-brand-500 transition-colors"
@@ -333,11 +503,20 @@ export default function Layout({ children, title }) {
           <BrandLogo variant="header" title={title} />
         </header>
 
-        <main className="flex-1 w-full max-w-full p-4 lg:p-8 overflow-y-auto overflow-x-hidden">
+        <main className="flex-1 flex flex-col min-w-0 overflow-y-auto">
           {title && (
-            <h1 className="text-xl font-bold text-dark mb-6 hidden lg:block">{title}</h1>
+            <div className="shrink-0 px-4 pt-4 lg:px-8 lg:pt-8 hidden lg:block">
+              <h1 className="text-xl sm:text-2xl font-bold text-dark">{title}</h1>
+            </div>
           )}
-          {children}
+          <div
+            className={clsx(
+              'flex-1 min-w-0 w-full px-4 pb-4 lg:px-8 lg:pb-8',
+              title ? 'pt-4' : 'pt-4 lg:pt-8',
+            )}
+          >
+            {children}
+          </div>
         </main>
       </div>
     </div>

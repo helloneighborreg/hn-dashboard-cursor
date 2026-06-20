@@ -1,4 +1,5 @@
-import { X, Home, CalendarDays, Clock, User, FileText, ExternalLink, Cat } from 'lucide-react';
+import { useState } from 'react';
+import { X, Home, CalendarDays, Clock, User, FileText, ExternalLink, Cat, Zap } from 'lucide-react';
 import clsx from 'clsx';
 import { formatTaskStatus, getTaskStatusIndicator, taskIsOverdue } from '../lib/constants';
 import {
@@ -8,6 +9,9 @@ import {
 	formatClock,
 } from '../lib/taskDisplay';
 import { taskHasPets, taskPetLabel } from '../lib/reservationPets';
+import { fetchJson } from '../lib/apiClient';
+import { useEscapeKey } from '../lib/useEscapeKey';
+import { useFocusTrap } from '../lib/useFocusTrap';
 import TaskStatusIndicator from './TaskStatusIndicator';
 import TaskPetIndicator from './TaskPetIndicator';
 
@@ -31,11 +35,31 @@ function DetailRow({ icon: Icon, label, value, mono, highlight }) {
 	);
 }
 
-export default function TaskDetailModal({ task, onClose, showAssignee = false }) {
+export default function TaskDetailModal({ task, onClose, showAssignee = false, showAdmin = false, onTaskUpdated }) {
+	const [webhookTesting, setWebhookTesting] = useState(false);
+	const [webhookResult, setWebhookResult] = useState(null);
+	useEscapeKey(onClose);
+	const dialogRef = useFocusTrap();
+
 	if (!task) return null;
 
 	const { label: statusLabel } = getTaskStatusIndicator(task);
 	const isOverdue = taskIsOverdue(task);
+
+	async function handleTestWebhook() {
+		setWebhookTesting(true);
+		setWebhookResult(null);
+		try {
+			const json = await fetchJson(`/api/tasks/${task.id}/test-fillout-webhook`, { method: 'POST' });
+			if (!json) return; // 401 → redirected to login
+			setWebhookResult({ type: 'success', message: json.message || 'Webhook test succeeded' });
+			if (json.data && onTaskUpdated) onTaskUpdated(json.data);
+		} catch (err) {
+			setWebhookResult({ type: 'error', message: err.message || 'Webhook test failed' });
+		} finally {
+			setWebhookTesting(false);
+		}
+	}
 
 	return (
 		<>
@@ -43,7 +67,14 @@ export default function TaskDetailModal({ task, onClose, showAssignee = false })
 				className="fixed inset-0 z-40 bg-black/30 backdrop-blur-[1px]"
 				onClick={onClose}
 			/>
-			<div className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-sm bg-white shadow-2xl flex flex-col overflow-hidden">
+			<div
+				ref={dialogRef}
+				tabIndex={-1}
+				role="dialog"
+				aria-modal="true"
+				aria-label={`Task: ${taskHeadline(task)}`}
+				className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-sm bg-white shadow-2xl flex flex-col overflow-hidden focus:outline-none"
+			>
 				<div className="flex items-center justify-between px-5 py-4 border-b border-border">
 					<div className="flex items-center gap-3 min-w-0">
 						<TaskStatusIndicator task={task} />
@@ -57,6 +88,7 @@ export default function TaskDetailModal({ task, onClose, showAssignee = false })
 					<button
 						type="button"
 						onClick={onClose}
+						aria-label="Close"
 						className="text-muted hover:text-dark p-1 rounded-lg hover:bg-gray-100 flex-shrink-0"
 					>
 						<X size={18} />
@@ -149,6 +181,31 @@ export default function TaskDetailModal({ task, onClose, showAssignee = false })
 							<ExternalLink size={14} />
 							View PDF
 						</a>
+					)}
+					{showAdmin && (
+						<div className="pt-2 border-t border-border space-y-2">
+							<p className="text-xs text-muted leading-snug">
+								Simulates Fillout&apos;s completion webhook (TaskID + ReservationID + Notion id).
+								{task.status !== 'completed' && ' Assigned tasks will be marked completed.'}
+							</p>
+							<button
+								type="button"
+								onClick={handleTestWebhook}
+								disabled={webhookTesting}
+								className="flex items-center justify-center gap-2 w-full btn-secondary text-sm disabled:opacity-50"
+							>
+								<Zap size={14} />
+								{webhookTesting ? 'Testing…' : 'Test Fillout webhook'}
+							</button>
+							{webhookResult && (
+								<p className={clsx(
+									'text-xs leading-snug',
+									webhookResult.type === 'success' ? 'text-green-700' : 'text-red-600',
+								)}>
+									{webhookResult.message}
+								</p>
+							)}
+						</div>
 					)}
 				</div>
 			</div>

@@ -2,7 +2,7 @@ import { Filter } from 'lucide-react';
 import DateInput from './DateInput';
 import FilterPanel, { FilterField } from './FilterPanel';
 
-const STATUSES = ['accepted', 'cancelled', 'pending', 'inquiry'];
+const STATUSES = ['accepted', 'cancelled', 'expired', 'pending', 'inquiry'];
 
 function countActiveFilters(filters) {
 	let n = 0;

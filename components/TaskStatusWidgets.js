@@ -4,10 +4,10 @@ export const STATUS_WIDGETS = [
 	{
 		key: 'unassigned',
 		label: 'Unassigned',
-		border: 'border-red-100',
-		bg: 'bg-red-50',
-		text: 'text-red-700',
-		activeRing: 'ring-red-300',
+		border: 'border-border',
+		bg: 'bg-white',
+		text: 'text-dark',
+		activeRing: 'ring-gray-300',
 	},
 	{
 		key: 'assigned',

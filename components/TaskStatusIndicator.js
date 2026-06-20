@@ -1,11 +1,10 @@
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Circle } from 'lucide-react';
 import clsx from 'clsx';
 import { getTaskStatusIndicator } from '../lib/constants';
 
 const DOT_CLASS = {
 	completed: 'bg-green-500',
 	assigned: 'bg-yellow-400',
-	unassigned: 'bg-red-500',
 };
 
 /** Icon for a status kind (used in rows and summary widgets). */
@@ -14,6 +13,13 @@ export function StatusKindIcon({ kind, size = 18, className }) {
 		return (
 			<span className={clsx('inline-flex text-red-600', className)} aria-hidden>
 				<AlertCircle size={size} strokeWidth={2.5} />
+			</span>
+		);
+	}
+	if (kind === 'unassigned') {
+		return (
+			<span className={clsx('inline-flex text-gray-400', className)} aria-hidden>
+				<Circle size={size} strokeWidth={2} />
 			</span>
 		);
 	}
@@ -26,7 +32,7 @@ export function StatusKindIcon({ kind, size = 18, className }) {
 	);
 }
 
-/** Status dot (red / yellow / green) or red exclamation when overdue. */
+/** Status dot (open circle / yellow / green) or red exclamation when overdue. */
 export default function TaskStatusIndicator({ task, className }) {
 	const { kind, label } = getTaskStatusIndicator(task);
 	return (

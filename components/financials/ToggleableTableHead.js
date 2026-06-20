@@ -1,32 +1,35 @@
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye } from 'lucide-react';
 import clsx from 'clsx';
 
-export function ToggleableTableHead({ label, onHide, align = 'left', className }) {
+export function ToggleableTableHead({ label, onHide, align = 'left', className, compact = false }) {
 	return (
 		<th
 			className={clsx(
-				'table-head table-head-sticky',
+				'table-head table-head-sticky p-0',
 				align === 'right' && 'text-right',
+				compact ? 'w-10' : undefined,
 				className,
 			)}
 		>
-			<span className={clsx('inline-flex items-center gap-1.5 group', align === 'right' && 'justify-end w-full')}>
-				<span>{label}</span>
-				<button
-					type="button"
-					onClick={onHide}
-					className="opacity-40 group-hover:opacity-100 focus:opacity-100 p-0.5 rounded hover:bg-gray-200 text-muted hover:text-dark transition-opacity"
-					title={`Hide ${label} column`}
-					aria-label={`Hide ${label} column`}
-				>
-					<EyeOff size={12} />
-				</button>
-			</span>
+			<button
+				type="button"
+				onClick={onHide}
+				className={clsx(
+					'w-full text-xs font-semibold text-muted uppercase tracking-wide',
+					'hover:text-dark transition-colors',
+					compact ? 'px-2 py-2.5' : 'px-4 py-2.5',
+					align === 'right' ? 'text-right' : 'text-left',
+				)}
+				title={`Hide ${label} column`}
+				aria-label={`Hide ${label} column`}
+			>
+				{compact ? <span className="sr-only">{label}</span> : label}
+			</button>
 		</th>
 	);
 }
 
-export function HiddenColumnsBar({ columns, labels, onShow, hint = 'Click the icon beside a column name to hide it.' }) {
+export function HiddenColumnsBar({ columns, labels, onShow, hint = 'Click a column name to hide it.' }) {
 	if (!hint && columns.length === 0) return null;
 
 	return (

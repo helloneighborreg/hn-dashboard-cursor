@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { X } from 'lucide-react';
 import DateInput from './DateInput';
+import { fetchJson } from '../lib/apiClient';
 import { todayIso } from '../lib/dates';
+import { useEscapeKey } from '../lib/useEscapeKey';
+import { useFocusTrap } from '../lib/useFocusTrap';
+import { BOOKKEEPING_EXPENSE_CATEGORIES } from '../lib/bookkeepingCategories';
 
-export const EXPENSE_CATEGORIES = [
-  'Cleaning', 'Maintenance', 'Supplies', 'Utilities', 'Insurance',
-  'Platform Fees', 'Photography', 'Marketing', 'Professional Services',
-  'Furnishings', 'Repairs', 'Travel', 'Software', 'Other',
-];
+/** @deprecated Use BOOKKEEPING_EXPENSE_CATEGORIES from lib/bookkeepingCategories.js */
+export const EXPENSE_CATEGORIES = BOOKKEEPING_EXPENSE_CATEGORIES;
 
 export default function ExpenseModal({ properties, onClose, onSaved, title = 'Add Transaction' }) {
   const [form, setForm] = useState({
@@ -20,6 +21,8 @@ export default function ExpenseModal({ properties, onClose, onSaved, title = 'Ad
   });
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState('');
+  useEscapeKey(onClose);
+  const dialogRef = useFocusTrap();
 
   async function submit(e) {
     e.preventDefault();
@@ -31,15 +34,10 @@ export default function ExpenseModal({ properties, onClose, onSaved, title = 'Ad
     setSaving(true);
     try {
       const prop = properties.find((p) => p.id === form.property_id);
-      const res = await fetch('/api/expenses', {
+      await fetchJson('/api/expenses', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, amount: parseFloat(form.amount), property_name: prop?.name }),
+        body: { ...form, amount: parseFloat(form.amount), property_name: prop?.name },
       });
-      if (!res.ok) {
-        setErr((await res.json()).error);
-        return;
-      }
       onSaved?.();
       onClose();
     } catch (e) {
@@ -50,11 +48,11 @@ export default function ExpenseModal({ properties, onClose, onSaved, title = 'Ad
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={onClose}>
+      <div ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label={title} className="bg-white rounded-2xl shadow-2xl w-full max-w-md focus:outline-none" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between p-5 border-b border-border">
           <h2 className="font-semibold text-dark">{title}</h2>
-          <button type="button" onClick={onClose} className="text-muted hover:text-dark">
+          <button type="button" onClick={onClose} aria-label="Close" className="text-muted hover:text-dark">
             <X size={18} />
           </button>
         </div>
@@ -105,7 +103,7 @@ export default function ExpenseModal({ properties, onClose, onSaved, title = 'Ad
               required
             >
               <option value="">Select category…</option>
-              {EXPENSE_CATEGORIES.map((c) => (
+              {BOOKKEEPING_EXPENSE_CATEGORIES.map((c) => (
                 <option key={c} value={c}>{c}</option>
               ))}
             </select>

@@ -11,6 +11,7 @@ export function BrandLogo({
   title,
   className,
   onClick,
+  compact = false,
 }) {
   const inner = (() => {
     if (variant === 'login') {
@@ -45,6 +46,18 @@ export function BrandLogo({
             {title || 'Hello Neighbor'}
           </span>
         </div>
+      );
+    }
+
+    if (compact) {
+      return (
+        <Image
+          src={ICON}
+          alt="Hello Neighbor"
+          width={32}
+          height={32}
+          className={clsx('w-8 h-8 rounded-md flex-shrink-0 shadow-sm mx-auto', className)}
+        />
       );
     }
 

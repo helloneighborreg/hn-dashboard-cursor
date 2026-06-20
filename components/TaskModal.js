@@ -3,8 +3,11 @@ import { X } from 'lucide-react';
 
 import { ASSIGNEES } from '../lib/constants';
 import { getPropertyDisplayName } from '../lib/hospitable';
+import { fetchJson } from '../lib/apiClient';
 import DateInput from './DateInput';
 import { todayIso } from '../lib/dates';
+import { useEscapeKey } from '../lib/useEscapeKey';
+import { useFocusTrap } from '../lib/useFocusTrap';
 const TASK_TYPES = ['turnover', 'maintenance', 'inspection', 'other'];
 
 export default function TaskModal({ properties, onClose, onSaved }) {
@@ -21,6 +24,8 @@ export default function TaskModal({ properties, onClose, onSaved }) {
   });
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState('');
+  useEscapeKey(onClose);
+  const dialogRef = useFocusTrap();
 
   async function submit(e) {
     e.preventDefault();
@@ -32,10 +37,9 @@ export default function TaskModal({ properties, onClose, onSaved }) {
     setSaving(true);
     try {
       const prop = properties.find((p) => p.id === form.property_id);
-      const res = await fetch('/api/tasks', {
+      await fetchJson('/api/tasks', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+        body: {
           title: form.title.trim(),
           property_id: form.property_id,
           property_name: getPropertyDisplayName(prop) || '',
@@ -47,12 +51,8 @@ export default function TaskModal({ properties, onClose, onSaved }) {
           type: form.type,
           notes: form.notes || null,
           status: form.assignee ? 'assigned' : 'unassigned',
-        }),
+        },
       });
-      if (!res.ok) {
-        setErr((await res.json()).error);
-        return;
-      }
       onSaved?.();
       onClose();
     } catch (e) {
@@ -63,11 +63,11 @@ export default function TaskModal({ properties, onClose, onSaved }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={onClose}>
+      <div ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="New Task" className="bg-white rounded-2xl shadow-2xl w-full max-w-md focus:outline-none" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between p-5 border-b border-border">
           <h2 className="font-semibold text-dark">New Task</h2>
-          <button type="button" onClick={onClose} className="text-muted hover:text-dark">
+          <button type="button" onClick={onClose} aria-label="Close" className="text-muted hover:text-dark">
             <X size={18} />
           </button>
         </div>

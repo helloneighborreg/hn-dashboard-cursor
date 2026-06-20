@@ -1,25 +1,18 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
-import { RefreshCw, ListChecks, FileText } from 'lucide-react';
 import { format, startOfMonth } from 'date-fns';
 import Layout from './Layout';
 import { PageLoader, ErrorState, EmptyState } from './LoadingSpinner';
-import { ASSIGNEES, isTaskAssigned, statusFromAssignee, sortTasksByDateAsc, sortTasksByDateDesc, taskIsOverdue } from '../lib/constants';
-import {
-	taskHeadline,
-	taskGuestSubtitle,
-	formatDateShort,
-	formatClock,
-} from '../lib/taskDisplay';
+import { isTaskAssigned, sortTasksByDateAsc, sortTasksByDateDesc, taskIsOverdue } from '../lib/constants';
+import { taskHeadline, taskGuestSubtitle } from '../lib/taskDisplay';
 import { fetchJson } from '../lib/apiClient';
-import TaskStatusIndicator from './TaskStatusIndicator';
-import AdminCompleteButton from './AdminCompleteButton';
+import { formatSyncResultAlert } from '../lib/syncResultMessage';
+import { TaskItem } from './TaskItem';
 import TaskStatusWidgets from './TaskStatusWidgets';
 import TaskFiltersPanel from './TaskFiltersPanel';
 import TaskCalendarView from './TaskCalendarView';
 import TaskDetailModal from './TaskDetailModal';
-import TaskPetIndicator from './TaskPetIndicator';
 import SegmentedToggle from './SegmentedToggle';
 import PageActionButtons from './PageActionButtons';
 import PageSearchInput from './PageSearchInput';
@@ -61,236 +54,6 @@ const VIEW_OPTIONS = [
 	{ value: 'list', label: 'List' },
 	{ value: 'calendar', label: 'Calendar' },
 ];
-
-function useTaskActions(task, onUpdate, onAssigneeChanged) {
-	const [saving, setSaving] = useState(false);
-
-	async function patch(updates) {
-		setSaving(true);
-		try {
-			const res = await fetch(`/api/tasks/${task.id}`, {
-				method: 'PATCH',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify(updates),
-			});
-			const json = await res.json().catch(() => ({}));
-			if (res.ok) {
-				onUpdate(json.data);
-				if (updates.assignee !== undefined) {
-					onAssigneeChanged?.({
-						assignee: updates.assignee || null,
-						notified: json.notified || null,
-					});
-				}
-				return true;
-			}
-			if (updates.assignee !== undefined) {
-				onAssigneeChanged?.({ error: json.error || 'Could not save assignment' });
-			}
-			return false;
-		} finally {
-			setSaving(false);
-		}
-	}
-
-	return { patch, saving };
-}
-
-function ChecklistLink({ url, label = 'Open checklist' }) {
-	if (!url) return <span className="text-xs text-muted">—</span>;
-	return (
-		<a
-			href={url}
-			target="_blank"
-			rel="noopener noreferrer"
-			className="inline-flex items-center justify-center w-8 h-8 border border-border rounded text-muted hover:text-dark hover:bg-gray-50 transition-colors"
-			title={label}
-			aria-label={label}
-		>
-			<ListChecks size={16} />
-		</a>
-	);
-}
-
-function ChecklistPdfLink({ url }) {
-	if (!url) return <span className="text-xs text-muted">—</span>;
-	return (
-		<a
-			href={url}
-			target="_blank"
-			rel="noopener noreferrer"
-			className="inline-flex items-center justify-center w-8 h-8 border border-border rounded text-muted hover:text-dark hover:bg-gray-50 transition-colors"
-			title="View PDF"
-			aria-label="View PDF"
-		>
-			<FileText size={16} />
-		</a>
-	);
-}
-
-function TaskItem({ task, variant, onUpdate, onAssigneeChanged, showAdmin, readOnly, assigneeReadOnly, isColumnVisible, isCompletedTab }) {
-	const { patch, saving } = useTaskActions(task, onUpdate, onAssigneeChanged);
-	const isOverdue = taskIsOverdue(task);
-	const completed = task.status === 'completed';
-	const isCard = variant === 'card';
-
-	function showCol(key) {
-		return !isColumnVisible || isColumnVisible(key);
-	}
-
-	function setAssignee(value) {
-		const assignee = value || null;
-		patch({ assignee, status: statusFromAssignee(assignee) });
-	}
-
-	function markComplete() {
-		patch({ status: 'completed' });
-	}
-
-	const assigneeSelect = (
-		<select
-			className={isCard ? 'select text-sm w-full' : 'select text-xs py-1 w-44'}
-			value={task.assignee || ''}
-			onChange={(e) => setAssignee(e.target.value)}
-			disabled={saving}
-		>
-			<option value="">Unassigned</option>
-			{ASSIGNEES.map((a) => <option key={a} value={a}>{a}</option>)}
-		</select>
-	);
-
-	const adminControl = completed ? (
-		<span className={`text-green-700 font-medium ${isCard ? 'text-sm' : 'text-xs'}`}>Completed</span>
-	) : (
-		<AdminCompleteButton onConfirm={markComplete} disabled={saving} size={isCard ? 'md' : 'sm'} />
-	);
-
-	const checklistUrl = isCompletedTab ? task.completed_checklist_url : task.checklist_url;
-	const checklistLabel = isCompletedTab ? 'View completed checklist' : 'Open checklist';
-
-	if (isCard) {
-		return (
-			<div className="card p-4 space-y-3 w-full min-w-0">
-				<div className="flex items-start gap-3 min-w-0">
-					<TaskStatusIndicator task={task} />
-					<div className="min-w-0 flex-1">
-						<p className="text-sm font-semibold font-mono tracking-wide leading-snug text-dark">
-							{taskHeadline(task)}
-						</p>
-						<p className="text-xs text-muted mt-1 flex items-center gap-1.5">
-							<span className="truncate">{taskGuestSubtitle(task)}</span>
-							<TaskPetIndicator task={task} size={13} />
-						</p>
-					</div>
-				</div>
-
-				<dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-					<div>
-						<dt className="text-xs text-muted">Check-out</dt>
-						<dd className="text-dark">
-							{formatDateShort(task.checkout_date || task.due_date)}
-							<span className="text-muted text-xs"> · {formatClock(task.start_time || '10:00')}</span>
-						</dd>
-					</div>
-					<div>
-						<dt className="text-xs text-muted">Due</dt>
-						<dd className={isOverdue ? 'text-red-600 font-semibold' : 'text-dark'}>
-							{formatDateShort(task.due_date)}
-							<span className="text-muted text-xs font-normal"> · {formatClock(task.due_time || '16:00')}</span>
-						</dd>
-					</div>
-					{isOverdue && (
-						<div className="col-span-2">
-							<span className="text-xs font-medium text-red-600 bg-red-50 px-2 py-0.5 rounded-full">Overdue</span>
-						</div>
-					)}
-				</dl>
-
-				<div className="flex items-center gap-2 flex-wrap">
-					<ChecklistLink url={checklistUrl} label={checklistLabel} />
-					{!isCompletedTab && <ChecklistPdfLink url={task.checklist_pdf_url} />}
-				</div>
-
-				{showAdmin && (
-					<div>
-						<label className="label">Admin</label>
-						{adminControl}
-					</div>
-				)}
-
-				{(readOnly || assigneeReadOnly) ? (
-					<div>
-						<label className="label">Assignee</label>
-						<p className="text-sm text-dark">{task.assignee || '—'}</p>
-					</div>
-				) : (
-					<div>
-						<label className="label">Assignee</label>
-						{assigneeSelect}
-					</div>
-				)}
-			</div>
-		);
-	}
-
-	return (
-		<tr className="hover:bg-gray-50 transition-colors">
-			{showCol('status') && (
-				<td className="table-cell w-12">
-					<TaskStatusIndicator task={task} />
-				</td>
-			)}
-			{showCol('task') && (
-				<td className="table-cell">
-					<div className="min-w-0">
-						<p className="text-sm font-semibold font-mono tracking-wide text-dark">
-							{taskHeadline(task)}
-						</p>
-						<p className="text-xs text-muted mt-0.5 flex items-center gap-1.5">
-							<span className="truncate">{taskGuestSubtitle(task)}</span>
-							<TaskPetIndicator task={task} size={13} />
-						</p>
-					</div>
-				</td>
-			)}
-			{showCol('checkout') && (
-				<td className="table-cell">
-					<p className="text-sm text-dark">{formatDateShort(task.checkout_date || task.due_date)}</p>
-					<p className="text-xs text-muted">{formatClock(task.start_time || '10:00')}</p>
-				</td>
-			)}
-			{showCol('due') && (
-				<td className="table-cell">
-					<p className={`text-sm ${isOverdue ? 'text-red-600 font-semibold' : 'text-dark'}`}>
-						{formatDateShort(task.due_date)}
-					</p>
-					<p className="text-xs text-muted">{formatClock(task.due_time || '16:00')}</p>
-					{isOverdue && <span className="text-xs text-red-600 font-medium">Overdue</span>}
-				</td>
-			)}
-			{showCol('assignee') && (assigneeReadOnly || !readOnly) && (
-				<td className="table-cell">
-					{assigneeReadOnly
-						? <span className="text-sm text-dark">{task.assignee || '—'}</span>
-						: assigneeSelect}
-				</td>
-			)}
-			{showCol('checklist') && (
-				<td className="table-cell">
-					<ChecklistLink url={checklistUrl} label={checklistLabel} />
-				</td>
-			)}
-			{showCol('pdf') && (
-				<td className="table-cell">
-					<ChecklistPdfLink url={task.checklist_pdf_url} />
-				</td>
-			)}
-			{showCol('admin') && showAdmin && (
-				<td className="table-cell">{adminControl}</td>
-			)}
-		</tr>
-	);
-}
 
 export default function TasksPageView() {
 	const router = useRouter();
@@ -439,11 +202,7 @@ export default function TasksPageView() {
 		setSyncing(true);
 		try {
 			const json = await fetchJson('/api/tasks/sync', { method: 'POST' });
-			if (json) {
-				alert(
-					`Sync complete. ${json.created ?? 0} created, ${json.updated ?? 0} updated, ${json.deleted ?? 0} removed (cancelled).`,
-				);
-			}
+			if (json) alert(formatSyncResultAlert(json));
 			loadTasks();
 		} catch (err) {
 			alert('Sync failed: ' + err.message);
@@ -526,10 +285,6 @@ export default function TasksPageView() {
 		if (!assignee) return;
 
 		let message = `Assigned to ${assignee}.`;
-		if (tab === 'unassigned') {
-			setTab('assigned');
-			message += ' Switched to Assigned.';
-		}
 
 		if (notified?.emailed || notified?.texted) {
 			const channels = [notified.emailed && 'email', notified.texted && 'text'].filter(Boolean).join(' and ');
@@ -540,7 +295,7 @@ export default function TasksPageView() {
 
 		setFlash({ type: 'success', message });
 		refreshCounts();
-	}, [tab, setTab, refreshCounts]);
+	}, [refreshCounts]);
 
 	useEffect(() => {
 		if (!flash) return undefined;
@@ -578,32 +333,39 @@ export default function TasksPageView() {
 						task={selectedTask}
 						onClose={() => setSelectedTask(null)}
 						showAssignee={isAdmin}
+						showAdmin={isAdmin}
+						onTaskUpdated={(updated) => {
+							setSelectedTask(updated);
+							handleUpdate(updated);
+						}}
 					/>
 				)}
-				<div className="flex flex-col gap-4 mb-6 md:flex-row md:items-start md:justify-between">
-					<div className="min-w-0 space-y-3">
-						<div>
-							<h1 className="text-xl sm:text-2xl font-bold text-dark">
+				<div className="flex flex-col gap-4 mb-6 w-full min-w-0">
+					<div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+						<div className="shrink-0">
+							<h1 className="text-xl sm:text-2xl font-bold text-dark whitespace-nowrap">
 								{limitedView ? 'My Tasks' : 'Tasks'}
 							</h1>
 						</div>
+						<div className="flex flex-wrap items-center gap-2 justify-end w-full lg:w-auto min-w-0">
+							<PageSearchInput
+								placeholder="Search tasks…"
+								value={search}
+								onChange={(e) => setSearch(e.target.value)}
+							/>
+							<PageActionButtons
+								onRefresh={loadTasks}
+								onSynced={loadTasks}
+								showSync={isAdmin}
+								refreshing={refreshing || loading}
+							/>
+						</div>
+					</div>
+					<div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
 						{isAdmin && (
 							<SegmentedToggle value={tab} onChange={setTab} options={TAB_OPTIONS} />
 						)}
 						<SegmentedToggle value={view} onChange={setView} options={VIEW_OPTIONS} />
-					</div>
-					<div className="flex flex-wrap items-center gap-2 justify-end w-full md:w-auto flex-shrink-0">
-						<PageSearchInput
-							placeholder="Search tasks…"
-							value={search}
-							onChange={(e) => setSearch(e.target.value)}
-						/>
-						<PageActionButtons
-							onRefresh={loadTasks}
-							onSynced={loadTasks}
-							showSync={isAdmin}
-							refreshing={refreshing || loading}
-						/>
 					</div>
 				</div>
 
@@ -712,6 +474,7 @@ export default function TasksPageView() {
 											key={task.id}
 											task={task}
 											variant="card"
+											onSelect={setSelectedTask}
 											onUpdate={handleUpdate}
 											onAssigneeChanged={handleAssigneeChanged}
 											showAdmin={isAdmin && !isCompleted}
@@ -722,6 +485,7 @@ export default function TasksPageView() {
 									))}
 								</div>
 
+								<div className="w-full min-w-0 max-w-full">
 								<div className="card overflow-x-auto hidden lg:block">
 									{isAdmin && (
 										<HiddenColumnsBar
@@ -741,13 +505,13 @@ export default function TasksPageView() {
 																key={key}
 																label={TASK_COLUMN_LABELS[key]}
 																onHide={() => hideColumn(key)}
-																className={key === 'status' ? 'w-12' : undefined}
+																compact={key === 'status'}
 															/>
 														) : null,
 													)
 												) : (
 													<>
-														<th className="table-head">Status</th>
+														<th className="table-head w-10 px-2"><span className="sr-only">Status</span></th>
 														<th className="table-head">Task</th>
 														<th className="table-head">Check-out</th>
 														<th className="table-head">Due</th>
@@ -764,6 +528,7 @@ export default function TasksPageView() {
 													key={task.id}
 													task={task}
 													variant="row"
+													onSelect={setSelectedTask}
 													onUpdate={handleUpdate}
 													onAssigneeChanged={handleAssigneeChanged}
 													showAdmin={isAdmin && !isCompleted}
@@ -775,6 +540,7 @@ export default function TasksPageView() {
 											))}
 										</tbody>
 									</table>
+								</div>
 								</div>
 							</>
 						)
