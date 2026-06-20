@@ -1,13 +1,11 @@
 import { withAuth } from '../../../lib/auth';
-import { syncTasksFromReservations } from '../../../lib/syncReservationTasks';
-import { fetchReservationsForSync } from '../../../lib/hospitable';
+import { runReservationTaskSync } from '../../../lib/runReservationTaskSync';
 
 export default async function handler(req, res) {
 	await withAuth(req, res, async () => {
 		if (req.method !== 'POST') return res.status(405).end();
 		try {
-			const { propMap, reservations } = await fetchReservationsForSync();
-			const result = await syncTasksFromReservations(reservations, propMap);
+			const result = await runReservationTaskSync({ skipNotify: true });
 			res.json({ ok: true, ...result });
 		} catch (err) {
 			console.error('Task sync error:', err.message);
