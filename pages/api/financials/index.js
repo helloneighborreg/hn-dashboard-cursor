@@ -3,6 +3,8 @@ import { getProperties, getReservations, platformLabel, buildPropertyMap, withRe
 import { buildPropertyCodeToNameMap, formatPropertyNameForRow } from '../../../lib/codes';
 import { parseHostFinancials } from '../../../lib/hospitableFinancials';
 import { getExpenses } from '../../../lib/db';
+import { reservationActsAsCancelled } from '../../../lib/reservationDates';
+import { aggregateAmountsByReportCategory } from '../../../lib/bookkeepingCategories';
 
 export default async function handler(req, res) {
   await withAuth(req, res, async () => {
@@ -33,7 +35,7 @@ export default async function handler(req, res) {
       const totalManualExpenses = manualExpenses.reduce((s, e) => s + e.amount, 0);
 
       const resvData = reservations
-        .filter((r) => r.status !== 'cancelled' && r.status !== 'declined')
+        .filter((r) => !reservationActsAsCancelled(r))
         .map((r) => {
           const row = withReservationPropertyName(r, propMap);
           const fin = parseHostFinancials(r.financials?.host);
@@ -151,9 +153,9 @@ export default async function handler(req, res) {
         byPlatform[r.platform].reservations += 1;
       });
 
-      const expenseByCategory = {};
-      manualExpenses.forEach((e) => {
-        expenseByCategory[e.category] = (expenseByCategory[e.category] || 0) + e.amount;
+      const expenseByCategory = aggregateAmountsByReportCategory(manualExpenses, {
+        categoryKey: 'category',
+        amountKey: 'amount',
       });
 
       res.json({
