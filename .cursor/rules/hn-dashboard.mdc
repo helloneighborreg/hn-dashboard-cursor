@@ -1,0 +1,39 @@
+---
+description: HN Dashboard stack, layout, and conventions
+alwaysApply: true
+---
+
+# HN Dashboard (Hello Neighbor operations)
+
+Next.js 14 Pages Router app on Cloudflare (OpenNext). Supabase Postgres backend.
+
+## Layout
+
+- `pages/` — routes; API handlers in `pages/api/`
+- `components/` — React UI
+- `lib/` — shared utilities, auth, integrations
+- `supabase/migrations/` — schema changes
+- `docs/` — AUTH, CLOUDFLARE, BOOKKEEPING
+
+## Integrations
+
+- **Supabase** — `lib/db.js`
+- **Plaid** — bank feed (`lib/plaid.js`, `pages/api/bank/`)
+- **Hospitable** — reservations/tasks (`lib/hospitable.js`)
+- **Fillout** — task forms/webhooks (`lib/fillout*.js`)
+
+## Auth & roles
+
+Session auth via iron-session (`lib/auth.js`). Admin vs cleaner roles in `lib/roles.js` — see `docs/AUTH.md`.
+
+## Commands
+
+- `npm run dev` — local dev
+- `npm run deploy:cloudflare` — production deploy
+- `npm run db:check` — verify Supabase connection
+
+## Conventions
+
+- JavaScript throughout (not TypeScript)
+- Minimal diffs; match existing patterns in `lib/` and sibling components
+- Do not commit unless asked
