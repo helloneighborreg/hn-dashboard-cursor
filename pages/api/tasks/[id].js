@@ -31,7 +31,7 @@ export default async function handler(req, res) {
 			if (!task) return res.status(404).json({ error: 'Task not found' });
 
 			const prevAssignee = task.assignee;
-			const updated = await updateTask(id, req.body);
+			const updated = await updateTask(id, req.body, { previousTask: task });
 			const [enrichedRow] = await enrichTasks([updated]);
 			const enriched = withChecklistUrl(enrichedRow);
 			const newAssignee =

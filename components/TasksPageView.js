@@ -44,12 +44,6 @@ function adminTaskColumns(isCompleted) {
 
 const LIMITED_WIDGET_KEYS = ['assigned', 'completed', 'overdue'];
 
-const TAB_OPTIONS = [
-	{ value: 'unassigned', label: 'Unassigned' },
-	{ value: 'assigned', label: 'Assigned' },
-	{ value: 'completed', label: 'Completed' },
-];
-
 const VIEW_OPTIONS = [
 	{ value: 'list', label: 'List' },
 	{ value: 'calendar', label: 'Calendar' },
@@ -362,9 +356,6 @@ export default function TasksPageView() {
 						</div>
 					</div>
 					<div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-						{isAdmin && (
-							<SegmentedToggle value={tab} onChange={setTab} options={TAB_OPTIONS} />
-						)}
 						<SegmentedToggle value={view} onChange={setView} options={VIEW_OPTIONS} />
 					</div>
 				</div>

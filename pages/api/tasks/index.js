@@ -29,12 +29,15 @@ function buildScopeFilters(query, session) {
 }
 
 function applyTabFilter(filters, query, session) {
-	const { unassigned, assigned, completed, overdue, calendar } = query;
+	const { unassigned, assigned, completed, under_review, overdue, calendar } = query;
 	const isCalendar = calendar === 'true';
 
 	if (hasLimitedTasksView(session.user)) {
 		if (completed === 'true') {
 			return { ...filters, status: 'completed' };
+		}
+		if (under_review === 'true') {
+			return { ...filters, status: 'under_review' };
 		}
 		if (overdue === 'true') {
 			return { ...filters, assigned: true, exclude_completed: true, overdue: true, sort_soonest: true };
@@ -46,6 +49,9 @@ function applyTabFilter(filters, query, session) {
 
 	if (completed === 'true') {
 		return { ...rest, status: 'completed' };
+	}
+	if (under_review === 'true') {
+		return { ...rest, status: 'under_review' };
 	}
 	if (overdue === 'true') {
 		const base = { ...rest, assigned: true, exclude_completed: true, overdue: true, sort_soonest: true };
@@ -82,7 +88,7 @@ export default async function handler(req, res) {
 
         if (listFilters.sort_soonest) {
           data = sortTasksByDateAsc(data);
-        } else if (listFilters.status === 'completed') {
+        } else if (listFilters.status === 'completed' || listFilters.status === 'under_review') {
           data = sortTasksByDateDesc(data);
         }
 

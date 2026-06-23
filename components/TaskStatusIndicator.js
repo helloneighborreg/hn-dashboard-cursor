@@ -1,10 +1,11 @@
-import { AlertCircle, Circle } from 'lucide-react';
+import { AlertCircle, Circle, Clock } from 'lucide-react';
 import clsx from 'clsx';
 import { getTaskStatusIndicator } from '../lib/constants';
 
 const DOT_CLASS = {
 	completed: 'bg-green-500',
 	assigned: 'bg-yellow-400',
+	under_review: 'bg-blue-500',
 };
 
 /** Icon for a status kind (used in rows and summary widgets). */
@@ -13,6 +14,13 @@ export function StatusKindIcon({ kind, size = 18, className }) {
 		return (
 			<span className={clsx('inline-flex text-red-600', className)} aria-hidden>
 				<AlertCircle size={size} strokeWidth={2.5} />
+			</span>
+		);
+	}
+	if (kind === 'under_review') {
+		return (
+			<span className={clsx('inline-flex text-blue-600', className)} aria-hidden>
+				<Clock size={size} strokeWidth={2.25} />
 			</span>
 		);
 	}
