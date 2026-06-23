@@ -2,6 +2,7 @@ import Head from 'next/head';
 import { Inter } from 'next/font/google';
 import '../styles/globals.css';
 import { AuthProvider } from '../components/AuthContext';
+import { TaskCountsProvider } from '../components/TaskCountsContext';
 
 const inter = Inter({
 	subsets: ['latin'],
@@ -13,6 +14,7 @@ export default function App({ Component, pageProps }) {
 	return (
 		<div className={inter.className}>
 			<AuthProvider user={pageProps.user}>
+				<TaskCountsProvider>
 				<Head>
 					<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 					<link rel="icon" href="/favicon-32x32.png" type="image/png" sizes="32x32" />
@@ -24,6 +26,7 @@ export default function App({ Component, pageProps }) {
 					<meta name="theme-color" content="#5B9AB8" />
 				</Head>
 				<Component {...pageProps} />
+				</TaskCountsProvider>
 			</AuthProvider>
 		</div>
 	);

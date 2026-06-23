@@ -3,9 +3,10 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { addDays, format } from 'date-fns';
 import {
-  LogIn, LogOut as LogOutIcon, CalendarDays, ArrowRight,
+  LogIn, LogOut as LogOutIcon, CheckSquare,
+  CalendarDays, ArrowRight, AlertCircle, CircleCheckBig,
 } from 'lucide-react';
-import { reservationHeadline } from '../lib/taskDisplay';
+import { taskHeadline, taskGuestSubtitle, formatClock, formatDateShort, reservationHeadline } from '../lib/taskDisplay';
 import { formatDateOrDash } from '../lib/dates';
 import { fetchJson } from '../lib/apiClient';
 import Layout from '../components/Layout';
@@ -14,6 +15,7 @@ import StatCard from '../components/StatCard';
 import Badge from '../components/Badge';
 import { PageLoader, ErrorState } from '../components/LoadingSpinner';
 import ReservationPanel, { reservationGuestName } from '../components/ReservationPanel';
+import TaskPetIndicator from '../components/TaskPetIndicator';
 import { requireAuth } from '../lib/auth';
 
 function reservationSubtitle(r, mode) {
@@ -60,6 +62,29 @@ function ReservationList({ items, emptyMsg, subtitle = 'code', footer = 'nights'
   );
 }
 
+function TaskList({ items }) {
+  if (!items?.length) return <p className="text-muted text-sm py-4 text-center">No tasks due today</p>;
+  return (
+    <ul className="divide-y divide-border">
+      {items.map((t) => (
+        <li key={t.id} className="py-3 flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-sm font-semibold font-mono text-dark tracking-wide truncate">{taskHeadline(t)}</p>
+            <p className="text-xs text-muted mt-0.5 flex items-center gap-1.5">
+              <span className="truncate">{taskGuestSubtitle(t)}</span>
+              <TaskPetIndicator task={t} size={12} />
+            </p>
+            <p className="text-xs text-muted mt-0.5">
+              Due {formatDateShort(t.due_date)} · {formatClock(t.due_time || '16:00')}
+            </p>
+          </div>
+          <Badge label={t.status === 'unassigned' ? 'Unassigned' : t.status} variant={t.status} />
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function reservationQuery({ start, end, tab } = {}) {
   const params = new URLSearchParams();
   if (start) params.set('start', start);
@@ -88,15 +113,33 @@ function DashboardPanel({ title, href, children }) {
 
 export default function DashboardPage() {
   const [data, setData] = useState(null);
+  const [overdueCount, setOverdueCount] = useState(0);
+  const [completedCount, setCompletedCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selected, setSelected] = useState(null);
+
+  async function loadTaskCounts() {
+    try {
+      const params = new URLSearchParams({ counts_only: 'true', _: String(Date.now()) });
+      const json = await fetchJson('/api/tasks?' + params);
+      if (json?.counts) {
+        setOverdueCount(json.counts.overdue ?? 0);
+        setCompletedCount(json.counts.completed ?? 0);
+      }
+    } catch {
+      // Keep existing counts on failure.
+    }
+  }
 
   async function load() {
     setLoading(true);
     setError('');
     try {
-      const dashJson = await fetchJson('/api/dashboard');
+      const [dashJson] = await Promise.all([
+        fetchJson('/api/dashboard'),
+        loadTaskCounts(),
+      ]);
       if (dashJson) setData(dashJson.data);
     } catch (err) {
       setError(err.message);
@@ -117,9 +160,13 @@ export default function DashboardPage() {
     return {
       checkinsToday: reservationQuery({ start: todayIso, end: todayIso, tab: 'active' }),
       checkoutsToday: reservationQuery({ tab: 'active' }),
+      tasksToday: '/tasks/assigned?today=true',
       upcomingCheckins: reservationQuery({ start: tomorrow, end: in7days, tab: 'future' }),
       upcomingCheckouts: reservationQuery({ tab: 'active' }),
       occupied: reservationQuery({ tab: 'active' }),
+      unassigned: '/tasks/unassigned',
+      completed: '/tasks/completed',
+      overdue: '/tasks/overdue',
     };
   }, [data?.today]);
 
@@ -140,7 +187,12 @@ export default function DashboardPage() {
             <h1 className="text-xl sm:text-2xl font-bold text-dark">Dashboard</h1>
             {today && <p className="text-muted text-sm mt-0.5">{today}</p>}
           </div>
-          <PageActionButtons onRefresh={load} refreshing={loading} />
+          <PageActionButtons
+            onRefresh={load}
+            onSynced={load}
+            showSync
+            refreshing={loading}
+          />
         </div>
 
         {loading && <PageLoader message="Loading dashboard…" />}
@@ -151,8 +203,30 @@ export default function DashboardPage() {
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8 w-full auto-rows-fr">
               <StatCard label="Check-ins Today" value={data.stats.checkins_today} icon={LogIn} color="green" href={dashboardLinks?.checkinsToday} />
               <StatCard label="Checkouts Today" value={data.stats.checkouts_today} icon={LogOutIcon} color="green" href={dashboardLinks?.checkoutsToday} />
+              <StatCard label="Tasks Due Today" value={data.stats.tasks_today} icon={CheckSquare} color="green" href={dashboardLinks?.tasksToday} />
               <StatCard label="Upcoming Check-ins" value={data.stats.upcoming_checkins} icon={CalendarDays} color="brand" href={dashboardLinks?.upcomingCheckins} />
               <StatCard label="Upcoming Checkouts" value={data.stats.upcoming_checkouts} icon={CalendarDays} color="brand" href={dashboardLinks?.upcomingCheckouts} />
+              <StatCard
+                label="Unassigned Tasks"
+                value={data.stats.tasks_unassigned ?? 0}
+                icon={CheckSquare}
+                color="brand"
+                href={dashboardLinks?.unassigned}
+              />
+              <StatCard
+                label="Completed Tasks"
+                value={completedCount}
+                icon={CircleCheckBig}
+                color="green"
+                href={dashboardLinks?.completed}
+              />
+              <StatCard
+                label="Overdue Tasks"
+                value={overdueCount}
+                icon={AlertCircle}
+                color="red"
+                href={dashboardLinks?.overdue}
+              />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -164,6 +238,10 @@ export default function DashboardPage() {
                   footer="checkout"
                   onSelect={setSelected}
                 />
+              </DashboardPanel>
+
+              <DashboardPanel title="Tasks Due Today" href={dashboardLinks?.tasksToday || '/tasks/assigned'}>
+                <TaskList items={data.tasks_today} />
               </DashboardPanel>
 
               <DashboardPanel title="Upcoming Check-ins (7 days)" href={dashboardLinks?.upcomingCheckins || '/reservations'}>
