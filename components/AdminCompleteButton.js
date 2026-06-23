@@ -5,14 +5,14 @@ import clsx from 'clsx';
 /**
  * Admin-only control: first click arms confirmation; second click marks complete.
  */
-export default function AdminCompleteButton({ onConfirm, disabled, size = 'md' }) {
+export default function AdminCompleteButton({ onConfirm, disabled, size = 'md', label = 'Mark task complete', confirmPrompt = 'Mark as complete?' }) {
 	const [armed, setArmed] = useState(false);
 	const sm = size === 'sm';
 
 	if (armed) {
 		return (
 			<div className={clsx('flex flex-col gap-1', sm ? 'min-w-[7.5rem]' : 'min-w-[9rem]')}>
-				<p className="text-xs font-medium text-amber-800">Mark as complete?</p>
+				<p className="text-xs font-medium text-amber-800">{confirmPrompt}</p>
 				<div className="flex gap-1">
 					<button
 						type="button"
@@ -53,8 +53,8 @@ export default function AdminCompleteButton({ onConfirm, disabled, size = 'md' }
 			)}
 			disabled={disabled}
 			onClick={() => setArmed(true)}
-			title="Mark task complete"
-			aria-label="Mark task complete"
+			title={label}
+			aria-label={label}
 		>
 			<Settings size={16} />
 		</button>

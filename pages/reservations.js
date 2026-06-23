@@ -203,8 +203,8 @@ export default function ReservationsPage() {
                         <th className="table-head">Reservation ID</th>
                         <th className="table-head">Guest</th>
                         <th className="table-head">Property</th>
-                        <th className="table-head">Check-in</th>
-                        <th className="table-head">Check-out</th>
+                        <th className="table-head-date">Check-in</th>
+                        <th className="table-head-date">Check-out</th>
                         <th className="table-head">Nights</th>
                         <th className="table-head">Guests</th>
                         <th className="table-head">Platform</th>
@@ -227,13 +227,13 @@ export default function ReservationsPage() {
                           <td className="table-cell">
                             <p className="text-sm font-semibold text-dark">{r.property_name}</p>
                           </td>
-                          <td className="table-cell">
+                          <td className="table-cell-date">
                             <p>{fmt(reservationCheckInDate(r))}</p>
-                            <p className="text-xs text-muted">{fmtTime(r.check_in || r.arrival_date)}</p>
+                            <p className="text-[10px] text-muted">{fmtTime(r.check_in || r.arrival_date)}</p>
                           </td>
-                          <td className="table-cell">
+                          <td className="table-cell-date">
                             <p>{fmt(reservationCheckOutDate(r))}</p>
-                            <p className="text-xs text-muted">{fmtTime(r.check_out || r.departure_date)}</p>
+                            <p className="text-[10px] text-muted">{fmtTime(r.check_out || r.departure_date)}</p>
                           </td>
                           <td className="table-cell">{r.nights}</td>
                           <td className="table-cell">{r.guests?.total ?? '–'}</td>

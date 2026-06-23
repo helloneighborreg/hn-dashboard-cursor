@@ -8,6 +8,7 @@ import BookkeepingPage from '../components/bookkeeping/BookkeepingPage';
 import ExpensesTable from '../components/financials/ExpensesTable';
 import HospitableTransactionsTable from '../components/financials/HospitableTransactionsTable';
 import ExpenseModal from '../components/ExpenseModal';
+import ManualExpenseDetailModal from '../components/ManualExpenseDetailModal';
 import PageActionButtons from '../components/PageActionButtons';
 import { PageLoader, ErrorState } from '../components/LoadingSpinner';
 import { fetchJson } from '../lib/apiClient';
@@ -43,6 +44,7 @@ export default function TransactionsPage() {
 	const [error, setError] = useState('');
 	const [filters, setFilters] = useState(defaultDateFilters);
 	const [showExpenseModal, setShowExpenseModal] = useState(false);
+	const [selectedExpense, setSelectedExpense] = useState(null);
 
 	useEffect(() => {
 		fetchJson('/api/properties')
@@ -82,6 +84,33 @@ export default function TransactionsPage() {
 		if (tab !== 'bank') load();
 	}, [tab]);
 
+	async function handleExpenseSaved(updated) {
+		const active = { ...filters };
+		setLoading(true);
+		setError('');
+		try {
+			const params = new URLSearchParams();
+			if (active.property) params.set('property', active.property);
+			if (active.date_from) params.set('date_from', active.date_from);
+			if (active.date_to) params.set('date_to', active.date_to);
+			const json = await fetchJson('/api/financials?' + params);
+			if (json) setData(json.data);
+			if (updated?.id) {
+				const stillVisible = json?.data?.expenses?.find((e) => e.id === updated.id);
+				setSelectedExpense(stillVisible || null);
+			}
+		} catch (err) {
+			setError(err.message);
+		} finally {
+			setLoading(false);
+		}
+	}
+
+	async function handleExpenseDeleted() {
+		setSelectedExpense(null);
+		await load();
+	}
+
 	function setTab(nextTab) {
 		const query = { ...router.query, tab: nextTab };
 		router.push({ pathname: '/transactions', query }, undefined, { shallow: true });
@@ -97,6 +126,16 @@ export default function TransactionsPage() {
 						title="Add Manual Expense"
 						onClose={() => setShowExpenseModal(false)}
 						onSaved={load}
+					/>
+				)}
+
+				{selectedExpense && (
+					<ManualExpenseDetailModal
+						expense={selectedExpense}
+						properties={properties}
+						onClose={() => setSelectedExpense(null)}
+						onSaved={handleExpenseSaved}
+						onDeleted={handleExpenseDeleted}
 					/>
 				)}
 
@@ -153,6 +192,7 @@ export default function TransactionsPage() {
 								expenses={data.expenses}
 								summary={data.summary}
 								onAddExpense={() => setShowExpenseModal(true)}
+								onSelectExpense={setSelectedExpense}
 							/>
 						)}
 

@@ -3,8 +3,9 @@ import clsx from 'clsx';
 import { fmt$ } from './format';
 import { formatDateRange } from '../../lib/dates';
 import { collectFeeColumnKeys } from '../../lib/hospitableFinancials';
-import { useColumnVisibility } from './useColumnVisibility';
-import { ToggleableTableHead, HiddenColumnsBar } from './ToggleableTableHead';
+import { sortByKey } from '../../lib/tableSort';
+import { useTableSort } from './useTableSort';
+import { SortableTableHead } from './SortableTableHead';
 
 const FIXED_COLUMNS = [
 	{ key: 'guest', label: 'Guest' },
@@ -14,10 +15,20 @@ const FIXED_COLUMNS = [
 
 const TOTAL_COLUMN = { key: 'total', label: 'Total' };
 
+const NUMERIC_KEYS = new Set([TOTAL_COLUMN.key]);
+
 function fmtFeeCell(amount) {
 	if (!amount) return '—';
 	if (amount < 0) return `-${fmt$(Math.abs(amount))}`;
 	return fmt$(amount);
+}
+
+function getReservationSortValue(reservation, key) {
+	if (key === 'guest') return reservation.guest_name || reservation.code || '';
+	if (key === 'property') return reservation.property_name || '';
+	if (key === 'dates') return reservation.check_in || '';
+	if (key === TOTAL_COLUMN.key) return reservation.revenue || 0;
+	return reservation.fees_by_label?.[key] || 0;
 }
 
 export default function HospitableTransactionsTable({ reservations, summary }) {
@@ -26,21 +37,24 @@ export default function HospitableTransactionsTable({ reservations, summary }) {
 		[reservations],
 	);
 
-	const allColumnKeys = useMemo(
-		() => [...FIXED_COLUMNS.map((c) => c.key), ...feeColumns, TOTAL_COLUMN.key],
-		[feeColumns],
-	);
-
-	const columnLabels = useMemo(() => {
-		const labels = Object.fromEntries(FIXED_COLUMNS.map((c) => [c.key, c.label]));
-		for (const label of feeColumns) labels[label] = label;
-		labels[TOTAL_COLUMN.key] = TOTAL_COLUMN.label;
-		return labels;
+	const numericKeys = useMemo(() => {
+		const keys = new Set(NUMERIC_KEYS);
+		for (const label of feeColumns) keys.add(label);
+		return keys;
 	}, [feeColumns]);
 
-	const { isVisible, hide, show, hiddenColumns } = useColumnVisibility(allColumnKeys);
+	const { sortKey, sortDir, toggleSort } = useTableSort('total', 'desc');
 
-	const visibleFixedCount = FIXED_COLUMNS.filter((c) => isVisible(c.key)).length;
+	const sortedReservations = useMemo(
+		() => sortByKey(
+			reservations,
+			sortKey,
+			sortDir,
+			getReservationSortValue,
+			{ numericKeys },
+		),
+		[reservations, sortKey, sortDir, numericKeys],
+	);
 
 	if (!reservations?.length) {
 		return (
@@ -51,111 +65,95 @@ export default function HospitableTransactionsTable({ reservations, summary }) {
 	}
 
 	return (
-		<>
-			<HiddenColumnsBar
-				columns={hiddenColumns}
-				labels={columnLabels}
-				onShow={show}
-				hint="Each Hospitable fee type is shown in its own column. Click the icon beside a column name to hide it."
-			/>
-			<div className="transactions-table-scroll">
-				<table className="w-full text-sm">
-					<thead>
-						<tr className="border-b border-border">
-							{FIXED_COLUMNS.map(({ key, label }) =>
-								isVisible(key) ? (
-									<ToggleableTableHead
-										key={key}
-										label={label}
-										onHide={() => hide(key)}
-									/>
-								) : null,
-							)}
-							{feeColumns.map((label) =>
-								isVisible(label) ? (
-									<ToggleableTableHead
-										key={label}
-										label={label}
-										align="right"
-										className="whitespace-nowrap"
-										onHide={() => hide(label)}
-									/>
-								) : null,
-							)}
-							{isVisible(TOTAL_COLUMN.key) && (
-								<ToggleableTableHead
-									label={TOTAL_COLUMN.label}
-									align="right"
-									className="font-semibold"
-									onHide={() => hide(TOTAL_COLUMN.key)}
-								/>
-							)}
-						</tr>
-					</thead>
-					<tbody className="divide-y divide-border">
-						{reservations.map((r) => (
-							<tr key={r.id} className="hover:bg-gray-50">
-								{isVisible('guest') && (
-									<td className="table-cell">
-										<p className="font-medium text-dark">{r.guest_name || '—'}</p>
-										<p className="text-xs text-muted font-mono">{r.code}</p>
-									</td>
-								)}
-								{isVisible('property') && (
-									<td className="table-cell text-xs text-muted truncate max-w-[140px]">{r.property_name}</td>
-								)}
-								{isVisible('dates') && (
-									<td className="table-cell text-xs text-muted whitespace-nowrap">
-										{formatDateRange(r.check_in, r.check_out, ' → ')}
-									</td>
-								)}
-								{feeColumns.map((label) => {
-									if (!isVisible(label)) return null;
-									const amount = r.fees_by_label?.[label] || 0;
-									return (
-										<td
-											key={label}
-											className={clsx(
-												'table-cell text-right',
-												amount < 0 ? 'text-muted' : '',
-											)}
-										>
-											{fmtFeeCell(amount)}
-										</td>
-									);
-								})}
-								{isVisible(TOTAL_COLUMN.key) && (
-									<td className="table-cell text-right font-semibold text-green-600">{fmt$(r.revenue)}</td>
-								)}
-							</tr>
+		<div className="transactions-table-scroll">
+			<table className="w-full text-sm">
+				<thead>
+					<tr className="border-b border-border">
+						{FIXED_COLUMNS.map(({ key, label }) => (
+							<SortableTableHead
+								key={key}
+								sortKey={key}
+								label={label}
+								active={sortKey === key}
+								direction={sortDir}
+								onSort={toggleSort}
+								className={key === 'dates' ? 'table-head-date' : undefined}
+							/>
 						))}
-						<tr className="border-t-2 border-brand-200 bg-gray-50 font-semibold">
-							<td className="table-cell" colSpan={Math.max(visibleFixedCount, 1)}>Totals</td>
+						{feeColumns.map((label) => (
+							<SortableTableHead
+								key={label}
+								sortKey={label}
+								label={label}
+								align="right"
+								active={sortKey === label}
+								direction={sortDir}
+								onSort={toggleSort}
+								className="whitespace-nowrap"
+							/>
+						))}
+						<SortableTableHead
+							sortKey={TOTAL_COLUMN.key}
+							label={TOTAL_COLUMN.label}
+							align="right"
+							active={sortKey === TOTAL_COLUMN.key}
+							direction={sortDir}
+							onSort={toggleSort}
+							className="font-semibold"
+						/>
+					</tr>
+				</thead>
+				<tbody className="divide-y divide-border">
+					{sortedReservations.map((r) => (
+						<tr key={r.id} className="hover:bg-gray-50">
+							<td className="table-cell">
+								<p className="font-medium text-dark">{r.guest_name || '—'}</p>
+								<p className="text-xs text-muted font-mono">{r.code}</p>
+							</td>
+							<td className="table-cell text-xs text-muted truncate max-w-[140px]">{r.property_name}</td>
+							<td className="table-cell-date text-muted">
+								{formatDateRange(r.check_in, r.check_out, ' → ')}
+							</td>
 							{feeColumns.map((label) => {
-								if (!isVisible(label)) return null;
-								const total = reservations.reduce(
-									(sum, r) => sum + (r.fees_by_label?.[label] || 0),
-									0,
-								);
+								const amount = r.fees_by_label?.[label] || 0;
 								return (
 									<td
 										key={label}
 										className={clsx(
 											'table-cell text-right',
-											total < 0 ? 'text-muted' : '',
+											amount < 0 ? 'text-muted' : '',
 										)}
 									>
-										{fmtFeeCell(total)}
+										{fmtFeeCell(amount)}
 									</td>
 								);
 							})}
-							{isVisible(TOTAL_COLUMN.key) && (
-								<td className="table-cell text-right text-brand-600">{fmt$(summary?.total_revenue)}</td>
-							)}
+							<td className="table-cell text-right font-semibold text-green-600">{fmt$(r.revenue)}</td>
 						</tr>
-					</tbody>
-				</table>
-			</div>
-		</>
+					))}
+					<tr className="border-t-2 border-brand-200 bg-gray-50 font-semibold">
+						<td className="table-cell" colSpan={FIXED_COLUMNS.length}>Totals</td>
+						{feeColumns.map((label) => {
+							const total = reservations.reduce(
+								(sum, r) => sum + (r.fees_by_label?.[label] || 0),
+								0,
+							);
+							return (
+								<td
+									key={label}
+									className={clsx(
+										'table-cell text-right',
+										total < 0 ? 'text-muted' : '',
+									)}
+								>
+									{fmtFeeCell(total)}
+								</td>
+							);
+						})}
+						<td className="table-cell text-right text-brand-600">{fmt$(summary?.total_revenue)}</td>
+					</tr>
+				</tbody>
+			</table>
+		</div>
 	);
 }

@@ -2,19 +2,32 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-
 html {
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: system-ui, sans-serif;
 }
 
 @layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
   html,
   body {
     @apply overflow-x-hidden;
   }
   body {
     @apply bg-bg text-dark;
+  }
+  /* iOS Safari zooms focused inputs below 16px — keep forms usable without pinch-zoom. */
+  @media (max-width: 639px) {
+    .input,
+    .input-compact,
+    .select,
+    .select-compact,
+    select.input,
+    textarea.input {
+      font-size: 16px;
+    }
   }
 }
 
@@ -62,8 +75,21 @@ html {
   .table-head-sticky {
     @apply sticky top-0 z-10 bg-gray-50 border-b border-border;
   }
+  .table-head-date {
+    @apply px-2 py-2.5 text-left text-xs font-semibold text-muted uppercase tracking-wide whitespace-nowrap;
+  }
+  .table-head-date > button {
+    @apply px-2;
+  }
+  .table-cell-date {
+    @apply px-2 py-3 text-xs text-dark whitespace-nowrap tabular-nums;
+  }
   .transactions-table-scroll {
     @apply overflow-auto max-h-[70vh];
+  }
+  .mobile-action-bar {
+    @apply fixed bottom-0 inset-x-0 z-30 border-t border-border bg-white/95 backdrop-blur px-4 pt-3;
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
   }
 }
 

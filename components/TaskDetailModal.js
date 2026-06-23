@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { X, Home, CalendarDays, Clock, User, FileText, ExternalLink, Cat, Zap } from 'lucide-react';
 import clsx from 'clsx';
-import { formatTaskStatus, getTaskStatusIndicator, taskIsOverdue } from '../lib/constants';
+import { formatTaskStatus, getCleanerTaskStatusMessage, getTaskStatusIndicator, taskIsOverdue } from '../lib/constants';
 import {
 	taskHeadline,
 	taskGuestSubtitle,
@@ -13,6 +13,7 @@ import { fetchJson } from '../lib/apiClient';
 import { useEscapeKey } from '../lib/useEscapeKey';
 import { useFocusTrap } from '../lib/useFocusTrap';
 import TaskStatusIndicator from './TaskStatusIndicator';
+import TaskCleanerStatus from './TaskCleanerStatus';
 import TaskPetIndicator from './TaskPetIndicator';
 
 function DetailRow({ icon: Icon, label, value, mono, highlight }) {
@@ -35,7 +36,7 @@ function DetailRow({ icon: Icon, label, value, mono, highlight }) {
 	);
 }
 
-export default function TaskDetailModal({ task, onClose, showAssignee = false, showAdmin = false, onTaskUpdated }) {
+export default function TaskDetailModal({ task, onClose, showAssignee = false, showAdmin = false, forCleaner = false, onTaskUpdated }) {
 	const [webhookTesting, setWebhookTesting] = useState(false);
 	const [webhookResult, setWebhookResult] = useState(null);
 	useEscapeKey(onClose);
@@ -44,6 +45,7 @@ export default function TaskDetailModal({ task, onClose, showAssignee = false, s
 	if (!task) return null;
 
 	const { label: statusLabel } = getTaskStatusIndicator(task);
+	const cleanerStatus = forCleaner ? getCleanerTaskStatusMessage(task) : null;
 	const isOverdue = taskIsOverdue(task);
 
 	async function handleTestWebhook() {
@@ -96,6 +98,11 @@ export default function TaskDetailModal({ task, onClose, showAssignee = false, s
 				</div>
 
 				<div className="flex-1 overflow-y-auto p-5 space-y-5">
+					{cleanerStatus && (
+						<div className="rounded-lg border border-border bg-gray-50 p-3">
+							<TaskCleanerStatus task={task} />
+						</div>
+					)}
 					<div className="flex items-center gap-2 flex-wrap">
 						<span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-dark capitalize">
 							{formatTaskStatus(task.status)}
@@ -149,7 +156,7 @@ export default function TaskDetailModal({ task, onClose, showAssignee = false, s
 				</div>
 
 				<div className="p-4 border-t border-border space-y-2">
-					{task.checklist_url && task.status !== 'completed' && (
+					{task.checklist_url && !['completed', 'under_review'].includes(task.status) && (
 						<a
 							href={task.checklist_url}
 							target="_blank"

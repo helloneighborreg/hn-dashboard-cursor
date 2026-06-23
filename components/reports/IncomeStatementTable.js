@@ -48,22 +48,34 @@ function AmountButton({ value, onClick }) {
 	);
 }
 
-export default function IncomeStatementTable({ data, onRefresh }) {
+export default function IncomeStatementTable({ data, onRefresh, properties = [] }) {
 	const [drilldown, setDrilldown] = useState(null);
 	const [excludingId, setExcludingId] = useState(null);
 
 	const items = useMemo(() => data?.drilldown_items || [], [data?.drilldown_items]);
 
+	const drilldownItems = useMemo(() => {
+		if (!drilldown?.rowId) return drilldown?.items || [];
+		return filterDrilldownItems(items, {
+			rowId: drilldown.rowId,
+			periodKey: drilldown.periodKey,
+		});
+	}, [drilldown, items]);
+
 	function openDrilldown(row, periodKey) {
 		const amount = row.values?.[periodKey] ?? 0;
 		if (!amount) return;
 
-		const filtered = filterDrilldownItems(items, { rowId: row.id, periodKey });
 		setDrilldown({
 			title: row.label,
 			subtitle: periodLabel(data.periods, periodKey),
-			items: filtered,
+			rowId: row.id,
+			periodKey,
 		});
+	}
+
+	async function handleItemSaved() {
+		await onRefresh?.();
 	}
 
 	async function excludeItem(item) {
@@ -100,7 +112,7 @@ export default function IncomeStatementTable({ data, onRefresh }) {
 							<tr className="border-b border-border bg-gray-50">
 								<th className="table-head text-left w-56 min-w-[14rem] sticky left-0 bg-gray-50 z-10" />
 								{data.periods.map((p) => (
-									<th key={p.key} className="table-head text-right whitespace-nowrap px-3">
+									<th key={p.key} className="table-head text-right whitespace-nowrap px-2 text-xs">
 										{p.label}
 									</th>
 								))}
@@ -112,7 +124,7 @@ export default function IncomeStatementTable({ data, onRefresh }) {
 								if (row.type === 'section') {
 									return (
 										<tr key={row.id} className={ROW_STYLES.section}>
-											<td colSpan={data.periods.length + 2} className="px-3 py-2 border-t border-border">
+											<td colSpan={data.periods.length + 2} className="px-3 py-1.5 border-t border-border">
 												{row.label}
 											</td>
 										</tr>
@@ -121,7 +133,7 @@ export default function IncomeStatementTable({ data, onRefresh }) {
 								if (row.type === 'subsection') {
 									return (
 										<tr key={row.id} className={ROW_STYLES.subsection}>
-											<td colSpan={data.periods.length + 2} className={clsx('px-3 py-1.5', indentClass(1))}>
+											<td colSpan={data.periods.length + 2} className={clsx('px-3 py-1', indentClass(1))}>
 												{row.label}
 											</td>
 										</tr>
@@ -134,7 +146,7 @@ export default function IncomeStatementTable({ data, onRefresh }) {
 								return (
 									<tr key={row.id} className={style}>
 										<td className={clsx(
-											'px-3 py-1.5 sticky left-0 z-10 border-r border-border/50',
+											'px-3 py-1 sticky left-0 z-10 border-r border-border/50',
 											style,
 											indentClass(row.indent || 0),
 										)}
@@ -142,14 +154,14 @@ export default function IncomeStatementTable({ data, onRefresh }) {
 											{row.label}
 										</td>
 										{data.periods.map((p) => (
-											<td key={p.key} className="px-3 py-1.5 text-right tabular-nums whitespace-nowrap">
+											<td key={p.key} className="px-3 py-1 text-right tabular-nums whitespace-nowrap">
 												<AmountButton
 													value={values[p.key]}
 													onClick={() => openDrilldown(row, p.key)}
 												/>
 											</td>
 										))}
-										<td className="px-3 py-1.5 text-right tabular-nums whitespace-nowrap">
+										<td className="px-3 py-1 text-right tabular-nums whitespace-nowrap">
 											<AmountButton
 												value={values.total}
 												onClick={() => openDrilldown(row, 'total')}
@@ -166,8 +178,10 @@ export default function IncomeStatementTable({ data, onRefresh }) {
 			<ReportDrilldownPanel
 				title={drilldown?.title}
 				subtitle={drilldown?.subtitle}
-				items={drilldown?.items}
+				items={drilldownItems}
+				properties={properties}
 				onClose={() => setDrilldown(null)}
+				onItemUpdated={handleItemSaved}
 				onExcludeItem={excludeItem}
 				excludingId={excludingId}
 			/>

@@ -1,0 +1,37 @@
+# Dependencies
+node_modules/
+.venv/
+env/
+vendor/
+
+# Build outputs and caches
+dist/
+build/
+.next/
+.nuxt/
+.cache/
+
+# Media and assets
+*.mp4
+*.png
+*.jpg
+*.jpeg
+*.svg
+*.gif
+
+# Logs and lockfiles
+*.log
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+poetry.lock
+
+# Large data files
+*.json
+*.csv
+*.sql
+dist/
+build/
+.cache/
+.nuxt/
+.venv/, env/, vendor/

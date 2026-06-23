@@ -1,14 +1,20 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/router';
 import clsx from 'clsx';
-import { FileBarChart } from 'lucide-react';
+import { Star } from 'lucide-react';
 import ReportFilters from './ReportFilters';
+import ReportPicker from './ReportPicker';
 import { PageLoader, ErrorState } from '../LoadingSpinner';
 import PageActionButtons from '../PageActionButtons';
 import { fetchJson } from '../../lib/apiClient';
 import { startOfYearIso, todayIso } from '../../lib/dates';
 import { resolvePropertyIds } from '../../lib/propertyGroups';
-import { REPORT_TYPES, normalizeReportId, reportById } from '../../lib/reportDefinitions';
+import { REPORT_TYPES, normalizeReportId } from '../../lib/reportDefinitions';
+import {
+	readReportFavorites,
+	toggleReportFavorite,
+	writeReportFavorites,
+} from '../../lib/reportFavorites';
 import ReportOutput from './ReportOutput';
 
 function defaultFilters() {
@@ -22,6 +28,7 @@ function defaultFilters() {
 		date_to: todayIso(),
 		interval: 'month',
 		category_level: 'subcategory',
+		statement_status: 'all',
 	};
 }
 
@@ -31,13 +38,17 @@ export default function ReportsPage() {
 		() => normalizeReportId(router.query?.report),
 		[router.query?.report],
 	);
-	const activeReport = reportById(reportId);
 
 	const [properties, setProperties] = useState([]);
 	const [filters, setFilters] = useState(defaultFilters);
 	const [data, setData] = useState(null);
-	const [loading, setLoading] = useState(true);
+	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState('');
+	const [favorites, setFavorites] = useState([]);
+
+	useEffect(() => {
+		setFavorites(readReportFavorites());
+	}, []);
 
 	useEffect(() => {
 		fetchJson('/api/properties')
@@ -63,6 +74,11 @@ export default function ReportsPage() {
 
 		setLoading(true);
 		setError('');
+
+		if (!reportId) {
+			setLoading(false);
+			return;
+		}
 
 		if (active.property_mode === 'one' && !active.property?.trim()) {
 			setError('Select a property to run this report.');
@@ -94,6 +110,12 @@ export default function ReportsPage() {
 
 	useEffect(() => {
 		if (!router.isReady) return;
+		if (!reportId) {
+			setLoading(false);
+			setError('');
+			setData(null);
+			return;
+		}
 		load();
 	}, [router.isReady, reportId]);
 
@@ -102,65 +124,104 @@ export default function ReportsPage() {
 		router.push({ pathname: '/reports', query }, undefined, { shallow: true });
 	}
 
+	function handleToggleFavorite(id) {
+		setFavorites((prev) => {
+			const next = toggleReportFavorite(prev, id);
+			writeReportFavorites(next);
+			return next;
+		});
+	}
+
+	const favoriteReports = useMemo(
+		() => REPORT_TYPES.filter((report) => favorites.includes(report.id)),
+		[favorites],
+	);
+
 	return (
-		<>
-			<div className="flex flex-col gap-4 mb-6 sm:flex-row sm:items-start sm:justify-between">
-				<div>
-					<h1 className="text-2xl font-bold text-dark">Reports</h1>
-					<p className="text-muted text-sm mt-0.5">Generate financial and owner reports</p>
+		<div className="-mt-1 lg:-mt-3">
+			<div className="flex flex-col gap-2 mb-3">
+				<div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+					<div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3 min-w-0 flex-1">
+						<h1 className="text-xl font-bold text-dark shrink-0">Reports</h1>
+						<ReportPicker
+							reportId={reportId}
+							favorites={favorites}
+							onSelect={selectReport}
+							onToggleFavorite={handleToggleFavorite}
+						/>
+					</div>
+					<PageActionButtons onRefresh={() => reportId && load()} refreshing={loading && Boolean(reportId)} />
 				</div>
-				<PageActionButtons onRefresh={() => load()} refreshing={loading} />
-			</div>
 
-			<div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-3 mb-6">
-				{REPORT_TYPES.map((report) => {
-					const selected = report.id === reportId;
-					return (
-						<button
-							key={report.id}
-							type="button"
-							onClick={() => selectReport(report.id)}
-							className={clsx(
-								'text-left card p-4 transition-all border',
-								selected
-									? 'border-brand-400 ring-2 ring-brand-100 bg-brand-50/40'
-									: 'border-border hover:border-brand-300 hover:shadow-card-hover',
-							)}
-						>
-							<div className="flex items-start gap-3">
-								<div className={clsx(
-									'p-2 rounded-lg flex-shrink-0',
-									selected ? 'bg-brand-100 text-brand-600' : 'bg-gray-100 text-gray-500',
-								)}
-								>
-									<FileBarChart size={18} />
+				{favoriteReports.length > 0 && (
+					<div className="flex flex-wrap items-center gap-1.5">
+						<span className="text-[11px] font-medium text-muted uppercase tracking-wide mr-0.5">Favorites</span>
+						{favoriteReports.map((report) => {
+							const selected = report.id === reportId;
+							const favorited = favorites.includes(report.id);
+							return (
+								<div key={report.id} className="inline-flex items-center">
+									<button
+										type="button"
+										onClick={() => selectReport(report.id)}
+										className={clsx(
+											'text-xs px-2.5 py-1 rounded-l-full border font-medium transition-colors',
+											selected
+												? 'border-brand-400 bg-brand-50 text-brand-700'
+												: 'border-border text-muted hover:border-brand-300 hover:text-brand-600',
+										)}
+									>
+										{report.label}
+									</button>
+									<button
+										type="button"
+										onClick={() => handleToggleFavorite(report.id)}
+										className={clsx(
+											'text-xs px-1.5 py-1 rounded-r-full border border-l-0 transition-colors',
+											selected
+												? 'border-brand-400 bg-brand-50'
+												: 'border-border hover:border-brand-300',
+											favorited
+												? 'text-amber-500 hover:text-amber-600'
+												: 'text-gray-300 hover:text-amber-400',
+										)}
+										aria-label={`Remove ${report.label} from favorites`}
+										aria-pressed={favorited}
+									>
+										<Star size={12} className={clsx(favorited && 'fill-current')} />
+									</button>
 								</div>
-								<div className="min-w-0">
-									<p className="font-semibold text-dark text-sm">{report.label}</p>
-									<p className="text-xs text-muted mt-1 line-clamp-2">{report.description}</p>
-								</div>
-							</div>
-						</button>
-					);
-				})}
+							);
+						})}
+					</div>
+				)}
 			</div>
 
-			<div className="mb-6">
-				<h2 className="text-lg font-semibold text-dark mb-1">{activeReport.label}</h2>
-				<p className="text-sm text-muted">{activeReport.description}</p>
-			</div>
+			{reportId && (
+				<ReportFilters
+					filters={filters}
+					properties={properties}
+					onChange={setFilters}
+					onApply={load}
+					reportId={reportId}
+				/>
+			)}
 
-			<ReportFilters
-				filters={filters}
-				properties={properties}
-				onChange={setFilters}
-				onApply={load}
-				reportId={reportId}
-			/>
-
-			{loading && <PageLoader message="Generating report…" />}
-			{error && !loading && <ErrorState message={error} onRetry={() => load()} />}
-			{!loading && !error && <ReportOutput data={data} onRefresh={() => load()} />}
-		</>
+			{reportId && loading && <PageLoader message="Generating report…" compact />}
+			{reportId && error && !loading && <ErrorState message={error} onRetry={() => load()} compact />}
+			{reportId && !loading && !error && (
+				<ReportOutput
+					data={data}
+					onRefresh={() => load()}
+					properties={properties}
+					filters={filters}
+				/>
+			)}
+			{!reportId && (
+				<div className="card p-6 text-center text-muted text-sm">
+					Select a report to generate.
+				</div>
+			)}
+		</div>
 	);
 }

@@ -1,14 +1,16 @@
-import { X, CalendarDays, CreditCard, FileText, Tag, Home, CheckCircle2, EyeOff, Link2, Hash } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { X, Pencil, Trash2, CalendarDays, CreditCard, FileText, Tag, Home, CheckCircle2, EyeOff } from 'lucide-react';
 import clsx from 'clsx';
 import { fmt$ } from '../financials/format';
 import { formatDateOrDash } from '../../lib/dates';
 import { useEscapeKey } from '../../lib/useEscapeKey';
 import { useFocusTrap } from '../../lib/useFocusTrap';
-import { CategoryTypeBadge } from './CategorySelect';
+import CategorySelect, { CategoryTypeBadge } from './CategorySelect';
 import { categoryLabel } from '../../lib/bookkeepingCategories';
 import { describeMatchedDeposit } from '../../lib/reservationMatching';
 import { getReservationSplits } from '../../lib/reservationSplits';
 import ReservationSplitEditor from './ReservationSplitEditor';
+import { InlineSelect } from './BookkeepingControls';
 
 function DetailRow({ icon: Icon, label, value, mono = false }) {
 	return (
@@ -55,10 +57,19 @@ function SplitLineSummary({ split, reservation, reservationMatchedIncomeById }) 
 	);
 }
 
+function buildEditForm(tx) {
+	return {
+		category: tx?.category || '',
+		property_id: tx?.property_id || '',
+		notes: tx?.notes || '',
+	};
+}
+
 export default function TransactionDetailModal({
 	tx,
 	onClose,
 	propertyNameById = {},
+	propertyOptions = [],
 	reservationById = {},
 	reservations = [],
 	reservationMatchedIncomeById,
@@ -66,9 +77,26 @@ export default function TransactionDetailModal({
 	onSaveSplits,
 	saving = false,
 	onToggleExcluded,
+	onSave,
+	onDeleted,
 }) {
+	const [editing, setEditing] = useState(false);
+	const [form, setForm] = useState(() => buildEditForm(tx));
+	const [editSaving, setEditSaving] = useState(false);
+	const [editErr, setEditErr] = useState('');
+	const [deleting, setDeleting] = useState(false);
+	const [confirmDelete, setConfirmDelete] = useState(false);
+
 	useEscapeKey(onClose);
 	const dialogRef = useFocusTrap();
+
+	useEffect(() => {
+		setForm(buildEditForm(tx));
+		setEditing(false);
+		setEditErr('');
+		setConfirmDelete(false);
+	}, [tx]);
+
 	if (!tx) return null;
 
 	const splits = getReservationSplits(tx);
@@ -76,6 +104,47 @@ export default function TransactionDetailModal({
 	const propertyName = tx.property_id
 		? (propertyNameById[tx.property_id] || tx.property_id)
 		: null;
+	const canEdit = Boolean(onSave);
+
+	function cancelEdit() {
+		setForm(buildEditForm(tx));
+		setEditing(false);
+		setEditErr('');
+	}
+
+	async function saveEdit(e) {
+		e.preventDefault();
+		if (!onSave) return;
+		setEditErr('');
+		setEditSaving(true);
+		try {
+			await onSave({
+				category: form.category || null,
+				property_id: form.property_id || null,
+				notes: form.notes,
+			});
+			setEditing(false);
+		} catch (error) {
+			setEditErr(error.message);
+		} finally {
+			setEditSaving(false);
+		}
+	}
+
+	async function remove() {
+		if (!onDeleted) return;
+		setEditErr('');
+		setDeleting(true);
+		try {
+			await onDeleted(tx.id);
+			onClose?.();
+		} catch (error) {
+			setEditErr(error.message);
+			setConfirmDelete(false);
+		} finally {
+			setDeleting(false);
+		}
+	}
 
 	return (
 		<>
@@ -94,20 +163,32 @@ export default function TransactionDetailModal({
 				<div className="flex items-center justify-between px-5 py-4 border-b border-border">
 					<div className="min-w-0">
 						<p className="font-semibold text-dark text-sm leading-snug truncate">
-							Transaction details
+							{editing ? 'Edit transaction' : 'Transaction details'}
 						</p>
 						<p className="text-xs text-muted truncate">
 							{formatDateOrDash(tx.date)} · {tx.account || 'Bank account'}
 						</p>
 					</div>
-					<button
-						type="button"
-						onClick={onClose}
-						aria-label="Close"
-						className="text-muted hover:text-dark p-1 rounded-lg hover:bg-gray-100 flex-shrink-0"
-					>
-						<X size={18} />
-					</button>
+					<div className="flex items-center gap-1 flex-shrink-0">
+						{canEdit && !editing && (
+							<button
+								type="button"
+								onClick={() => setEditing(true)}
+								aria-label="Edit transaction"
+								className="text-muted hover:text-dark p-1 rounded-lg hover:bg-gray-100"
+							>
+								<Pencil size={16} />
+							</button>
+						)}
+						<button
+							type="button"
+							onClick={onClose}
+							aria-label="Close"
+							className="text-muted hover:text-dark p-1 rounded-lg hover:bg-gray-100"
+						>
+							<X size={18} />
+						</button>
+					</div>
 				</div>
 
 				<div className="flex-1 overflow-y-auto p-5 space-y-5">
@@ -138,25 +219,63 @@ export default function TransactionDetailModal({
 						</span>
 					</div>
 
-					<div className="space-y-3">
-						<DetailRow icon={CalendarDays} label="Date" value={formatDateOrDash(tx.date)} />
-						<DetailRow icon={FileText} label="Description" value={tx.description || '—'} />
-						<DetailRow icon={CreditCard} label="Account" value={tx.account || '—'} />
-						<DetailRow
-							icon={Tag}
-							label="Category"
-							value={tx.category ? (
-								<span className="inline-flex flex-wrap items-center gap-2">
-									<CategoryTypeBadge category={tx.category} />
-									<span className="font-medium text-dark">{categoryLabel(tx.category)}</span>
-								</span>
-							) : '—'}
-						/>
-						<DetailRow icon={Home} label="Property" value={propertyName || '—'} />
-						<DetailRow icon={FileText} label="Notes" value={tx.notes?.trim() ? tx.notes.trim() : '—'} />
-					</div>
+					{editing ? (
+						<form id="bank-tx-edit-form" onSubmit={saveEdit} className="space-y-4">
+							<DetailRow icon={CalendarDays} label="Date" value={formatDateOrDash(tx.date)} />
+							<DetailRow icon={FileText} label="Description" value={tx.description || '—'} />
+							<DetailRow icon={CreditCard} label="Account" value={tx.account || '—'} />
+							<div>
+								<label className="label">Category</label>
+								<CategorySelect
+									value={form.category}
+									onChange={(category) => setForm((f) => ({ ...f, category }))}
+									placeholder="Select category…"
+									className="select w-full max-w-none"
+								/>
+							</div>
+							<div>
+								<label className="label">Property</label>
+								<InlineSelect
+									value={form.property_id}
+									placeholder="Select property"
+									options={propertyOptions}
+									onChange={(propertyId) => setForm((f) => ({ ...f, property_id: propertyId }))}
+									className="w-full max-w-none"
+								/>
+							</div>
+							<div>
+								<label className="label">Notes</label>
+								<textarea
+									className="input resize-none"
+									rows={3}
+									placeholder="Optional notes…"
+									value={form.notes}
+									onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
+								/>
+							</div>
+							{editErr && <p className="text-red-600 text-sm">{editErr}</p>}
+						</form>
+					) : (
+						<div className="space-y-3">
+							<DetailRow icon={CalendarDays} label="Date" value={formatDateOrDash(tx.date)} />
+							<DetailRow icon={FileText} label="Description" value={tx.description || '—'} />
+							<DetailRow icon={CreditCard} label="Account" value={tx.account || '—'} />
+							<DetailRow
+								icon={Tag}
+								label="Category"
+								value={tx.category ? (
+									<span className="inline-flex flex-wrap items-center gap-2">
+										<CategoryTypeBadge category={tx.category} />
+										<span className="font-medium text-dark">{categoryLabel(tx.category)}</span>
+									</span>
+								) : '—'}
+							/>
+							<DetailRow icon={Home} label="Property" value={propertyName || '—'} />
+							<DetailRow icon={FileText} label="Notes" value={tx.notes?.trim() ? tx.notes.trim() : '—'} />
+						</div>
+					)}
 
-					{isDeposit && splits.length > 1 && !onSaveSplits && (
+					{!editing && isDeposit && splits.length > 1 && !onSaveSplits && (
 						<div className="pt-4 border-t border-border space-y-2">
 							<p className="text-xs font-semibold text-muted uppercase tracking-wide">
 								Reservation splits
@@ -172,7 +291,7 @@ export default function TransactionDetailModal({
 						</div>
 					)}
 
-					{isDeposit && onSaveSplits && (
+					{!editing && isDeposit && onSaveSplits && (
 						<ReservationSplitEditor
 							tx={tx}
 							reservations={reservations}
@@ -184,16 +303,70 @@ export default function TransactionDetailModal({
 					)}
 				</div>
 
-				{onToggleExcluded && (
-					<div className="shrink-0 border-t border-border px-5 py-4">
-						<button
-							type="button"
-							onClick={() => onToggleExcluded(!tx.hidden)}
-							className="btn-secondary w-full text-sm gap-2 inline-flex items-center justify-center"
-						>
-							<EyeOff size={16} />
-							{tx.hidden ? 'Include in reports' : 'Exclude from reports'}
-						</button>
+				{(editing || onToggleExcluded || onDeleted) && (
+					<div className="shrink-0 border-t border-border px-5 py-4 space-y-3">
+						{editing && (
+							<div className="flex gap-3">
+								<button type="button" onClick={cancelEdit} className="btn-secondary flex-1 justify-center">
+									Cancel
+								</button>
+								<button
+									type="submit"
+									form="bank-tx-edit-form"
+									disabled={editSaving || saving}
+									className={clsx('btn-primary flex-1 justify-center', (editSaving || saving) && 'opacity-60')}
+								>
+									{editSaving || saving ? 'Saving…' : 'Save changes'}
+								</button>
+							</div>
+						)}
+						{onToggleExcluded && !editing && (
+							<button
+								type="button"
+								onClick={() => onToggleExcluded(!tx.hidden)}
+								className="btn-secondary w-full text-sm gap-2 inline-flex items-center justify-center"
+							>
+								<EyeOff size={16} />
+								{tx.hidden ? 'Include in reports' : 'Exclude from reports'}
+							</button>
+						)}
+						{onDeleted && !editing && (
+							confirmDelete ? (
+								<div className="space-y-2">
+									<p className="text-sm text-amber-800">
+										Delete this transaction? Synced bank transactions may reappear after the next bank sync.
+									</p>
+									<div className="flex gap-3">
+										<button
+											type="button"
+											onClick={() => setConfirmDelete(false)}
+											disabled={deleting}
+											className="btn-secondary flex-1 justify-center"
+										>
+											Cancel
+										</button>
+										<button
+											type="button"
+											onClick={remove}
+											disabled={deleting}
+											className={clsx('btn-danger flex-1 justify-center', deleting && 'opacity-60')}
+										>
+											{deleting ? 'Deleting…' : 'Delete'}
+										</button>
+									</div>
+								</div>
+							) : (
+								<button
+									type="button"
+									onClick={() => setConfirmDelete(true)}
+									className="btn-secondary w-full text-sm gap-2 inline-flex items-center justify-center text-red-600 hover:text-red-700 hover:bg-red-50"
+								>
+									<Trash2 size={16} />
+									Delete transaction
+								</button>
+							)
+						)}
+						{editErr && !editing && <p className="text-red-600 text-sm">{editErr}</p>}
 					</div>
 				)}
 			</div>

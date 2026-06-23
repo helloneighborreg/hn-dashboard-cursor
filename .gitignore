@@ -1,15 +1,28 @@
 # dependencies
 node_modules/
+.venv/
+env/
+vendor/
 
-# Next.js build output
+# Next.js / OpenNext / Cloudflare build output
 .next/
 .open-next/
 out/
 .wrangler/
+dist/
+build/
+.cache/
+.nuxt/
+.turbo/
+.vercel/
+*.tsbuildinfo
+
+# test / coverage
+coverage/
 
 # env / secrets — never commit these
 .env
-.env.local
+.env*.local
 env.local
 
 # local JSON store (legacy); use scripts/import-db-json.mjs to migrate to Supabase
@@ -22,3 +35,6 @@ Thumbs.db
 # misc
 *.log
 npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+repo_structure.txt

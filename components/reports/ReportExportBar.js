@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Download, FileText } from 'lucide-react';
 import { downloadReportCsv, downloadReportPdf } from '../../lib/reportPdf';
 
-export default function ReportExportBar({ data, title, subtitle }) {
+export default function ReportExportBar({ data, title, subtitle, hideExport = false }) {
 	const [exporting, setExporting] = useState(false);
 
 	if (!data) return null;
@@ -35,34 +35,36 @@ export default function ReportExportBar({ data, title, subtitle }) {
 	}
 
 	return (
-		<div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between px-5 pt-5 pb-3 border-b border-border">
-			<div>
+		<div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between px-4 py-2.5 border-b border-border">
+			<div className="min-w-0">
 				{header.title && (
-					<h2 className="text-lg font-bold text-dark">{header.title}</h2>
+					<h2 className="text-base font-bold text-dark leading-tight">{header.title}</h2>
 				)}
 				{header.subtitle && (
-					<p className="text-sm text-muted mt-0.5">{header.subtitle}</p>
+					<p className="text-xs text-muted mt-0.5 truncate">{header.subtitle}</p>
 				)}
 			</div>
-			<div className="flex flex-wrap gap-2 self-start">
-				<button
-					type="button"
-					onClick={handlePdf}
-					disabled={exporting}
-					className="btn-primary text-xs gap-1.5 justify-center"
-				>
-					<FileText size={14} />
-					{exporting ? 'Generating…' : 'Download PDF'}
-				</button>
-				<button
-					type="button"
-					onClick={handleCsv}
-					className="btn-secondary text-xs gap-1.5 justify-center"
-				>
-					<Download size={14} />
-					Download CSV
-				</button>
-			</div>
+			{!hideExport && (
+				<div className="flex flex-wrap gap-1.5 self-start shrink-0">
+					<button
+						type="button"
+						onClick={handlePdf}
+						disabled={exporting}
+						className="btn-primary text-xs gap-1.5 justify-center"
+					>
+						<FileText size={14} />
+						{exporting ? 'Generating…' : 'Download PDF'}
+					</button>
+					<button
+						type="button"
+						onClick={handleCsv}
+						className="btn-secondary text-xs gap-1.5 justify-center"
+					>
+						<Download size={14} />
+						Download CSV
+					</button>
+				</div>
+			)}
 		</div>
 	);
 }

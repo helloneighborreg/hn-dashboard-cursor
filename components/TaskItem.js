@@ -5,6 +5,7 @@ import { ASSIGNEES, statusFromAssignee, taskIsOverdue } from '../lib/constants';
 import { fetchJson } from '../lib/apiClient';
 import { taskHeadline, taskGuestSubtitle, formatDateShort, formatClock } from '../lib/taskDisplay';
 import TaskStatusIndicator from './TaskStatusIndicator';
+import TaskCleanerStatus from './TaskCleanerStatus';
 import AdminCompleteButton from './AdminCompleteButton';
 import TaskPetIndicator from './TaskPetIndicator';
 
@@ -69,10 +70,11 @@ function ChecklistPdfLink({ url }) {
 	);
 }
 
-export function TaskItem({ task, variant, onUpdate, onAssigneeChanged, onSelect, showAdmin, readOnly, assigneeReadOnly, isColumnVisible, isCompletedTab }) {
+export function TaskItem({ task, variant, onUpdate, onAssigneeChanged, onSelect, showAdmin, readOnly, assigneeReadOnly, isColumnVisible, isCompletedTab, showCleanerStatus }) {
 	const { patch, saving } = useTaskActions(task, onUpdate, onAssigneeChanged);
 	const isOverdue = taskIsOverdue(task);
 	const completed = task.status === 'completed';
+	const underReview = task.status === 'under_review';
 	const isCard = variant === 'card';
 
 	function showCol(key) {
@@ -82,7 +84,7 @@ export function TaskItem({ task, variant, onUpdate, onAssigneeChanged, onSelect,
 	function setAssignee(value) {
 		const assignee = value || null;
 		const body = { assignee };
-		if (!completed) body.status = statusFromAssignee(assignee);
+		if (!completed && !underReview) body.status = statusFromAssignee(assignee);
 		patch(body);
 	}
 
@@ -104,12 +106,20 @@ export function TaskItem({ task, variant, onUpdate, onAssigneeChanged, onSelect,
 
 	const adminControl = completed ? (
 		<span className={`text-green-700 font-medium ${isCard ? 'text-sm' : 'text-xs'}`}>Completed</span>
+	) : underReview ? (
+		<AdminCompleteButton
+			onConfirm={markComplete}
+			disabled={saving}
+			size={isCard ? 'md' : 'sm'}
+			label="Approve task"
+			confirmPrompt="Approve checklist?"
+		/>
 	) : (
 		<AdminCompleteButton onConfirm={markComplete} disabled={saving} size={isCard ? 'md' : 'sm'} />
 	);
 
-	const checklistUrl = isCompletedTab ? task.completed_checklist_url : task.checklist_url;
-	const checklistLabel = isCompletedTab ? 'View completed checklist' : 'Open checklist';
+	const checklistUrl = (isCompletedTab || underReview) ? (task.completed_checklist_url || task.checklist_submission_url || task.checklist_url) : task.checklist_url;
+	const checklistLabel = (isCompletedTab || underReview) ? 'View submitted checklist' : 'Open checklist';
 
 	const openTask = onSelect ? () => onSelect(task) : undefined;
 	const stopOpen = (e) => e.stopPropagation();
@@ -161,6 +171,11 @@ export function TaskItem({ task, variant, onUpdate, onAssigneeChanged, onSelect,
 							<span className="text-xs font-medium text-red-600 bg-red-50 px-2 py-0.5 rounded-full">Overdue</span>
 						</div>
 					)}
+					{showCleanerStatus && (
+						<div className="col-span-2">
+							<TaskCleanerStatus task={task} />
+						</div>
+					)}
 				</dl>
 
 				<div className="flex items-center gap-2 flex-wrap" onClick={stopOpen}>
@@ -210,6 +225,7 @@ export function TaskItem({ task, variant, onUpdate, onAssigneeChanged, onSelect,
 							<span className="truncate">{taskGuestSubtitle(task)}</span>
 							<TaskPetIndicator task={task} size={13} />
 						</p>
+						{showCleanerStatus && <TaskCleanerStatus task={task} className="mt-2" />}
 					</div>
 				</td>
 			)}

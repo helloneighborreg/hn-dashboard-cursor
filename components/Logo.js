@@ -2,7 +2,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import clsx from 'clsx';
 
-const ICON = '/logo-icon.png';
+const ICON = '/logo-icon-32.png';
 const HORIZONTAL = '/logo.png';
 
 export function BrandLogo({

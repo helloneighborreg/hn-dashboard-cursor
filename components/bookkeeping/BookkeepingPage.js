@@ -7,9 +7,11 @@ import clsx from 'clsx';
 import PageSearchInput from '../PageSearchInput';
 import { PageLoader } from '../LoadingSpinner';
 import { fmt$ } from '../financials/format';
-import { useColumnVisibility } from '../financials/useColumnVisibility';
-import { ToggleableTableHead, HiddenColumnsBar } from '../financials/ToggleableTableHead';
+import { SortableTableHead } from '../financials/SortableTableHead';
+import { useTableSort } from '../financials/useTableSort';
+import { sortByKey } from '../../lib/tableSort';
 import { fetchJson } from '../../lib/apiClient';
+import { getPropertyDisplayName } from '../../lib/codes';
 import { formatDateOrDash, ISO_DATE_FMT, todayIso } from '../../lib/dates';
 import { loadPlaidScript } from '../../lib/loadPlaidScript';
 import { BOOKKEEPING_CATEGORY_GROUPS } from '../../lib/bookkeepingCategories';
@@ -72,7 +74,7 @@ export default function BookkeepingPage() {
 	});
 
 	const propertyNameById = useMemo(
-		() => Object.fromEntries(properties.map((p) => [p.id, p.name])),
+		() => Object.fromEntries(properties.map((p) => [p.id, getPropertyDisplayName(p) || p.name])),
 		[properties],
 	);
 
@@ -83,35 +85,7 @@ export default function BookkeepingPage() {
 		[reservations],
 	);
 
-	const tableColumns = useMemo(() => ([
-		'select',
-		'date',
-		'account',
-		'description',
-		'amount',
-		'category',
-		'property',
-		'reservation',
-		'note',
-		'reviewed',
-		'excluded',
-	]), []);
-
-	const columnLabels = useMemo(() => ({
-		select: 'Select',
-		date: 'Date',
-		account: 'Account',
-		description: 'Description',
-		amount: 'Amount',
-		category: 'Category',
-		property: 'Property',
-		reservation: 'Reservation',
-		note: 'Note',
-		reviewed: 'Reviewed',
-		excluded: 'Excluded',
-	}), []);
-
-	const { isVisible, hide, show, hiddenColumns } = useColumnVisibility(tableColumns, { minVisible: 2 });
+	const { sortKey, sortDir, toggleSort } = useTableSort('date', 'desc');
 
 	const reservationMatchedIncomeById = useMemo(
 		() => buildMatchedIncomeById(transactions),
@@ -283,8 +257,26 @@ export default function BookkeepingPage() {
 				setTransactions((rows) => rows.map((r) => (r.id === id ? { ...r, ...updated } : r)));
 			}
 			await loadTransactions();
+			return updated;
 		} catch (err) {
 			setError(err.message);
+			throw err;
+		} finally {
+			setSavingId(null);
+		}
+	}
+
+	async function deleteTx(id) {
+		setSavingId(id);
+		try {
+			await fetchJson(`/api/bank/transactions/${id}`, { method: 'DELETE' });
+			setDetailTx(null);
+			setSplitDraft(null);
+			setTransactions((rows) => rows.filter((r) => r.id !== id));
+			await loadTransactions();
+		} catch (err) {
+			setError(err.message);
+			throw err;
 		} finally {
 			setSavingId(null);
 		}
@@ -310,6 +302,28 @@ export default function BookkeepingPage() {
 		() => filterTransactionsClient(transactions, { search, tab }),
 		[transactions, search, tab],
 	);
+
+	const sortedDisplayed = useMemo(() => sortByKey(
+		displayed,
+		sortKey,
+		sortDir,
+		(tx, key) => {
+			switch (key) {
+				case 'date': return tx.date || '';
+				case 'account': return tx.account || '';
+				case 'description': return tx.description || '';
+				case 'amount': return Number(tx.amount) || 0;
+				case 'category': return tx.category || '';
+				case 'property': return propertyNameById[tx.property_id] || '';
+				case 'reservation': return reservationById[tx.reservation_id]?.code || '';
+				case 'note': return tx.notes || '';
+				case 'reviewed': return tx.reviewed ? 1 : 0;
+				case 'excluded': return tx.hidden ? 1 : 0;
+				default: return '';
+			}
+		},
+		{ numericKeys: new Set(['amount', 'reviewed', 'excluded']) },
+	), [displayed, sortKey, sortDir, propertyNameById, reservationById]);
 
 	const needsReviewCount = summary?.needs_review_count ?? 0;
 
@@ -354,7 +368,7 @@ export default function BookkeepingPage() {
 		URL.revokeObjectURL(url);
 	}
 
-	const propertyOptions = properties.map((p) => ({ value: p.id, label: p.name }));
+	const propertyOptions = properties.map((p) => ({ value: p.id, label: getPropertyDisplayName(p) || p.name }));
 
 	const hasActiveFilters = filters.account_id || filters.category || filters.property_id
 		|| filters.uncategorizedOnly || filters.showHidden || search;
@@ -365,6 +379,7 @@ export default function BookkeepingPage() {
 				<TransactionDetailModal
 					tx={detailTx}
 					propertyNameById={propertyNameById}
+					propertyOptions={propertyOptions}
 					reservationById={reservationById}
 					reservations={reservations}
 					reservationMatchedIncomeById={reservationMatchedIncomeById}
@@ -374,11 +389,16 @@ export default function BookkeepingPage() {
 						setDetailTx(null);
 						setSplitDraft(null);
 					}}
+					onSave={async (patch) => {
+						const updated = await patchTx(detailTx.id, patch);
+						if (updated) setDetailTx(updated);
+					}}
 					onSaveSplits={(splits) => saveReservationSplits(detailTx.id, splits)}
 					onToggleExcluded={async (excluded) => {
 						await patchTx(detailTx.id, { hidden: excluded });
 						setDetailTx((prev) => (prev ? { ...prev, hidden: excluded } : null));
 					}}
+					onDeleted={deleteTx}
 				/>
 			)}
 			<CategorizationProgress summary={summary} />
@@ -538,7 +558,7 @@ export default function BookkeepingPage() {
 												className="block w-full text-left text-xs px-2 py-1.5 rounded hover:bg-gray-50 truncate max-w-[14rem]"
 												onClick={() => { setFilters((f) => ({ ...f, property_id: p.id })); close(); }}
 											>
-												{p.name}
+												{getPropertyDisplayName(p) || p.name}
 											</button>
 										))}
 									</>
@@ -583,7 +603,7 @@ export default function BookkeepingPage() {
 						>
 							<option value="">Set property…</option>
 							{properties.map((p) => (
-								<option key={p.id} value={p.id}>{p.name}</option>
+								<option key={p.id} value={p.id}>{getPropertyDisplayName(p) || p.name}</option>
 							))}
 						</select>
 						<button type="button" onClick={() => bulkPatch({ reviewed: true })} className="btn-secondary text-xs py-1">
@@ -635,41 +655,96 @@ export default function BookkeepingPage() {
 					</p>
 				) : (
 					<>
-						<HiddenColumnsBar columns={hiddenColumns} labels={columnLabels} onShow={show} />
 						<div className="transactions-table-scroll mt-2">
 							<table className="w-full text-sm">
 								<thead>
 									<tr className="border-b border-border bg-gray-50/50">
-										{isVisible('select') && (
-											<th className="table-head table-head-sticky w-10">
-												<input
-													type="checkbox"
-													checked={selected.size === displayed.length && displayed.length > 0}
-													onChange={toggleSelectAll}
-													aria-label="Select all"
-												/>
-											</th>
-										)}
-										{isVisible('date') && <ToggleableTableHead label="Date" onHide={() => hide('date')} />}
-										{isVisible('account') && <ToggleableTableHead label="Account" onHide={() => hide('account')} />}
-										{isVisible('description') && <ToggleableTableHead label="Description" onHide={() => hide('description')} />}
-										{isVisible('amount') && (
-											<ToggleableTableHead label="Amount" align="right" onHide={() => hide('amount')} />
-										)}
-										{isVisible('category') && <ToggleableTableHead label="Category" onHide={() => hide('category')} />}
-										{isVisible('property') && <ToggleableTableHead label="Property" onHide={() => hide('property')} />}
-										{isVisible('reservation') && <ToggleableTableHead label="Reservation" onHide={() => hide('reservation')} />}
-										{isVisible('note') && <ToggleableTableHead label="Note" onHide={() => hide('note')} />}
-										{isVisible('reviewed') && (
-											<ToggleableTableHead label="Reviewed" className="text-center w-16" onHide={() => hide('reviewed')} />
-										)}
-										{isVisible('excluded') && (
-											<ToggleableTableHead label="Excluded" className="text-center w-16" onHide={() => hide('excluded')} />
-										)}
+										<th className="table-head table-head-sticky w-10">
+											<input
+												type="checkbox"
+												checked={selected.size === displayed.length && displayed.length > 0}
+												onChange={toggleSelectAll}
+												aria-label="Select all"
+											/>
+										</th>
+										<SortableTableHead
+											sortKey="date"
+											label="Date"
+											active={sortKey === 'date'}
+											direction={sortDir}
+											onSort={toggleSort}
+											className="table-head-date"
+										/>
+										<SortableTableHead
+											sortKey="account"
+											label="Account"
+											active={sortKey === 'account'}
+											direction={sortDir}
+											onSort={toggleSort}
+										/>
+										<SortableTableHead
+											sortKey="description"
+											label="Description"
+											active={sortKey === 'description'}
+											direction={sortDir}
+											onSort={toggleSort}
+										/>
+										<SortableTableHead
+											sortKey="amount"
+											label="Amount"
+											align="right"
+											active={sortKey === 'amount'}
+											direction={sortDir}
+											onSort={toggleSort}
+										/>
+										<SortableTableHead
+											sortKey="category"
+											label="Category"
+											active={sortKey === 'category'}
+											direction={sortDir}
+											onSort={toggleSort}
+										/>
+										<SortableTableHead
+											sortKey="property"
+											label="Property"
+											active={sortKey === 'property'}
+											direction={sortDir}
+											onSort={toggleSort}
+										/>
+										<SortableTableHead
+											sortKey="reservation"
+											label="Reservation"
+											active={sortKey === 'reservation'}
+											direction={sortDir}
+											onSort={toggleSort}
+										/>
+										<SortableTableHead
+											sortKey="note"
+											label="Note"
+											active={sortKey === 'note'}
+											direction={sortDir}
+											onSort={toggleSort}
+										/>
+										<SortableTableHead
+											sortKey="reviewed"
+											label="Reviewed"
+											active={sortKey === 'reviewed'}
+											direction={sortDir}
+											onSort={toggleSort}
+											className="text-center w-16"
+										/>
+										<SortableTableHead
+											sortKey="excluded"
+											label="Excluded"
+											active={sortKey === 'excluded'}
+											direction={sortDir}
+											onSort={toggleSort}
+											className="text-center w-16"
+										/>
 									</tr>
 								</thead>
 								<tbody className="divide-y divide-border">
-									{displayed.map((tx) => {
+									{sortedDisplayed.map((tx) => {
 										const saving = savingId === tx.id;
 										return (
 											<tr
@@ -685,134 +760,112 @@ export default function BookkeepingPage() {
 													setDetailTx(tx);
 												}}
 											>
-												{isVisible('select') && (
-													<td className="table-cell w-10">
-														<input
-															type="checkbox"
-															checked={selected.has(tx.id)}
-															onChange={() => toggleSelect(tx.id)}
-															aria-label={`Select ${tx.description}`}
-														/>
-													</td>
-												)}
-												{isVisible('date') && (
-													<td className="table-cell whitespace-nowrap text-muted">
-														{formatDateOrDash(tx.date)}
-													</td>
-												)}
-												{isVisible('account') && (
-													<td className="table-cell text-muted max-w-[8rem] truncate">
-														{tx.account || '—'}
-													</td>
-												)}
-												{isVisible('description') && (
-													<td className="table-cell max-w-[12rem]">
-														<p className="font-medium text-dark truncate">{tx.description}</p>
-														{tx.pending && (
-															<span className="text-[10px] font-medium text-sky-700 bg-sky-50 px-1.5 py-0.5 rounded">
-																Pending
-															</span>
-														)}
-													</td>
-												)}
-												{isVisible('amount') && (
-													<td
-														className={clsx(
-															'table-cell text-right font-medium tabular-nums',
-															Number(tx.amount) >= 0 ? 'text-green-600' : 'text-red-600',
-														)}
-													>
-														{fmt$(Number(tx.amount))}
-													</td>
-												)}
-												{isVisible('category') && (
-													<td className="table-cell">
-														<div className="flex flex-col gap-1 min-w-[11rem]">
-															<CategorySelect
-																value={tx.category || ''}
-																placeholder="Select category"
-																onChange={(v) => patchTx(tx.id, { category: v })}
-																className={saving ? 'opacity-60' : ''}
-															/>
-															{tx.category && (
-																<CategoryTypeBadge category={tx.category} />
-															)}
-														</div>
-													</td>
-												)}
-												{isVisible('property') && (
-													<td className="table-cell">
-														<InlineSelect
-															value={tx.property_id || ''}
-															placeholder="Select property"
-															options={propertyOptions}
-															onChange={(v) => patchTx(tx.id, { property_id: v || null })}
+												<td className="table-cell w-10">
+													<input
+														type="checkbox"
+														checked={selected.has(tx.id)}
+														onChange={() => toggleSelect(tx.id)}
+														aria-label={`Select ${tx.description}`}
+													/>
+												</td>
+												<td className="table-cell-date text-muted">
+													{formatDateOrDash(tx.date)}
+												</td>
+												<td className="table-cell text-muted max-w-[8rem] truncate">
+													{tx.account || '—'}
+												</td>
+												<td className="table-cell max-w-[12rem]">
+													<p className="font-medium text-dark truncate">{tx.description}</p>
+													{tx.pending && (
+														<span className="text-[10px] font-medium text-sky-700 bg-sky-50 px-1.5 py-0.5 rounded">
+															Pending
+														</span>
+													)}
+												</td>
+												<td
+													className={clsx(
+														'table-cell text-right font-medium tabular-nums',
+														Number(tx.amount) >= 0 ? 'text-green-600' : 'text-red-600',
+													)}
+												>
+													{fmt$(Number(tx.amount))}
+												</td>
+												<td className="table-cell">
+													<div className="flex flex-col gap-1 min-w-[11rem]">
+														<CategorySelect
+															value={tx.category || ''}
+															placeholder="Select category"
+															onChange={(v) => patchTx(tx.id, { category: v })}
 															className={saving ? 'opacity-60' : ''}
 														/>
-													</td>
-												)}
-												{isVisible('reservation') && (
-													<td className="table-cell">
-														<ReservationMatchSelect
-															tx={tx}
-															reservations={reservations}
-															reservationById={reservationById}
-															reservationRemainingById={reservationRemainingById}
-															reservationMatchedIncomeById={reservationMatchedIncomeById}
-															disabled={saving}
-															onChange={(reservationId) => matchReservation(tx.id, reservationId)}
-														/>
-													</td>
-												)}
-												{isVisible('note') && (
-													<td className="table-cell">
-														<input
-															type="text"
-															className="input-compact w-full max-w-[8rem]"
-															placeholder="Add note"
-															defaultValue={tx.notes || ''}
-															onBlur={(e) => {
-																if (e.target.value !== (tx.notes || '')) {
-																	patchTx(tx.id, { notes: e.target.value });
-																}
-															}}
-														/>
-													</td>
-												)}
-												{isVisible('reviewed') && (
-													<td className="table-cell text-center">
-														<button
-															type="button"
-															onClick={() => patchTx(tx.id, { reviewed: !tx.reviewed })}
-															className={clsx(
-																'inline-flex h-7 w-7 items-center justify-center rounded-full border transition-colors',
-																tx.reviewed
-																	? 'bg-green-50 border-green-200 text-green-600'
-																	: 'border-border text-muted hover:border-brand-400 hover:text-brand-600',
-															)}
-															title={tx.reviewed ? 'Mark as needs review' : 'Mark reviewed'}
-														>
-															<Check size={14} />
-														</button>
-													</td>
-												)}
-												{isVisible('excluded') && (
-													<td className="table-cell text-center">
-														<button
-															type="button"
-															onClick={() => patchTx(tx.id, { hidden: !tx.hidden })}
-															className={clsx(
-																'inline-flex h-7 w-7 items-center justify-center rounded-full border transition-colors',
-																tx.hidden
-																	? 'bg-gray-100 border-gray-300 text-dark'
-																	: 'border-border text-muted hover:border-gray-400 hover:text-dark',
-															)}
+														{tx.category && (
+															<CategoryTypeBadge category={tx.category} />
+														)}
+													</div>
+												</td>
+												<td className="table-cell">
+													<InlineSelect
+														value={tx.property_id || ''}
+														placeholder="Select property"
+														options={propertyOptions}
+														onChange={(v) => patchTx(tx.id, { property_id: v || null })}
+														className={saving ? 'opacity-60' : ''}
+													/>
+												</td>
+												<td className="table-cell">
+													<ReservationMatchSelect
+														tx={tx}
+														reservations={reservations}
+														reservationById={reservationById}
+														reservationRemainingById={reservationRemainingById}
+														reservationMatchedIncomeById={reservationMatchedIncomeById}
+														disabled={saving}
+														onChange={(reservationId) => matchReservation(tx.id, reservationId)}
+													/>
+												</td>
+												<td className="table-cell">
+													<input
+														type="text"
+														className="input-compact w-full max-w-[8rem]"
+														placeholder="Add note"
+														defaultValue={tx.notes || ''}
+														onBlur={(e) => {
+															if (e.target.value !== (tx.notes || '')) {
+																patchTx(tx.id, { notes: e.target.value });
+															}
+														}}
+													/>
+												</td>
+												<td className="table-cell text-center">
+													<button
+														type="button"
+														onClick={() => patchTx(tx.id, { reviewed: !tx.reviewed })}
+														className={clsx(
+															'inline-flex h-7 w-7 items-center justify-center rounded-full border transition-colors',
+															tx.reviewed
+																? 'bg-green-50 border-green-200 text-green-600'
+																: 'border-border text-muted hover:border-brand-400 hover:text-brand-600',
+														)}
+														title={tx.reviewed ? 'Mark as needs review' : 'Mark reviewed'}
+													>
+														<Check size={14} />
+													</button>
+												</td>
+												<td className="table-cell text-center">
+													<button
+														type="button"
+														onClick={() => patchTx(tx.id, { hidden: !tx.hidden })}
+														className={clsx(
+															'inline-flex h-7 w-7 items-center justify-center rounded-full border transition-colors',
+															tx.hidden
+																? 'bg-gray-100 border-gray-300 text-dark'
+																: 'border-border text-muted hover:border-gray-400 hover:text-dark',
+														)}
 															title={tx.hidden ? 'Include in reports' : 'Exclude from reports'}
 														>
 															<EyeOff size={14} />
-														</button>
-													</td>
-												)}
+													</button>
+												</td>
 											</tr>
 										);
 									})}

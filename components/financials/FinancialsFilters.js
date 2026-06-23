@@ -3,6 +3,7 @@ import { Filter } from 'lucide-react';
 import DateInput from '../DateInput';
 import FilterPanel, { FilterField } from '../FilterPanel';
 import { ISO_DATE_FMT, todayIso } from '../../lib/dates';
+import { getPropertyDisplayName } from '../../lib/codes';
 
 const PRESETS = [
 	{
@@ -35,7 +36,7 @@ function filterSummary(filters, properties) {
 	const parts = [];
 	if (filters.property) {
 		const prop = properties.find((p) => p.id === filters.property);
-		parts.push(prop?.name || 'Property');
+		parts.push(getPropertyDisplayName(prop) || 'Property');
 	}
 	if (filters.date_from || filters.date_to) {
 		parts.push(`${filters.date_from || '…'} – ${filters.date_to || '…'}`);
@@ -60,7 +61,7 @@ export default function FinancialsFilters({ filters, properties, onChange, onApp
 					>
 						<option value="">All properties</option>
 						{properties.map((p) => (
-							<option key={p.id} value={p.id}>{p.name}</option>
+							<option key={p.id} value={p.id}>{getPropertyDisplayName(p) || p.name}</option>
 						))}
 					</select>
 				</FilterField>

@@ -4,7 +4,7 @@ import { useRouter } from 'next/router';
 import { format, startOfMonth } from 'date-fns';
 import Layout from './Layout';
 import { PageLoader, ErrorState, EmptyState } from './LoadingSpinner';
-import { isTaskAssigned, sortTasksByDateAsc, sortTasksByDateDesc, taskIsOverdue } from '../lib/constants';
+import { isTaskAssigned, isTaskFinished, sortTasksByDateAsc, sortTasksByDateDesc, taskIsOverdue } from '../lib/constants';
 import { taskHeadline, taskGuestSubtitle } from '../lib/taskDisplay';
 import { fetchJson } from '../lib/apiClient';
 import { formatSyncResultAlert } from '../lib/syncResultMessage';
@@ -42,7 +42,13 @@ function adminTaskColumns(isCompleted) {
 		: ['status', 'task', 'checkout', 'due', 'assignee', 'checklist', 'pdf', 'admin'];
 }
 
-const LIMITED_WIDGET_KEYS = ['assigned', 'completed', 'overdue'];
+const LIMITED_WIDGET_KEYS = ['assigned', 'under_review', 'completed', 'overdue'];
+
+const TAB_OPTIONS = [
+	{ value: 'unassigned', label: 'Unassigned' },
+	{ value: 'assigned', label: 'Assigned' },
+	{ value: 'completed', label: 'Completed' },
+];
 
 const VIEW_OPTIONS = [
 	{ value: 'list', label: 'List' },
@@ -56,13 +62,15 @@ export default function TasksPageView() {
 	const routeTab = tabFromPathname(router.pathname);
 	const tab = routeTab
 		|| (router.query.tab === 'completed' ? 'completed'
-			: router.query.tab === 'overdue' ? 'overdue'
-				: router.query.tab === 'assigned' ? 'assigned'
-					: router.query.tab === 'unassigned' ? 'unassigned'
-						: limitedView ? 'assigned' : 'unassigned');
+			: router.query.tab === 'under_review' ? 'under_review'
+				: router.query.tab === 'overdue' ? 'overdue'
+					: router.query.tab === 'assigned' ? 'assigned'
+						: router.query.tab === 'unassigned' ? 'unassigned'
+							: limitedView ? 'assigned' : 'unassigned');
 	const view = router.query.view === 'calendar' ? 'calendar' : 'list';
 	const isUnassigned = tab === 'unassigned';
 	const isAssigned = tab === 'assigned';
+	const isUnderReview = tab === 'under_review';
 	const isCompleted = tab === 'completed';
 	const isOverdue = tab === 'overdue';
 	const isCalendar = view === 'calendar';
@@ -102,9 +110,9 @@ export default function TasksPageView() {
 	}, [tasks, search]);
 
 	const displayTasks = useMemo(() => {
-		if (isCompleted) return sortTasksByDateDesc(filteredTasks);
+		if (isCompleted || isUnderReview) return sortTasksByDateDesc(filteredTasks);
 		return sortTasksByDateAsc(filteredTasks);
-	}, [filteredTasks, isCompleted]);
+	}, [filteredTasks, isCompleted, isUnderReview]);
 
 	useEffect(() => {
 		if (!limitedView) {
@@ -133,6 +141,7 @@ export default function TasksPageView() {
 		const params = buildTaskFilterParams(applied, { isCalendar, monthKey });
 		if (includeTab) {
 			if (isCompleted) params.set('completed', 'true');
+			else if (isUnderReview) params.set('under_review', 'true');
 			else if (isOverdue) params.set('overdue', 'true');
 			else if (isUnassigned) params.set('unassigned', 'true');
 			else params.set('assigned', 'true');
@@ -149,6 +158,7 @@ export default function TasksPageView() {
 		router.query.today,
 		isUnassigned,
 		isAssigned,
+		isUnderReview,
 		isCompleted,
 		isOverdue,
 		isCalendar,
@@ -299,16 +309,19 @@ export default function TasksPageView() {
 
 	function taskStaysOnTab(updated) {
 		if (isCompleted) return updated.status === 'completed';
+		if (isUnderReview) return updated.status === 'under_review';
 		if (isOverdue) return taskIsOverdue(updated);
-		if (isUnassigned) return !isTaskAssigned(updated) && updated.status !== 'completed';
-		return isTaskAssigned(updated) && updated.status !== 'completed' && !taskIsOverdue(updated);
+		if (isUnassigned) return !isTaskAssigned(updated) && !isTaskFinished(updated);
+		return isTaskAssigned(updated) && !isTaskFinished(updated) && !taskIsOverdue(updated);
 	}
 
 	function handleUpdate(updated) {
 		if (!taskStaysOnTab(updated)) {
 			setTasks((prev) => prev.filter((t) => t.id !== updated.id));
-			if (updated.status === 'completed' && isAssigned) {
-				setFlash({ type: 'success', message: 'Task marked completed. View it under Tasks → Completed.' });
+			if (updated.status === 'under_review' && isAssigned) {
+				setFlash({ type: 'success', message: 'Checklist submitted. View it under Under Review.' });
+			} else if (updated.status === 'completed' && (isAssigned || isUnderReview)) {
+				setFlash({ type: 'success', message: 'Task approved. View it under Complete.' });
 			}
 		} else {
 			setTasks((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
@@ -328,6 +341,7 @@ export default function TasksPageView() {
 						onClose={() => setSelectedTask(null)}
 						showAssignee={isAdmin}
 						showAdmin={isAdmin}
+						forCleaner={limitedView}
 						onTaskUpdated={(updated) => {
 							setSelectedTask(updated);
 							handleUpdate(updated);
@@ -356,6 +370,9 @@ export default function TasksPageView() {
 						</div>
 					</div>
 					<div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+						{isAdmin && (
+							<SegmentedToggle value={tab} onChange={setTab} options={TAB_OPTIONS} />
+						)}
 						<SegmentedToggle value={view} onChange={setView} options={VIEW_OPTIONS} />
 					</div>
 				</div>
@@ -365,7 +382,10 @@ export default function TasksPageView() {
 					activeKey={tab}
 					onSelect={setTab}
 					visibleKeys={limitedView ? LIMITED_WIDGET_KEYS : undefined}
-					clickableKeys={limitedView ? LIMITED_WIDGET_KEYS : ['unassigned', 'assigned', 'completed', 'overdue']}
+					clickableKeys={limitedView
+						? LIMITED_WIDGET_KEYS
+						: ['unassigned', 'assigned', 'under_review', 'completed', 'overdue']}
+					cleanerView={limitedView}
 				/>
 
 				{flash && (
@@ -405,25 +425,31 @@ export default function TasksPageView() {
 								title={
 									limitedView
 										? isCompleted ? 'No completed tasks'
-											: isOverdue ? 'No overdue tasks'
-												: 'No tasks assigned'
+											: isUnderReview ? 'Nothing under review'
+												: isOverdue ? 'No overdue tasks'
+													: 'No tasks assigned'
 										: isCompleted ? 'No completed tasks'
-											: isOverdue ? 'No overdue tasks'
-											: isUnassigned ? 'No unassigned tasks'
-												: 'No assigned tasks'
+											: isUnderReview ? 'No tasks under review'
+												: isOverdue ? 'No overdue tasks'
+													: isUnassigned ? 'No unassigned tasks'
+														: 'No assigned tasks'
 								}
 								message={
 									isCalendar
 										? 'No tasks due in this month with the current filters.'
 										: limitedView
 											? isCompleted
-												? 'Your completed tasks will appear here.'
-												: isOverdue
-													? 'You have no overdue tasks right now.'
-													: 'You have no tasks assigned right now. Check back later or contact your admin.'
+												? 'Approved checklists appear here.'
+												: isUnderReview
+													? 'Submitted checklists waiting for admin approval appear here.'
+													: isOverdue
+														? 'You have no overdue tasks right now.'
+														: 'You have no tasks assigned right now. Check back later or contact your admin.'
 											: isCompleted
-												? 'Completed tasks will appear here after you mark them done.'
-												: isOverdue
+												? 'Completed tasks will appear here after approval.'
+												: isUnderReview
+													? 'Tasks appear here after a cleaner submits a checklist.'
+													: isOverdue
 													? 'Overdue tasks appear here when due dates pass.'
 													: isUnassigned
 													? 'New turnovers appear here after you sync from Reservations.'
@@ -470,8 +496,9 @@ export default function TasksPageView() {
 											onAssigneeChanged={handleAssigneeChanged}
 											showAdmin={isAdmin && !isCompleted}
 											readOnly={readOnly}
-											assigneeReadOnly={isCompleted}
-											isCompletedTab={isCompleted}
+											assigneeReadOnly={isCompleted || isUnderReview}
+											isCompletedTab={isCompleted || isUnderReview}
+											showCleanerStatus={limitedView && (isUnderReview || isCompleted)}
 										/>
 									))}
 								</div>
@@ -524,9 +551,10 @@ export default function TasksPageView() {
 													onAssigneeChanged={handleAssigneeChanged}
 													showAdmin={isAdmin && !isCompleted}
 													readOnly={readOnly}
-													assigneeReadOnly={isCompleted}
+													assigneeReadOnly={isCompleted || isUnderReview}
 													isColumnVisible={isAdmin ? isAdminColumnVisible : undefined}
-													isCompletedTab={isCompleted}
+													isCompletedTab={isCompleted || isUnderReview}
+													showCleanerStatus={limitedView && (isUnderReview || isCompleted)}
 												/>
 											))}
 										</tbody>

@@ -5,10 +5,10 @@ export function Spinner({ size = 'md' }) {
   );
 }
 
-export function PageLoader({ message = 'Loading…' }) {
+export function PageLoader({ message = 'Loading…', compact = false }) {
   return (
-    <div className="flex flex-col items-center justify-center py-20 gap-4">
-      <Spinner size="lg" />
+    <div className={`flex flex-col items-center justify-center ${compact ? 'py-8 gap-3' : 'py-20 gap-4'}`}>
+      <Spinner size={compact ? 'md' : 'lg'} />
       <p className="text-muted text-sm">{message}</p>
     </div>
   );
@@ -27,11 +27,11 @@ export function EmptyState({ title, message, action }) {
   );
 }
 
-export function ErrorState({ message, retry }) {
+export function ErrorState({ message, retry, compact = false }) {
   return (
-    <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
-      <div className="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center">
-        <span className="text-2xl">⚠️</span>
+    <div className={`flex flex-col items-center justify-center gap-3 text-center ${compact ? 'py-8' : 'py-16'}`}>
+      <div className={`rounded-full bg-red-50 flex items-center justify-center ${compact ? 'w-10 h-10' : 'w-14 h-14'}`}>
+        <span className={compact ? 'text-lg' : 'text-2xl'}>⚠️</span>
       </div>
       <p className="font-semibold text-dark">Something went wrong</p>
       <p className="text-muted text-sm max-w-sm px-4 break-words">{message}</p>

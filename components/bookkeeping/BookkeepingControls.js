@@ -4,7 +4,7 @@ import { ChevronDown } from 'lucide-react';
 import clsx from 'clsx';
 import DateInput from '../DateInput';
 import { fmt$ } from '../financials/format';
-import { ISO_DATE_FMT, todayIso } from '../../lib/dates';
+import { ISO_DATE_FMT, todayIso, formatDateOrDash } from '../../lib/dates';
 
 export const DATE_PRESETS = [
 	{
@@ -121,9 +121,9 @@ export function DateRangeFilterContent({ dateFrom, dateTo, onApply, close }) {
 
 export function formatDateFilterLabel(dateFrom, dateTo) {
 	if (!dateFrom && !dateTo) return 'All time';
-	if (dateFrom && dateTo) return `${dateFrom} – ${dateTo}`;
-	if (dateFrom) return `From ${dateFrom}`;
-	return `Through ${dateTo}`;
+	if (dateFrom && dateTo) return `${formatDateOrDash(dateFrom)} – ${formatDateOrDash(dateTo)}`;
+	if (dateFrom) return `From ${formatDateOrDash(dateFrom)}`;
+	return `Through ${formatDateOrDash(dateTo)}`;
 }
 
 export function FilterPill({ label, children }) {
@@ -155,9 +155,10 @@ export function FilterPill({ label, children }) {
 	);
 }
 
-export function InlineSelect({ value, placeholder, options, onChange, className }) {
+export function InlineSelect({ value, placeholder, options, onChange, className, disabled }) {
 	return (
 		<select
+			disabled={disabled}
 			className={clsx(
 				'select-compact max-w-[11rem] truncate',
 				!value && 'text-brand-600 font-medium',

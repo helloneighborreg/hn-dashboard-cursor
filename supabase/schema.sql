@@ -108,3 +108,103 @@ grant all on table public.bank_transactions to postgres;
 
 alter table public.bank_connection enable row level security;
 alter table public.bank_transactions enable row level security;
+
+create table if not exists property_owners (
+	property_id text primary key,
+	name text not null default '',
+	address text not null default '',
+	email text not null default '',
+	phone text not null default '',
+	agreement_expiration date,
+	management_fee_percent numeric(5, 2) not null default 20,
+	notes text not null default '',
+	created_at timestamptz not null default now(),
+	updated_at timestamptz not null default now()
+);
+
+grant all on table public.property_owners to service_role;
+grant all on table public.property_owners to postgres;
+
+alter table public.property_owners enable row level security;
+
+create table if not exists owner_statement_inclusions (
+	property_id text not null,
+	reservation_id text not null,
+	statement_month text not null,
+	created_at timestamptz not null default now(),
+	primary key (property_id, reservation_id)
+);
+
+create index if not exists owner_statement_inclusions_month
+	on owner_statement_inclusions (property_id, statement_month);
+
+grant all on table public.owner_statement_inclusions to service_role;
+grant all on table public.owner_statement_inclusions to postgres;
+
+alter table public.owner_statement_inclusions enable row level security;
+
+create table if not exists owner_statement_cash_inclusions (
+	property_id text not null,
+	item_id text not null,
+	item_source text not null,
+	statement_month text not null,
+	created_at timestamptz not null default now(),
+	primary key (property_id, item_id, item_source)
+);
+
+create index if not exists owner_statement_cash_inclusions_month
+	on owner_statement_cash_inclusions (property_id, statement_month);
+
+grant all on table public.owner_statement_cash_inclusions to service_role;
+grant all on table public.owner_statement_cash_inclusions to postgres;
+
+alter table public.owner_statement_cash_inclusions enable row level security;
+
+create table if not exists owner_statement_reservation_notes (
+	property_id text not null,
+	reservation_id text not null,
+	notes text not null default '',
+	updated_at timestamptz not null default now(),
+	primary key (property_id, reservation_id)
+);
+
+create index if not exists owner_statement_reservation_notes_property
+	on owner_statement_reservation_notes (property_id);
+
+grant all on table public.owner_statement_reservation_notes to service_role;
+grant all on table public.owner_statement_reservation_notes to postgres;
+
+alter table public.owner_statement_reservation_notes enable row level security;
+
+create table if not exists owner_statement_approvals (
+	id uuid primary key default gen_random_uuid(),
+	property_id text not null,
+	statement_period text not null,
+	date_from date,
+	date_to date,
+	reservation_ids text[] not null default '{}',
+	statement_data jsonb not null,
+	pdf_storage_path text,
+	approved_at timestamptz not null default now()
+);
+
+create index if not exists owner_statement_approvals_property
+	on owner_statement_approvals (property_id, approved_at desc);
+
+grant all on table public.owner_statement_approvals to service_role;
+grant all on table public.owner_statement_approvals to postgres;
+
+alter table public.owner_statement_approvals enable row level security;
+
+-- Task attachments (see migrations/20260627_task_attachments.sql)
+create table if not exists task_attachments (
+  id uuid primary key default gen_random_uuid(),
+  task_id uuid not null references tasks(id) on delete cascade,
+  storage_path text not null,
+  filename text,
+  content_type text,
+  public_url text,
+  uploaded_by text,
+  created_at timestamptz not null default now()
+);
+create index if not exists idx_task_attachments_task_id on task_attachments (task_id);

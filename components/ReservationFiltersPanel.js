@@ -1,6 +1,7 @@
 import { Filter } from 'lucide-react';
 import DateInput from './DateInput';
 import FilterPanel, { FilterField } from './FilterPanel';
+import { getPropertyDisplayName } from '../lib/codes';
 
 const STATUSES = ['accepted', 'cancelled', 'expired', 'pending', 'inquiry'];
 
@@ -18,7 +19,7 @@ function filterSummary(filters, properties) {
 	const parts = [];
 	if (filters.property) {
 		const prop = properties.find((p) => p.id === filters.property);
-		parts.push(prop?.name || 'Property');
+		parts.push(getPropertyDisplayName(prop) || 'Property');
 	}
 	if (filters.status) parts.push(filters.status);
 	if (filters.platform) parts.push(filters.platform.replace('_', ' '));
@@ -44,7 +45,7 @@ export default function ReservationFiltersPanel({ filters, setFilters, propertie
 						onChange={(e) => setFilters((f) => ({ ...f, property: e.target.value }))}
 					>
 						<option value="">All properties</option>
-						{properties.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+						{properties.map((p) => <option key={p.id} value={p.id}>{getPropertyDisplayName(p) || p.name}</option>)}
 					</select>
 				</FilterField>
 				<FilterField label="Status" className="w-28 sm:w-32">

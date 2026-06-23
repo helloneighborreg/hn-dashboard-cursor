@@ -20,11 +20,11 @@ export default function FilterPanel({
 	const [open, setOpen] = useState(defaultOpen || activeCount > 0);
 
 	return (
-		<div className="card mb-4 overflow-hidden">
+		<div className="card mb-3 overflow-hidden">
 			<button
 				type="button"
 				onClick={() => setOpen((prev) => !prev)}
-				className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-50 transition-colors"
+				className="w-full flex items-center gap-2 px-3 py-1.5 text-left hover:bg-gray-50 transition-colors"
 				aria-expanded={open}
 			>
 				<Filter size={14} className="text-muted flex-shrink-0" />
@@ -43,7 +43,7 @@ export default function FilterPanel({
 				/>
 			</button>
 			{open && (
-				<div className="px-3 pb-3 pt-2 border-t border-border">
+				<div className="px-3 pb-2.5 pt-1.5 border-t border-border">
 					{children}
 				</div>
 			)}

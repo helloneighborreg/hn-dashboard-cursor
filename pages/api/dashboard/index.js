@@ -1,8 +1,5 @@
 import { withAuth } from '../../../lib/auth';
 import { getCached } from '../../../lib/cache';
-import { sortTasksByDateAsc } from '../../../lib/constants';
-import { getTasksForToday, getUnassignedTasksCount } from '../../../lib/db';
-import { enrichTasks } from '../../../lib/taskEnrich';
 import {
 	getProperties,
 	getReservations,
@@ -53,12 +50,6 @@ async function buildDashboardData() {
 		active.filter((r) => co(r) > todayStr && co(r) <= in7days).map(wp),
 	);
 
-	const [todayTasksRaw, unassignedCount] = await Promise.all([
-		getTasksForToday(),
-		getUnassignedTasksCount(),
-	]);
-	const todayTasks = sortTasksByDateAsc(await enrichTasks(todayTasksRaw));
-
 	return {
 		today: todayStr,
 		properties_count: properties.length,
@@ -67,13 +58,10 @@ async function buildDashboardData() {
 		check_outs_today: checkOutsToday,
 		upcoming_check_ins: upcomingCheckIns,
 		upcoming_check_outs: upcomingCheckOuts,
-		tasks_today: todayTasks,
 		stats: {
 			occupied_count: occupied.length,
 			checkins_today: checkInsToday.length,
 			checkouts_today: checkOutsToday.length,
-			tasks_today: todayTasks.length,
-			tasks_unassigned: unassignedCount,
 			upcoming_checkins: upcomingCheckIns.length,
 			upcoming_checkouts: upcomingCheckOuts.length,
 		},
@@ -82,14 +70,12 @@ async function buildDashboardData() {
 
 export default async function handler(req, res) {
 	await withAuth(req, res, async () => {
-		if (req.method !== 'GET') return res.status(405).end();
-		try {
-			const todayStr = format(new Date(), 'yyyy-MM-dd');
-			const data = await getCached(`dashboard:v3:${todayStr}`, CACHE_TTL_MS, buildDashboardData);
-			res.json({ data });
-		} catch (err) {
-			console.error('Dashboard error:', err.message);
-			res.status(502).json({ error: err.message });
+		if (req.method !== 'GET') {
+			res.status(405).end();
+			return;
 		}
+
+		const data = await getCached('dashboard', CACHE_TTL_MS, buildDashboardData);
+		res.json({ data });
 	}, { adminOnly: true });
 }

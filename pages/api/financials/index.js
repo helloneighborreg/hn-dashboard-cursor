@@ -2,9 +2,13 @@ import { withAuth } from '../../../lib/auth';
 import { getProperties, getReservations, platformLabel, buildPropertyMap, withReservationPropertyName } from '../../../lib/hospitable';
 import { buildPropertyCodeToNameMap, formatPropertyNameForRow } from '../../../lib/codes';
 import { parseHostFinancials } from '../../../lib/hospitableFinancials';
-import { getExpenses } from '../../../lib/db';
+import { getExpenses, getOwnerStatementApprovalsForProperties } from '../../../lib/db';
 import { reservationActsAsCancelled } from '../../../lib/reservationDates';
-import { aggregateAmountsByReportCategory } from '../../../lib/bookkeepingCategories';
+import { aggregateAmountsByReportCategory, getCategoryType } from '../../../lib/bookkeepingCategories';
+import {
+	attachOwnerStatementInclusion,
+	mapApprovedManualExpenseInclusions,
+} from '../../../lib/ownerStatementReport';
 
 export default async function handler(req, res) {
   await withAuth(req, res, async () => {
@@ -29,10 +33,18 @@ export default async function handler(req, res) {
       if (property) expFilters.property_id = property;
       if (date_from) expFilters.date_from = date_from;
       if (date_to) expFilters.date_to = date_to;
+      const statementApprovals = await getOwnerStatementApprovalsForProperties(ids);
+      const manualExpenseInclusions = mapApprovedManualExpenseInclusions(statementApprovals);
       const manualExpenses = (await getExpenses(expFilters)).map((e) =>
-        formatPropertyNameForRow(e, codeToNameMap, propMap),
+        attachOwnerStatementInclusion(
+          formatPropertyNameForRow(e, codeToNameMap, propMap),
+          manualExpenseInclusions,
+        ),
       );
-      const totalManualExpenses = manualExpenses.reduce((s, e) => s + e.amount, 0);
+      const manualIncome = manualExpenses.filter((e) => getCategoryType(e.category) === 'income');
+      const manualExpenseRows = manualExpenses.filter((e) => getCategoryType(e.category) !== 'income');
+      const totalManualIncome = manualIncome.reduce((s, e) => s + e.amount, 0);
+      const totalManualExpenses = manualExpenseRows.reduce((s, e) => s + e.amount, 0);
 
       const resvData = reservations
         .filter((r) => !reservationActsAsCancelled(r))
@@ -63,7 +75,7 @@ export default async function handler(req, res) {
           };
         });
 
-      const totalRevenue = resvData.reduce((s, r) => s + r.revenue, 0);
+      const totalRevenue = resvData.reduce((s, r) => s + r.revenue, 0) + totalManualIncome;
       const totalNights  = resvData.reduce((s, r) => s + (r.nights || 0), 0);
       const occupancyRate = totalNights > 0 && ids.length > 0
         ? Math.min(100, Math.round((totalNights / (ids.length * 365)) * 10000) / 100)
@@ -80,13 +92,21 @@ export default async function handler(req, res) {
         byMonth[r.month].nights       += r.nights || 0;
         byMonth[r.month].reservations += 1;
       });
-      manualExpenses.forEach((e) => {
+      manualExpenseRows.forEach((e) => {
         const m = e.date?.slice(0, 7);
         if (!m) return;
         byMonth[m] = byMonth[m] || {
           month: m, revenue: 0, nights: 0, reservations: 0, expenses: 0,
         };
         byMonth[m].expenses += e.amount;
+      });
+      manualIncome.forEach((e) => {
+        const m = e.date?.slice(0, 7);
+        if (!m) return;
+        byMonth[m] = byMonth[m] || {
+          month: m, revenue: 0, nights: 0, reservations: 0, expenses: 0,
+        };
+        byMonth[m].revenue += e.amount;
       });
       Object.values(byMonth).forEach((m) => { m.net_income = m.revenue - m.expenses; });
       Object.values(byMonth).forEach((m) => {
@@ -110,7 +130,7 @@ export default async function handler(req, res) {
         byProperty[r.property_id].nights       += r.nights || 0;
         byProperty[r.property_id].reservations += 1;
       });
-      manualExpenses.forEach((e) => {
+      manualExpenseRows.forEach((e) => {
         const propertyId = e.property_id || 'unknown';
         const property_name = e.property_name || propertyId;
         byProperty[propertyId] = byProperty[propertyId] || {
@@ -121,6 +141,18 @@ export default async function handler(req, res) {
           reservations: 0,
         };
         byProperty[propertyId].expenses = (byProperty[propertyId].expenses || 0) + e.amount;
+      });
+      manualIncome.forEach((e) => {
+        const propertyId = e.property_id || 'unknown';
+        const property_name = e.property_name || propertyId;
+        byProperty[propertyId] = byProperty[propertyId] || {
+          property_id: propertyId,
+          property_name,
+          revenue: 0,
+          nights: 0,
+          reservations: 0,
+        };
+        byProperty[propertyId].revenue += e.amount;
       });
 
       const availableNightsPerProperty = (() => {
@@ -153,7 +185,7 @@ export default async function handler(req, res) {
         byPlatform[r.platform].reservations += 1;
       });
 
-      const expenseByCategory = aggregateAmountsByReportCategory(manualExpenses, {
+      const expenseByCategory = aggregateAmountsByReportCategory(manualExpenseRows, {
         categoryKey: 'category',
         amountKey: 'amount',
       });

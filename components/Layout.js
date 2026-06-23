@@ -2,14 +2,13 @@ import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import {
-  LayoutDashboard, Building2, CalendarDays, Calendar, CheckSquare,
-  DollarSign, LogOut, Menu, X, ChevronRight, ChevronDown, TrendingUp, Receipt, CircleCheckBig, Tags, FileBarChart,
-  UserX, UserCheck, AlertCircle, ClipboardList, Package, Wrench, ExternalLink,
-  PanelLeftClose, PanelLeft,
+  LayoutDashboard, Building2, CalendarDays, Calendar,
+  DollarSign, LogOut, Menu, X, ChevronRight, ChevronDown, TrendingUp, Receipt, Tags, FileBarChart,
+  ClipboardList, Package,
+  PanelLeftClose, PanelLeft, Warehouse, ShoppingCart,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useAuth } from './AuthContext';
-import { useTaskCounts } from './TaskCountsContext';
 import { BrandLogo } from './Logo';
 import { homePathForRole, navItemsForRole, roleLabel } from '../lib/roles';
 import { fetchJson } from '../lib/apiClient';
@@ -21,18 +20,14 @@ const NAV_ICONS = {
   '/properties': Building2,
   '/calendar': Calendar,
   '/reservations': CalendarDays,
-  '/tasks': CheckSquare,
-  '/tasks/unassigned': UserX,
-  '/tasks/assigned': UserCheck,
-  '/tasks/overdue': AlertCircle,
-  '/tasks/completed': CircleCheckBig,
   '/financials': DollarSign,
   '/transactions': Tags,
   '/reports': FileBarChart,
   '/forms': ClipboardList,
-  '/forms/extra-charge': DollarSign,
-  '/forms/supply-request': Package,
-  '/forms/maintenance-request': Wrench,
+  '/forms/cjc-turn-clean-checklist': ClipboardList,
+  '/supplies': Package,
+  '/supplies/inventory': Warehouse,
+  '/supplies/order': ShoppingCart,
 };
 
 function navLinkClass(active, collapsed) {
@@ -75,13 +70,7 @@ function userInitials(name) {
   return name.slice(0, 2).toUpperCase();
 }
 
-function taskNavCount(href, taskCounts) {
-  if (href === '/tasks/unassigned') return taskCounts?.unassigned ?? 0;
-  if (href === '/tasks/overdue') return taskCounts?.overdue ?? 0;
-  return undefined;
-}
-
-function NavChildLink({ child, pathname, onNavigate, count, collapsed }) {
+function NavChildLink({ child, pathname, onNavigate, collapsed }) {
   const ChildIcon = child.icon;
   const childActive = !child.externalUrl && isNavActive(pathname, child.href);
   const className = clsx(navLinkClass(childActive, collapsed), collapsed ? 'mt-0.5' : 'mt-0.5 ml-4');
@@ -90,24 +79,8 @@ function NavChildLink({ child, pathname, onNavigate, count, collapsed }) {
     <>
       <ChildIcon size={collapsed ? 18 : 16} className={clsx(childActive ? 'text-white' : 'text-white/50 group-hover:text-white flex-shrink-0')} />
       {!collapsed && child.label}
-      {!collapsed && count != null && (
-        <span
-          className={clsx(
-            'ml-auto text-xs font-semibold tabular-nums rounded-full px-1.5 py-0.5 min-w-[1.25rem] text-center',
-            childActive ? 'bg-white/20 text-white' : 'bg-white/10 text-white/60 group-hover:text-white/80',
-          )}
-        >
-          {count}
-        </span>
-      )}
-      {!collapsed && child.externalUrl && (
-        <ExternalLink size={12} className="ml-auto opacity-50 group-hover:opacity-80 flex-shrink-0" />
-      )}
-      {!collapsed && childActive && count == null && !child.externalUrl && (
+      {!collapsed && childActive && (
         <ChevronRight size={14} className="ml-auto" />
-      )}
-      {collapsed && count != null && count > 0 && (
-        <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-brand-400" aria-hidden />
       )}
     </>
   );
@@ -142,7 +115,6 @@ function NavSection({
   expanded,
   onToggle,
   onNavigate,
-  taskCounts,
   collapsed,
   onExpandSidebar,
 }) {
@@ -191,19 +163,15 @@ function NavSection({
             ? <ChevronDown size={16} className="ml-auto text-white/50" />
             : <ChevronRight size={16} className="ml-auto text-white/50" />}
         </button>
-        {expanded && childItems.map((child) => {
-          const count = taskNavCount(child.href, taskCounts);
-          return (
+        {expanded && childItems.map((child) => (
             <NavChildLink
               key={child.href}
               child={child}
               pathname={pathname}
               onNavigate={onNavigate}
-              count={count}
               collapsed={false}
             />
-          );
-        })}
+          ))}
       </div>
     );
   }
@@ -230,19 +198,15 @@ function NavSection({
           {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
         </button>
       </div>
-      {expanded && childItems.map((child) => {
-        const count = taskNavCount(child.href, taskCounts);
-        return (
-          <NavChildLink
-            key={child.href}
-            child={child}
-            pathname={pathname}
-            onNavigate={onNavigate}
-            count={count}
-            collapsed={false}
-          />
-        );
-      })}
+      {expanded && childItems.map((child) => (
+        <NavChildLink
+          key={child.href}
+          child={child}
+          pathname={pathname}
+          onNavigate={onNavigate}
+          collapsed={false}
+        />
+      ))}
     </div>
   );
 }
@@ -250,7 +214,6 @@ function NavSection({
 export default function Layout({ children, title }) {
   const router = useRouter();
   const { user } = useAuth();
-  const { counts: taskCounts } = useTaskCounts();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sidebarCollapsedDesktop, setSidebarCollapsedDesktop] = useState(false);
@@ -345,7 +308,7 @@ export default function Layout({ children, title }) {
   }
 
   return (
-    <div className="min-h-screen bg-bg flex">
+    <div className="h-screen overflow-hidden bg-bg flex">
       {sidebarOpen && (
         <div
           className="fixed inset-0 z-20 bg-black/40 lg:hidden"
@@ -355,9 +318,11 @@ export default function Layout({ children, title }) {
 
       <aside
         className={clsx(
-          'fixed inset-y-0 left-0 z-30 w-64 flex-shrink-0 bg-dark flex flex-col transition-all duration-300 lg:static lg:translate-x-0 overflow-visible',
+          'z-30 w-64 flex-shrink-0 bg-dark flex flex-col transition-all duration-300 overflow-visible',
+          'max-lg:fixed max-lg:inset-y-0 max-lg:left-0',
+          'lg:sticky lg:top-0 lg:h-screen lg:self-start lg:translate-x-0',
           collapsed && 'lg:w-[4.5rem]',
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full',
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
         )}
       >
         <div
@@ -427,7 +392,6 @@ export default function Layout({ children, title }) {
                   expanded={isSectionExpanded(item.href, childItems, item.toggleOnly)}
                   onToggle={() => toggleSection(item.href, childItems, item.toggleOnly)}
                   onNavigate={closeSidebar}
-                  taskCounts={taskCounts}
                   collapsed={collapsed}
                   onExpandSidebar={expandSidebar}
                 />
@@ -492,8 +456,11 @@ export default function Layout({ children, title }) {
         </div>
       </aside>
 
-      <div className="flex-1 flex flex-col min-w-0 w-full max-w-full overflow-hidden">
-        <header className="bg-white border-b border-border px-4 py-3 flex items-center gap-3 lg:hidden sticky top-0 z-10 shrink-0">
+      <div className="flex-1 flex flex-col min-w-0 min-h-0 w-full max-w-full overflow-hidden">
+        <header
+          className="bg-white border-b border-border px-4 pb-3 flex items-center gap-3 lg:hidden sticky top-0 z-10 shrink-0"
+          style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top))' }}
+        >
           <button
             onClick={() => setSidebarOpen(true)}
             className="text-dark hover:text-brand-500 transition-colors"
@@ -503,7 +470,7 @@ export default function Layout({ children, title }) {
           <BrandLogo variant="header" title={title} />
         </header>
 
-        <main className="flex-1 flex flex-col min-w-0 overflow-y-auto">
+        <main className="flex-1 flex flex-col min-w-0 min-h-0 overflow-y-auto">
           {title && (
             <div className="shrink-0 px-4 pt-4 lg:px-8 lg:pt-8 hidden lg:block">
               <h1 className="text-xl sm:text-2xl font-bold text-dark">{title}</h1>

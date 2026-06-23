@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Verify Supabase env + that tasks/expenses tables exist.
+ * Verify Supabase env + that core tables exist.
  * Usage: npm run db:check
  */
 
@@ -26,7 +26,7 @@ console.log('✓ SUPABASE_URL format OK');
 const supabase = createClient(url, key, { auth: { persistSession: false } });
 let ok = true;
 
-for (const table of ['tasks', 'expenses']) {
+for (const table of ['expenses']) {
 	const { error } = await supabase.from(table).select('id').limit(1);
 	if (error) {
 		console.error(`✗ Table "${table}": ${error.message}`);
@@ -42,33 +42,6 @@ if (!ok) {
 	console.error('→ "permission denied"? Run supabase/fix-permissions.sql in SQL Editor');
 	console.error('→ Then: npm run db:import');
 	process.exit(1);
-}
-
-/** Columns the app expects on tasks (added via supabase/migrations/*.sql in SQL Editor). */
-const TASK_COLUMN_CHECKS = [
-	{ name: 'checkin_date', migration: 'supabase/migrations/20260604_task_checkin.sql' },
-	{ name: 'checkin_time', migration: 'supabase/migrations/20260604_task_checkin.sql' },
-	{ name: 'hospitable_reservation_id', migration: 'supabase/migrations/20260605_task_hospitable_id.sql' },
-];
-
-const { error: checkinErr } = await supabase
-	.from('tasks')
-	.select('id, checkin_date, checkin_time, hospitable_reservation_id')
-	.limit(1);
-
-if (checkinErr?.code === '42703' || /checkin_|hospitable_reservation_id/i.test(checkinErr?.message || '')) {
-	console.error('\n✗ tasks table is missing columns required for booking sync');
-	console.error('  Supabase does NOT run files from supabase/migrations/ automatically.');
-	console.error('  Run each file in Supabase → SQL Editor → New query → Run:');
-	for (const migration of [...new Set(TASK_COLUMN_CHECKS.map((c) => c.migration))]) {
-		console.error(`    - ${migration}`);
-	}
-	ok = false;
-} else if (checkinErr) {
-	console.error(`\n✗ tasks column check failed: ${checkinErr.message}`);
-	ok = false;
-} else {
-	console.log('✓ tasks booking-sync columns exist (check-in + hospitable_reservation_id)');
 }
 
 console.log('\n— Bank / Plaid —');
@@ -129,6 +102,64 @@ if (!bankConn?.item_id) {
 		console.log('○ No transactions imported yet — use Sync Now on Income');
 	} else {
 		console.log(`✓ ${txCount} bank transaction(s) in database`);
+	}
+}
+
+console.log('\n— In-app checklist forms —');
+
+for (const table of ['form_submissions', 'form_submission_files']) {
+	const { error } = await supabase.from(table).select('id').limit(1);
+	if (error?.code === 'PGRST205' || /Could not find the table/i.test(error?.message || '')) {
+		console.error(`✗ Table "${table}" missing`);
+		console.error('  → Run supabase/migrations/20260625_form_submissions.sql in Supabase SQL Editor');
+		ok = false;
+	} else if (error?.code === '42501' || /permission denied/i.test(error?.message || '')) {
+		console.error(`✗ Table "${table}": permission denied for service_role`);
+		console.error('  → Run supabase/migrations/20260629_form_submission_permissions.sql in Supabase SQL Editor');
+		ok = false;
+	} else if (error) {
+		console.error(`✗ Table "${table}": ${error.message}`);
+		ok = false;
+	} else {
+		const { count } = await supabase.from(table).select('*', { count: 'exact', head: true });
+		console.log(`✓ Table "${table}" exists (${count ?? 0} rows)`);
+	}
+}
+
+const { error: formStatusErr } = await supabase
+	.from('form_submissions')
+	.select('id, status')
+	.limit(0);
+
+if (formStatusErr?.code === '42703' || /status/i.test(formStatusErr?.message || '')) {
+	console.error('✗ form_submissions missing status column');
+	console.error('  → Run supabase/migrations/20260628_form_submission_status.sql in Supabase SQL Editor');
+	ok = false;
+} else if (formStatusErr) {
+	console.error(`✗ form_submissions status check: ${formStatusErr.message}`);
+	ok = false;
+} else {
+	console.log('✓ form_submissions status column exists');
+}
+
+console.log('\n— Supplies —');
+
+for (const table of ['supply_products', 'supply_inventory', 'supply_orders', 'supply_order_items']) {
+	const { error } = await supabase.from(table).select('id').limit(1);
+	if (error?.code === 'PGRST205' || /Could not find the table/i.test(error?.message || '')) {
+		console.error(`✗ Table "${table}" missing`);
+		console.error('  → Run supabase/migrations/20260622_supplies.sql in Supabase SQL Editor');
+		ok = false;
+	} else if (error?.code === '42501') {
+		console.error(`✗ Table "${table}": permission denied for service_role`);
+		console.error('  → Run supabase/migrations/20260625_supply_permissions.sql in Supabase SQL Editor');
+		ok = false;
+	} else if (error) {
+		console.error(`✗ Table "${table}": ${error.message}`);
+		ok = false;
+	} else {
+		const { count } = await supabase.from(table).select('*', { count: 'exact', head: true });
+		console.log(`✓ Table "${table}" exists (${count ?? 0} rows)`);
 	}
 }
 

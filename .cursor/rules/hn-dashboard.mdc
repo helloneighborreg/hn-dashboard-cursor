@@ -19,8 +19,8 @@ Next.js 14 Pages Router app on Cloudflare (OpenNext). Supabase Postgres backend.
 
 - **Supabase** — `lib/db.js`
 - **Plaid** — bank feed (`lib/plaid.js`, `pages/api/bank/`)
-- **Hospitable** — reservations/tasks (`lib/hospitable.js`)
-- **Fillout** — task forms/webhooks (`lib/fillout*.js`)
+- **Hospitable** — reservations (`lib/hospitable.js`)
+- **In-app forms** — turn clean checklist (`lib/forms/`, `pages/forms/`)
 
 ## Auth & roles
 

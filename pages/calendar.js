@@ -10,6 +10,7 @@ import ReservationPanel, { reservationGuestName } from '../components/Reservatio
 import { fetchJson } from '../lib/apiClient';
 import { formatDateRange } from '../lib/dates';
 import { platformStyle } from '../lib/platformStyles';
+import { getPropertyDisplayName } from '../lib/codes';
 import { requireAuth } from '../lib/auth';
 
 const COL_W    = 42;
@@ -193,7 +194,7 @@ export default function CalendarPage() {
                         className={`sticky left-0 z-20 flex-shrink-0 flex items-center px-3 border-r border-border shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)] ${isEven ? 'bg-white' : 'bg-gray-50'}`}
                         style={{ width: NAME_W, minWidth: NAME_W }}
                       >
-                        <p className="text-xs font-semibold text-dark truncate">{prop.name}</p>
+                        <p className="text-xs font-semibold text-dark truncate">{getPropertyDisplayName(prop) || prop.name}</p>
                       </div>
 
                       {/* Background grid */}
@@ -250,7 +251,7 @@ export default function CalendarPage() {
                           <button
                             key={resv.id}
                             title={`${name} · ${arrStr} → ${depStr} · ${resv.nights || span} nights · Click to view`}
-                            onClick={() => setSelected({ resv, propName: prop.name })}
+                            onClick={() => setSelected({ resv, propName: getPropertyDisplayName(prop) || prop.name })}
                             className="absolute top-1.5 bottom-1.5 rounded-md flex items-center overflow-hidden transition-opacity hover:opacity-90 active:opacity-75 focus:outline-none focus:ring-2 focus:ring-white/50"
                             style={{
                               left,

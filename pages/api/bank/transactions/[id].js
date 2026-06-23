@@ -11,6 +11,7 @@ import {
 	getBankTransactionById,
 	getBankTransactions,
 	sumMatchedIncomeForReservation,
+	deleteBankTransaction,
 	updateBankTransaction,
 } from '../../../../lib/db';
 
@@ -18,6 +19,12 @@ export default async function handler(req, res) {
 	await withAuth(req, res, async () => {
 		const { id } = req.query;
 		if (!id) return res.status(400).json({ error: 'Transaction id required' });
+
+		if (req.method === 'GET') {
+			const tx = await getBankTransactionById(id);
+			if (!tx) return res.status(404).json({ error: 'Transaction not found' });
+			return res.json({ data: tx });
+		}
 
 		if (req.method === 'PATCH') {
 			const {
@@ -92,6 +99,13 @@ export default async function handler(req, res) {
 				console.error('Update bank transaction error:', err.message);
 				return res.status(502).json({ error: err.message });
 			}
+		}
+
+		if (req.method === 'DELETE') {
+			const tx = await getBankTransactionById(id);
+			if (!tx) return res.status(404).json({ error: 'Transaction not found' });
+			await deleteBankTransaction(id);
+			return res.status(204).end();
 		}
 
 		return res.status(405).end();

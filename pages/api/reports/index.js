@@ -9,6 +9,7 @@ export default async function handler(req, res) {
 
 		const { report, property, properties, date_from, date_to, interval, category_level } = req.query;
 		const reportId = normalizeReportId(report);
+		if (!reportId) return res.status(400).json({ error: 'Report is required.' });
 		const property_ids = parsePropertyIdsQuery(properties)
 			|| (property ? [String(property).trim()] : null);
 

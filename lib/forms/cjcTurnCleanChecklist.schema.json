@@ -1,0 +1,1461 @@
+{
+  "id": "6iDCPrxYUdus",
+  "name": "CJC: Turn Clean Checklist",
+  "slug": "cjc-turn-clean-checklist",
+  "urlParameters": [
+    {
+      "id": "ReservationID",
+      "name": "ReservationID"
+    },
+    {
+      "id": "Guest",
+      "name": "Guest"
+    },
+    {
+      "id": "Property",
+      "name": "Property"
+    },
+    {
+      "id": "CheckOut",
+      "name": "CheckOut"
+    },
+    {
+      "id": "id",
+      "name": "id"
+    },
+    {
+      "id": "TaskID",
+      "name": "TaskID"
+    }
+  ],
+  "calculations": [
+    {
+      "id": "svxB",
+      "name": "Invoice Total",
+      "type": "number"
+    }
+  ],
+  "questions": [
+    {
+      "id": "2h8B",
+      "name": "Guest",
+      "type": "ShortAnswer"
+    },
+    {
+      "id": "jXsd",
+      "name": "Property",
+      "type": "Dropdown",
+      "options": [
+        {
+          "id": "mXL3",
+          "value": "CJC8103",
+          "label": "CJC8103"
+        },
+        {
+          "id": "iLXy",
+          "value": "CJC8201",
+          "label": "CJC8201"
+        },
+        {
+          "id": "tRr7",
+          "value": "CJC8303",
+          "label": "CJC8303"
+        },
+        {
+          "id": "xmFj",
+          "value": "CJC9203",
+          "label": "CJC9203"
+        },
+        {
+          "id": "rH2Q",
+          "value": "CJC9206",
+          "label": "CJC9206"
+        }
+      ]
+    },
+    {
+      "id": "cdyd",
+      "name": "Reservation ID",
+      "type": "ShortAnswer"
+    },
+    {
+      "id": "nqZp",
+      "name": "TaskID",
+      "type": "ShortAnswer"
+    },
+    {
+      "id": "kKyP",
+      "name": "Cleaner",
+      "type": "Dropdown",
+      "options": [
+        {
+          "id": "mXL3",
+          "value": "BrandiDrieslein",
+          "label": "Brandi Drieslein"
+        },
+        {
+          "id": "iLXy",
+          "value": "Josiah Burton",
+          "label": "Josiah Burton"
+        }
+      ]
+    },
+    {
+      "id": "oNEm",
+      "name": "Today's Date",
+      "type": "DatePicker"
+    },
+    {
+      "id": "4TQe",
+      "name": "Task Prefill URL Parameter",
+      "type": "ShortAnswer"
+    },
+    {
+      "id": "mz41",
+      "name": "Reservation Prefill URL Parameter",
+      "type": "ShortAnswer"
+    },
+    {
+      "id": "5bXK",
+      "name": "Previous Guest - Photos Upload",
+      "type": "FileUpload"
+    },
+    {
+      "id": "jb5y",
+      "name": "Key Fob (1) & Garage Remote (1)- Photo Upload",
+      "type": "FileUpload"
+    },
+    {
+      "id": "h89J",
+      "name": "Bedroom - TV - Task List",
+      "type": "Checkboxes",
+      "options": [
+        {
+          "id": "r696",
+          "value": "Turn on & confirm no screen damage",
+          "label": "Turn on & confirm no screen damage"
+        },
+        {
+          "id": "7EHc",
+          "value": "Clean screen (remove fingerprints, gunk, etc.)",
+          "label": "Clean screen (remove fingerprints, gunk, etc.)"
+        },
+        {
+          "id": "x2N5",
+          "value": "Clean/wipe top of the TV to remove dust",
+          "label": "Clean/wipe top of the TV to remove dust"
+        },
+        {
+          "id": "mDuL",
+          "value": "Check remote for functionality; replace batteries if necessary; place on side/behind magnet",
+          "label": "Check remote for functionality; replace batteries if necessary; place on side/behind magnet"
+        }
+      ]
+    },
+    {
+      "id": "6erL",
+      "name": "Bedroom - TV - Photo Upload",
+      "type": "FileUpload"
+    },
+    {
+      "id": "2cJ8",
+      "name": "Bedroom - Dresser - Task List",
+      "type": "Checkboxes",
+      "options": [
+        {
+          "id": "2XwP",
+          "value": "Open and check inside each drawer; remove contents accordingly",
+          "label": "Open and check inside each drawer; removecontents accordingly"
+        },
+        {
+          "id": "ajTk",
+          "value": "Clean/wipe/dust top, drawers, front, sides, base, etc. to remove fingerprints, gunk, dust, etc.",
+          "label": "Clean/wipe/dust top, drawers, front, sides, base, etc. to remove fingerprints, gunk, dust, etc."
+        },
+        {
+          "id": "6jS4",
+          "value": "Check behind; remove anything accordingly",
+          "label": "Check behind; remove anything accordingly"
+        },
+        {
+          "id": "adzi",
+          "value": "Reset/arrange any decor",
+          "label": "Reset/arrange any decor"
+        }
+      ]
+    },
+    {
+      "id": "k37S",
+      "name": "Bedroom - Dresser - Photo Upload",
+      "type": "FileUpload"
+    },
+    {
+      "id": "251s",
+      "name": "Bedroom - Nightstands- Task List",
+      "type": "Checkboxes",
+      "options": [
+        {
+          "id": "woD5",
+          "value": "Open and check inside any drawers; remove contents accordingly",
+          "label": "Open and check inside any drawers; remove contentsaccordingly"
+        },
+        {
+          "id": "5ReD",
+          "value": "Clean/wipe/dust top, drawers, front, sides, base, etc. to remove fingerprints, gunk, dust, etc.",
+          "label": "Clean/wipe/dust top, drawers, front, sides, base, etc. to remove fingerprints, gunk, dust, etc."
+        },
+        {
+          "id": "tLRk",
+          "value": "Check behind; remove anything accordingly",
+          "label": "Check behind; remove anything accordingly"
+        }
+      ]
+    },
+    {
+      "id": "51V4",
+      "name": "Bedroom - Nightstands- Photo Upload",
+      "type": "FileUpload"
+    },
+    {
+      "id": "q2gY",
+      "name": "Bedroom - Lamps - Task List",
+      "type": "Checkboxes",
+      "options": [
+        {
+          "id": "x3Jj",
+          "value": "Turn on to ensure functionality; replace bulb if necessary",
+          "label": "Turn on to ensure functionality; replace bulb if necessary"
+        },
+        {
+          "id": "eJHR",
+          "value": "Clean/wipe/dust base, sides, shade, etc. to remove dust, gunk, fingerprints, etc.",
+          "label": "Clean/wipe/dust base, sides, shade, etc. to remove dust, gunk, fingerprints, etc."
+        },
+        {
+          "id": "miMi",
+          "value": "Reset/arrange centered on nightstand",
+          "label": "Reset/arrange centered on nightstand"
+        },
+        {
+          "id": "1cgR",
+          "value": "Ensure the power cord is plugged into outlet",
+          "label": "Ensure the power cord is plugged into outlet"
+        }
+      ]
+    },
+    {
+      "id": "24oG",
+      "name": "Bedroom - Lamps - Photo Upload",
+      "type": "FileUpload"
+    },
+    {
+      "id": "3BwH",
+      "name": "Bedroom - Bed - Task List",
+      "type": "Checkboxes",
+      "options": [
+        {
+          "id": "tdje",
+          "value": "Clean/wipe headboard, footboard and side rails to remove any dirt, dust, hair, etc.",
+          "label": "Clean/wipe headboard, footboard and side rails to remove any dirt, dust, hair, etc."
+        },
+        {
+          "id": "6wHs",
+          "value": "Check/inspect/clean underneath; removeanything accordingly",
+          "label": "Check/inspect/clean underneath; remove anything accordingly"
+        },
+        {
+          "id": "91me",
+          "value": "Check/inspect linens once on bed to remove any lint, hair, etc.",
+          "label": "Check/inspect linens once on bed to remove any lint, hair, etc."
+        },
+        {
+          "id": "dj5V",
+          "value": "Reset/arrange pillows",
+          "label": "Reset/arrange pillows"
+        }
+      ]
+    },
+    {
+      "id": "rzxL",
+      "name": "Bedroom - Bed - Photo Upload",
+      "type": "FileUpload"
+    },
+    {
+      "id": "vEod",
+      "name": "Bedroom - Closet - Task List",
+      "type": "Checkboxes",
+      "options": [
+        {
+          "id": "qYyr",
+          "value": "Check inside; removecontents accordingly",
+          "label": "Check inside; remove contents accordingly"
+        },
+        {
+          "id": "2jRT",
+          "value": "Check/clean ironing board",
+          "label": "Check/clean ironing board"
+        },
+        {
+          "id": "1mNA",
+          "value": "Check/clean drying rack",
+          "label": "Check/clean drying rack"
+        },
+        {
+          "id": "t6sn",
+          "value": "Arrange stock pillows that came with the sofa",
+          "label": "Arrange stock pillows that came with the sofa"
+        },
+        {
+          "id": "j72z",
+          "value": "Hangers; remove any wire, multi-colored, dry cleaning, etc. & then reset/align facing the same direction",
+          "label": "Hangers; remove any wire,multi-colored, dry cleaning, etc. & then reset/align facing the same direction"
+        },
+        {
+          "id": "s5w5",
+          "value": "Check/confirm for pack n’ play",
+          "label": "Check/confirm for pack n’ play"
+        },
+        {
+          "id": "7nxq",
+          "value": "Check spare linens bin: (1) fitted sheet, (1) flat sheet, (4) pillowcases",
+          "label": "Check spare linens bin: (1) fitted sheet, (1) flat sheet, (4) pillowcases"
+        }
+      ]
+    },
+    {
+      "id": "o6uU",
+      "name": "Bedroom - Closet - Photo Upload",
+      "type": "FileUpload"
+    },
+    {
+      "id": "fGoS",
+      "name": "Bedroom - Air Mattress Bin - Task List",
+      "type": "Checkboxes",
+      "options": [
+        {
+          "id": "ixEk",
+          "value": "(1) quilt placed onbottom",
+          "label": "(1) quilt placed on bottom"
+        },
+        {
+          "id": "hvu2",
+          "value": "(1) fitted sheet",
+          "label": "(1) fitted sheet"
+        },
+        {
+          "id": "3hRX",
+          "value": "(1) flat sheet",
+          "label": "(1) flat sheet"
+        },
+        {
+          "id": "gkpk",
+          "value": "(2) pillows",
+          "label": "(2) pillows"
+        },
+        {
+          "id": "fiQy",
+          "value": "(2) pillow protectors",
+          "label": "(2) pillow protectors"
+        },
+        {
+          "id": "iqMD",
+          "value": "(2) pillowcases",
+          "label": "(2) pillowcases"
+        },
+        {
+          "id": "pRMj",
+          "value": "(1) air mattress placed on top",
+          "label": "(1) air mattress placed on top"
+        }
+      ]
+    },
+    {
+      "id": "bQdg",
+      "name": "Bedroom - Air Mattress Bin - Photo Upload",
+      "type": "FileUpload"
+    },
+    {
+      "id": "x8oC",
+      "name": "Bedroom - Window - TaskList",
+      "type": "Checkboxes",
+      "options": [
+        {
+          "id": "18Bk",
+          "value": "Open curtains; evenly to both sides",
+          "label": "Open curtains; evenly to both sides"
+        },
+        {
+          "id": "ihJp",
+          "value": "Clean/check that window is shut/locked",
+          "label": "Clean/check that window is shut/locked"
+        },
+        {
+          "id": "265g",
+          "value": "Open blinds; adjust as necessary",
+          "label": "Open blinds; adjust as necessary"
+        },
+        {
+          "id": "xsDP",
+          "value": "Clean windowsill and track",
+          "label": "Clean windowsill and track"
+        }
+      ]
+    },
+    {
+      "id": "pnnF",
+      "name": "Bedroom - Window - Photo Upload",
+      "type": "FileUpload"
+    },
+    {
+      "id": "8Fgy",
+      "name": "Bedroom - Vents & Ceiling Light - Task List",
+      "type": "Checkboxes",
+      "options": [
+        {
+          "id": "qa74",
+          "value": "Check all vents and open if necessary",
+          "label": "Check all vents and open if necessary"
+        },
+        {
+          "id": "kr2i",
+          "value": "Wipe cleanto remove dust, hair, etc.",
+          "label": "Wipe clean to remove dust, hair, etc."
+        },
+        {
+          "id": "fzhA",
+          "value": "Turn on fixture; replace bulbs if necessary",
+          "label": "Turn on fixture; replace bulbs if necessary"
+        },
+        {
+          "id": "dwCp",
+          "value": "Dust/clean/wipe fan blades to remove dust",
+          "label": "Dust/clean/wipe fan blades to remove dust"
+        }
+      ]
+    },
+    {
+      "id": "rxpq",
+      "name": "Bedroom - Vents/Ceiling Light - Photo Upload",
+      "type": "FileUpload"
+    },
+    {
+      "id": "tWr6",
+      "name": "Bedroom - Mirror - Task List",
+      "type": "Checkboxes",
+      "options": [
+        {
+          "id": "vEN4",
+          "value": "Clean front of mirror",
+          "label": "Clean front of mirror"
+        },
+        {
+          "id": "wpHH",
+          "value": "Check behind",
+          "label": "Check behind"
+        }
+      ]
+    },
+    {
+      "id": "tuB7",
+      "name": "Bedroom - Mirror - Photo Upload",
+      "type": "FileUpload"
+    },
+    {
+      "id": "vnPa",
+      "name": "Bathroom - Shower/Bathtub - Task List",
+      "type": "Checkboxes",
+      "options": [
+        {
+          "id": "v7Bg",
+          "value": "Inspect shower curtain liner; replace if necessary",
+          "label": "Inspect shower curtain liner; replace if necessary"
+        },
+        {
+          "id": "7LsR",
+          "value": "Inspect shower curtain; clean if necessary (do not use dryer)",
+          "label": "Inspect shower curtain; clean if necessary (do not use dryer)"
+        },
+        {
+          "id": "h5Kg",
+          "value": "Scrub/clean interior including base, walls, shelves, fixtures, showerhead, etc.",
+          "label": "Scrub/clean interior including base, walls, shelves,fixtures, showerhead, etc."
+        },
+        {
+          "id": "521q",
+          "value": "Inspect top of shower surround base; clean/wipe to remove dust",
+          "label": "Inspect top of shower surround base; clean/wipe to remove dust"
+        },
+        {
+          "id": "pNTs",
+          "value": "Check/confirm rod is in place/secured",
+          "label": "Check/confirm rod is in place/secured"
+        },
+        {
+          "id": "pZLA",
+          "value": "Check/confirm tub stopper (stored in vanity)",
+          "label": "Check/confirm tub stopper (stored in vanity)"
+        }
+      ]
+    },
+    {
+      "id": "sWeU",
+      "name": "Bathroom - Shower/Bathtub - Photo Upload",
+      "type": "FileUpload"
+    },
+    {
+      "id": "mwRE",
+      "name": "Bathroom - Toilet - Task List",
+      "type": "Checkboxes",
+      "options": [
+        {
+          "id": "sKoK",
+          "value": "Clean toilet exterior includingbase, sides, seat, etc. & close seat",
+          "label": "Clean toilet exterior including base, sides, seat, etc. & close seat"
+        },
+        {
+          "id": "pU5t",
+          "value": "Clean toilet inside rim",
+          "label": "Clean toilet inside rim"
+        },
+        {
+          "id": "iKQr",
+          "value": "Replace toilet paper on holder (minimum ⅓ remaining) with triangle fold",
+          "label": "Replace toilet paper on holder (minimum ⅓ remaining) with triangle fold"
+        },
+        {
+          "id": "kQx7",
+          "value": "Clean exterior, sides, etc of toilet brush & plunger",
+          "label": "Clean exterior, sides, etc of toilet brush & plunger"
+        },
+        {
+          "id": "ak3u",
+          "value": "Clean inside, bottom, sides, etc of trash can",
+          "label": "Clean inside, bottom, sides, etc of trash can"
+        },
+        {
+          "id": "gdR1",
+          "value": "Replace liner",
+          "label": "Replace liner"
+        }
+      ]
+    },
+    {
+      "id": "73HH",
+      "name": "Bathroom - Toilet - Photo Upload",
+      "type": "FileUpload"
+    },
+    {
+      "id": "tA8K",
+      "name": "Bathroom - Vanity - Checklist",
+      "type": "Checkboxes",
+      "options": [
+        {
+          "id": "qEEn",
+          "value": "Clean the inside of the sink, fixtures, drain stop, etc.",
+          "label": "Clean the inside of the sink, fixtures, drain stop, etc."
+        },
+        {
+          "id": "mRyJ",
+          "value": "Clean countertops (including backsplash)",
+          "label": "Clean countertops (including backsplash)"
+        },
+        {
+          "id": "ncSj",
+          "value": "Clean mirror",
+          "label": "Clean mirror"
+        },
+        {
+          "id": "iDCr",
+          "value": "Clean exterior of soap dispenser; refillif necessary",
+          "label": "Clean exteriorof soap dispenser; refill if necessary"
+        },
+        {
+          "id": "fLXs",
+          "value": "Check/inspect/clean interior of all cabinets/drawers",
+          "label": "Check/inspect/clean interior of all cabinets/drawers"
+        },
+        {
+          "id": "dtLC",
+          "value": "Confirm night light",
+          "label": "Confirm night light"
+        },
+        {
+          "id": "mtyx",
+          "value": "Clean interior of under sink bins to remove gunk, hair, etc.",
+          "label": "Clean interior of under sink bins to remove gunk, hair, etc."
+        },
+        {
+          "id": "1UkQ",
+          "value": "Toiletry supplies bin:shampoo, bodywash, conditioner (refill if necessary) & hair dryer (retract cord)",
+          "label": "Toiletry supplies bin:shampoo, bodywash, conditioner (refill if necessary) & hair dryer (retract cord)"
+        },
+        {
+          "id": "neFF",
+          "value": "‎Cleaningsupplies bin: toilet bowl cleaner, trash can liners & two rolls of TP",
+          "label": "‎Cleaning supplies bin: toilet bowl cleaner, trash can liners & two rolls of TP"
+        }
+      ]
+    },
+    {
+      "id": "kGLC",
+      "name": "Bathroom - Vanity - Photo Upload",
+      "type": "FileUpload"
+    },
+    {
+      "id": "mUut",
+      "name": "Bathroom - Linen Cabinet - Task List",
+      "type": "Checkboxes",
+      "options": [
+        {
+          "id": "uzRc",
+          "value": "Towel bar with (1) bath mat",
+          "label": "Towel bar with (1) bath mat"
+        },
+        {
+          "id": "7o7y",
+          "value": "Inside cabinet(folded accordingly): (4) body towels, (4) washcloths, (4) hand towels, (1)make-up towel, (1) hair wrap and (4) pool towels (May-September)",
+          "label": "Inside cabinet (folded accordingly): (4) body towels, (4) washcloths, (4) hand towels, (1) make-up towel, (1) hairwrap and (4) pool towels (May-September)"
+        },
+        {
+          "id": "f3Mp",
+          "value": "Clean/inspect inside laundry supply bin; refill detergent and stain remover accordingly",
+          "label": "Clean/inspect inside laundry supply bin; refill detergent and stain remover accordingly"
+        },
+        {
+          "id": "dLHa",
+          "value": "Check/confirm iron; retract cord if applicable",
+          "label": "Check/confirm iron; retract cord if applicable"
+        }
+      ]
+    },
+    {
+      "id": "22KC",
+      "name": "Bathroom - Linen Cabinet - Photo Upload",
+      "type": "FileUpload"
+    },
+    {
+      "id": "1nng",
+      "name": "Laundry - Washer/Dryer - Task List",
+      "type": "Checkboxes",
+      "options": [
+        {
+          "id": "nkYj",
+          "value": "Clean the front, controls, etc.of entire unit",
+          "label": "Clean the front, controls, etc. of entire unit"
+        },
+        {
+          "id": "dugG",
+          "value": "Clean inside of washer bleach basin, interior rim & leave lid open",
+          "label": "Clean inside of washer bleach basin, interior rim & leave lid open"
+        },
+        {
+          "id": "aRZ9",
+          "value": "Inspect both sides for any trash, clothes, lint, etc. & remove accordingly",
+          "label": "Inspect both sides for any trash, clothes, lint, etc. & remove accordingly"
+        },
+        {
+          "id": "mLH1",
+          "value": "Empty dryer lint trap",
+          "label": "Empty dryer lint trap"
+        },
+        {
+          "id": "f4nU",
+          "value": "Check/confirm ironing board",
+          "label": "Check/confirm ironing board"
+        },
+        {
+          "id": "3vTn",
+          "value": "Check/confirm drying rack",
+          "label": "Check/confirm drying rack"
+        }
+      ]
+    },
+    {
+      "id": "tqV5",
+      "name": "Laundry - Washer/Dryer - Photo Upload",
+      "type": "FileUpload"
+    },
+    {
+      "id": "gQNs",
+      "name": "Utility Closet - Task List",
+      "type": "Checkboxes",
+      "options": [
+        {
+          "id": "3TAR",
+          "value": "Vacuum -check/confirm, empty canister, wrap cord, etc.",
+          "label": "Vacuum - check/confirm, empty canister, wrap cord, etc."
+        },
+        {
+          "id": "445m",
+          "value": "Mop - check/confirm, remove any cleaning pads (cleanif necessary), store under kitchen sink",
+          "label": "Mop - check/confirm, remove any cleaning pads (clean if necessary), store under kitchen sink"
+        },
+        {
+          "id": "upiH",
+          "value": "Umbrella - check/confirm mounted on wall",
+          "label": "Umbrella - check/confirm mounted on wall"
+        },
+        {
+          "id": "2c78",
+          "value": "Wagon/cart - check/confirm",
+          "label": "Wagon/cart - check/confirm"
+        }
+      ]
+    },
+    {
+      "id": "2gdi",
+      "name": "UtilityCloset - Photo Upload",
+      "type": "FileUpload"
+    },
+    {
+      "id": "wz13",
+      "name": "Other - Task List",
+      "type": "Checkboxes",
+      "options": [
+        {
+          "id": "cgnh",
+          "value": "Clean touch points (light switches, door handles, etc)",
+          "label": "Clean touch points (lightswitches, door handles, etc)"
+        },
+        {
+          "id": "x3mP",
+          "value": "Clean floors (sweep, vacuum, mop, etc)",
+          "label": "Clean floors (sweep, vacuum, mop, etc)"
+        },
+        {
+          "id": "5Cpm",
+          "value": "Check/clean behind door for dust, cobwebs, debris, etc.",
+          "label": "Check/clean behind door for dust, cobwebs, debris, etc."
+        },
+        {
+          "id": "wV5f",
+          "value": "Check exhaust fan is operational (including light), etc. & clean exterior to remove dust, hair, etc.",
+          "label": "Check exhaust fan is operational (including light), etc. & clean exterior to remove dust, hair, etc."
+        }
+      ]
+    },
+    {
+      "id": "9Tw7",
+      "name": "Other - Photo Upload",
+      "type": "FileUpload"
+    },
+    {
+      "id": "hRFN",
+      "name": "Living Room - TV - Task List",
+      "type": "Checkboxes",
+      "options": [
+        {
+          "id": "r696",
+          "value": "Turn on & confirm no screen damage",
+          "label": "Turn on & confirm no screen damage"
+        },
+        {
+          "id": "7EHc",
+          "value": "Clean screen (remove fingerprints, gunk, etc.)",
+          "label": "Clean screen (remove fingerprints, gunk, etc.)"
+        },
+        {
+          "id": "x2N5",
+          "value": "Clean/wipe top of the TV to remove dust",
+          "label": "Clean/wipetop of the TV to remove dust"
+        },
+        {
+          "id": "mDuL",
+          "value": "Check remote for functionality; replace batteries if necessary; place on side/behind magnet",
+          "label": "Check remote for functionality; replace batteries if necessary; place onside/behind magnet"
+        }
+      ]
+    },
+    {
+      "id": "p6Vr",
+      "name": "Living Room - TV - Photo Upload",
+      "type": "FileUpload"
+    },
+    {
+      "id": "n4Rz",
+      "name": "Living Room - End Tables, Console, Ottoman - Task List",
+      "type": "Checkboxes",
+      "options": [
+        {
+          "id": "aB52",
+          "value": "Check/inspect inside any drawers or cabinets; remove contents accordingly",
+          "label": "Check/inspect inside any drawers or cabinets; remove contents accordingly"
+        },
+        {
+          "id": "er3j",
+          "value": "Clean top, shelves, sides, etc.",
+          "label": "Clean top, shelves, sides, etc."
+        },
+        {
+          "id": "5Px2",
+          "value": "Check underneath",
+          "label": "Check underneath"
+        },
+        {
+          "id": "6THF",
+          "value": "Arrange/reset decorative items as necessary",
+          "label": "Arrange/reset decorative items as necessary"
+        }
+      ]
+    },
+    {
+      "id": "8fWQ",
+      "name": "Living Room - End Tables, Console, Ottoman - Photo Upload",
+      "type": "FileUpload"
+    },
+    {
+      "id": "u6nL",
+      "name": "Living Room - Desk Area - Task List",
+      "type": "Checkboxes",
+      "options": [
+        {
+          "id": "iPiZ",
+          "value": "Check any drawers & cabinets for any contents; remove accordingly",
+          "label": "Check any drawers & cabinets for any contents; remove accordingly"
+        },
+        {
+          "id": "1H4W",
+          "value": "Clean/wipe surface, legs, etc.",
+          "label": "Clean/wipe surface, legs, etc."
+        },
+        {
+          "id": "wBin",
+          "value": "Reset/arrange any decor items",
+          "label": "Reset/arrange any decoritems"
+        },
+        {
+          "id": "o65z",
+          "value": "Turn onlamp to ensure functionality; replacebulb if necessary",
+          "label": "Turn on lamp to ensure functionality; replace bulb if necessary"
+        },
+        {
+          "id": "u4Dg",
+          "value": "Clean/wipe/dust base, sides, shade,etc. to remove dust, gunk, fingerprints, etc.",
+          "label": "Clean/wipe/dust base, sides, shade, etc. to remove dust, gunk, fingerprints, etc."
+        },
+        {
+          "id": "kwGh",
+          "value": "Clean chair seat, back, base, legs, etc. & arrange at desk",
+          "label": "Clean chair seat, back, base, legs, etc. & arrange at desk"
+        },
+        {
+          "id": "qUUX",
+          "value": "Close blinds, adjust tilt to be open",
+          "label": "Close blinds, adjust tilt to be open"
+        },
+        {
+          "id": "b9Qi",
+          "value": "Check/inspect curtains & leave open",
+          "label": "Check/inspect curtains & leave open"
+        }
+      ]
+    },
+    {
+      "id": "fEPC",
+      "name": "Living Room - Desk Area - Photo Upload",
+      "type": "FileUpload"
+    },
+    {
+      "id": "of9y",
+      "name": "Living Room - Lamps - Task List",
+      "type": "Checkboxes",
+      "options": [
+        {
+          "id": "x3Jj",
+          "value": "Turn on to ensure functionality; replace bulb if necessary",
+          "label": "Turn on to ensure functionality; replace bulb if necessary"
+        },
+        {
+          "id": "eJHR",
+          "value": "Clean/wipe/dust base, sides, shade, etc. to remove dust, gunk,fingerprints, etc.",
+          "label": "Clean/wipe/dust base, sides, shade, etc. to remove dust, gunk, fingerprints, etc."
+        },
+        {
+          "id": "miMi",
+          "value": "Reset/arrange centered on nightstand",
+          "label": "Reset/arrange centered on nightstand"
+        },
+        {
+          "id": "1cgR",
+          "value": "Ensure the power cord is plugged into outlet",
+          "label": "Ensure the power cord is plugged into outlet"
+        }
+      ]
+    },
+    {
+      "id": "5k4w",
+      "name": "Living Room- Lamps - Photo Upload",
+      "type": "FileUpload"
+    },
+    {
+      "id": "9XSu",
+      "name": "Living Room - Couch - Task List",
+      "type": "Checkboxes",
+      "options": [
+        {
+          "id": "vJo7",
+          "value": "Check inside cushions; remove/clean as necessary",
+          "label": "Check inside cushions; remove/clean as necessary"
+        },
+        {
+          "id": "7XQf",
+          "value": "Spot check throw pillows; clean as necessary; reset",
+          "label": "Spot check throw pillows; clean as necessary; reset"
+        },
+        {
+          "id": "kJ8Z",
+          "value": "Check underneath; remove/clean accordingly",
+          "label": "Check underneath; remove/clean accordingly"
+        },
+        {
+          "id": "iG4t",
+          "value": "Pull/reset back cushions ontop of seated cushions",
+          "label": "Pull/reset back cushions on top of seated cushions"
+        },
+        {
+          "id": "pEHx",
+          "value": "Clean/wipe feet",
+          "label": "Clean/wipe feet"
+        },
+        {
+          "id": "nqZK",
+          "value": "Inspect/check overall for any human/animal \"stray\" hair",
+          "label": "Inspect/check overall for any human/animal \"stray\" hair"
+        },
+        {
+          "id": "3dMT",
+          "value": "Reposition if necessary",
+          "label": "Reposition if necessary"
+        }
+      ]
+    },
+    {
+      "id": "uArz",
+      "name": "Living Room - Couch - Photo Upload",
+      "type": "FileUpload"
+    },
+    {
+      "id": "rSHb",
+      "name": "Living Room - Patio/Balcony - Task List",
+      "type": "Checkboxes",
+      "options": [
+        {
+          "id": "7nxq",
+          "value": "Check/inspect glass for any fingerprints, dirt, debris, etc",
+          "label": "Check/inspect glass for any fingerprints, dirt, debris, etc"
+        },
+        {
+          "id": "phbA",
+          "value": "Check/inspect curtains, separate accordingly and leave open",
+          "label": "Check/inspect curtains, separateaccordingly and leave open"
+        },
+        {
+          "id": "koq8",
+          "value": "Check/inspect/reset outdoor chairs + table",
+          "label": "Check/inspect/reset outdoor chairs + table"
+        },
+        {
+          "id": "qGhQ",
+          "value": "Check/inspect patio string lights; can leave on",
+          "label": "Check/inspect patio string lights; can leave on"
+        },
+        {
+          "id": "jQa5",
+          "value": "Ensure door is fully closed and locked",
+          "label": "Ensure door is fully closed and locked"
+        }
+      ]
+    },
+    {
+      "id": "sBWZ",
+      "name": "Living Room - Patio/Balcony - Photo Upload",
+      "type": "FileUpload"
+    },
+    {
+      "id": "ifSU",
+      "name": "Living Room - Thermostat - TaskList",
+      "type": "Checkboxes",
+      "options": [
+        {
+          "id": "miUz",
+          "value": "Check if batteries need replaced; replace accordingly",
+          "label": "Check if batteries need replaced; replace accordingly"
+        },
+        {
+          "id": "tUL9",
+          "value": "Set system to \"cool\" or \"heat\" accordingly",
+          "label": "Set system to \"cool\" or \"heat\" accordingly"
+        },
+        {
+          "id": "eteD",
+          "value": "Set fan to “auto”",
+          "label": "Set fan to “auto”"
+        },
+        {
+          "id": "dTnH",
+          "value": "Set temperature accordingly (summer = 72 or winter = 68)",
+          "label": "Set temperature accordingly(summer = 72 or winter = 68)"
+        }
+      ]
+    },
+    {
+      "id": "9JzT",
+      "name": "Living Room - Thermostat - Photo Upload",
+      "type": "FileUpload"
+    },
+    {
+      "id": "1YXd",
+      "name": "Living Room - Other - Task List",
+      "type": "Checkboxes",
+      "options": [
+        {
+          "id": "miUz",
+          "value": "Fold/roll/reset blankets in basket",
+          "label": "Fold/roll/reset blankets in basket"
+        },
+        {
+          "id": "tUL9",
+          "value": "Reset misc decor",
+          "label": "Reset misc decor"
+        }
+      ]
+    },
+    {
+      "id": "wwFA",
+      "name": "Living Room - Other -Photo Upload",
+      "type": "FileUpload"
+    },
+    {
+      "id": "fU8Z",
+      "name": "Kitchen - Refrigerator/Freezer - Task List",
+      "type": "Checkboxes",
+      "options": [
+        {
+          "id": "i6EQ",
+          "value": "Clean/wipe outside, handles, etc.",
+          "label": "Clean/wipe outside, handles, etc."
+        },
+        {
+          "id": "ew1q",
+          "value": "Remove/discard any non-reusable (or expired) items",
+          "label": "Remove/discard any non-reusable (or expired) items"
+        },
+        {
+          "id": "fDkA",
+          "value": "Clean/wipe inside shelving, doors, trays, etc.",
+          "label": "Clean/wipe inside shelving, doors, trays, etc."
+        },
+        {
+          "id": "uf9N",
+          "value": "Clean/wipe top",
+          "label": "Clean/wipe top"
+        },
+        {
+          "id": "qCoG",
+          "value": "Check/inspect underneath",
+          "label": "Check/inspect underneath"
+        },
+        {
+          "id": "jBUX",
+          "value": "Turn on ice maker",
+          "label": "Turn on ice maker"
+        },
+        {
+          "id": "mw2b",
+          "value": "Check/confirm wifi magnet",
+          "label": "Check/confirm wifi magnet"
+        }
+      ]
+    },
+    {
+      "id": "4f2n",
+      "name": "Kitchen - Refrigerator/Freezer - Photo Upload",
+      "type": "FileUpload"
+    },
+    {
+      "id": "ouvC",
+      "name": "Kitchen - Stove - Task List",
+      "type": "Checkboxes",
+      "options": [
+        {
+          "id": "gU4K",
+          "value": "Clean front, top, controls, etc.",
+          "label": "Clean front, top, controls, etc."
+        },
+        {
+          "id": "jkG5",
+          "value": "Move/adjust grates and drip pans (if applicable) to clean, remove food, etc.",
+          "label": "Move/adjust grates and drip pans (if applicable) to clean, remove food,etc."
+        },
+        {
+          "id": "8gvW",
+          "value": "Check oven interior; run self cleaning if necessary (and time permits)",
+          "label": "Check oven interior; run self cleaning ifnecessary (and time permits)"
+        },
+        {
+          "id": "mu1y",
+          "value": "Check bottom drawer; clean/remove anything as necessary",
+          "label": "Check bottom drawer; clean/remove anything as necessary"
+        },
+        {
+          "id": "qrgP",
+          "value": "Adjust clock if necessary",
+          "label": "Adjust clock if necessary"
+        }
+      ]
+    },
+    {
+      "id": "ntkY",
+      "name": "Kitchen - Stove -Photo Upload",
+      "type": "FileUpload"
+    },
+    {
+      "id": "a1tP",
+      "name": "Kitchen - Microwave- Task List",
+      "type": "Checkboxes",
+      "options": [
+        {
+          "id": "2rdf",
+          "value": "Clean front to remove fingerprints, marks, streaks, etc.",
+          "label": "Clean front to remove fingerprints, marks, streaks, etc."
+        },
+        {
+          "id": "nM6J",
+          "value": "Check/clean inside walls, ceiling, base, glass tray, door, etc.",
+          "label": "Check/clean inside walls, ceiling, base, glass tray, door, etc."
+        },
+        {
+          "id": "pyE7",
+          "value": "Check light for functionality",
+          "label": "Check light for functionality"
+        },
+        {
+          "id": "r5QY",
+          "value": "Adjust clock if necessary",
+          "label": "Adjust clock if necessary"
+        }
+      ]
+    },
+    {
+      "id": "rz33",
+      "name": "Kitchen - Microwave - Photo Upload",
+      "type": "FileUpload"
+    },
+    {
+      "id": "rue7",
+      "name": "Kitchen - Dishwasher - Task List",
+      "type": "Checkboxes",
+      "options": [
+        {
+          "id": "q3ap",
+          "value": "Clean front, controls, etc.",
+          "label": "Clean front, controls, etc."
+        },
+        {
+          "id": "vmwv",
+          "value": "Check inside and remove/reset anything as necessary",
+          "label": "Check inside and remove/reset anything as necessary"
+        },
+        {
+          "id": "kJPd",
+          "value": "Check detergent pocket; clean if necessary",
+          "label": "Check detergent pocket; clean if necessary"
+        }
+      ]
+    },
+    {
+      "id": "bnvt",
+      "name": "Kitchen - Dishwasher - Photo Upload",
+      "type": "FileUpload"
+    },
+    {
+      "id": "iBLG",
+      "name": "Kitchen - Keurig - Task List",
+      "type": "Checkboxes",
+      "options": [
+        {
+          "id": "sFmG",
+          "value": "Remove old pod",
+          "label": "Remove old pod"
+        },
+        {
+          "id": "ntyK",
+          "value": "Clean/wipe exterior",
+          "label": "Clean/wipe exterior"
+        },
+        {
+          "id": "eJBV",
+          "value": "Clean rear panel (coffee splashes)where mug is placed",
+          "label": "Clean rear panel (coffee splashes) where mug is placed"
+        },
+        {
+          "id": "xw2x",
+          "value": "Remove base/tray and clean as necessary",
+          "label": "Remove base/tray and clean as necessary"
+        },
+        {
+          "id": "1znX",
+          "value": "Clean/wipe glass coffee pot (if applicable)",
+          "label": "Clean/wipe glass coffee pot (if applicable)"
+        }
+      ]
+    },
+    {
+      "id": "scDi",
+      "name": "Kitchen - Keurig - Photo Upload",
+      "type": "FileUpload"
+    },
+    {
+      "id": "mzEz",
+      "name": "Kitchen - Toaster Oven - Task List",
+      "type": "Checkboxes",
+      "options": [
+        {
+          "id": "sFmG",
+          "value": "Check/clean inside",
+          "label": "Check/clean inside"
+        },
+        {
+          "id": "ntyK",
+          "value": "Check/clean crumb (lower)tray",
+          "label": "Check/clean crumb (lower) tray"
+        },
+        {
+          "id": "1znX",
+          "value": "Cleansides, front, underneath, etc",
+          "label": "Clean sides, front, underneath, etc"
+        }
+      ]
+    },
+    {
+      "id": "vRL2",
+      "name": "Kitchen - Toaster Oven - Photo Upload",
+      "type": "FileUpload"
+    },
+    {
+      "id": "rYWu",
+      "name": "Kitchen- Sink - Task List",
+      "type": "Checkboxes",
+      "options": [
+        {
+          "id": "dZpd",
+          "value": "Clean/wipe interior of both",
+          "label": "Clean/wipe interior of both"
+        },
+        {
+          "id": "sQGC",
+          "value": "Check/clean black gasket (can be removed)",
+          "label": "Check/clean black gasket (can be removed)"
+        },
+        {
+          "id": "dMAa",
+          "value": "Clean/wipe faucet including top, sides, behind, etc",
+          "label": "Clean/wipe faucet including top, sides, behind, etc"
+        },
+        {
+          "id": "bqea",
+          "value": "Check/clean sprayer nozzle",
+          "label": "Check/clean sprayer nozzle"
+        },
+        {
+          "id": "vnJL",
+          "value": "Clean/wipe soap dispenser; refill if necessary",
+          "label": "Clean/wipe soap dispenser; refill if necessary"
+        },
+        {
+          "id": "obgW",
+          "value": "Clean/wipedishwashing liquid dispenser; refill if necessary",
+          "label": "Clean/wipe dishwashing liquid dispenser; refill if necessary"
+        },
+        {
+          "id": "dfQn",
+          "value": "Clean/wipe trash can exterior, interior, bottom, sides, etc. & replace liner",
+          "label": "Clean/wipe trash can exterior, interior, bottom, sides, etc. & replace liner"
+        }
+      ]
+    },
+    {
+      "id": "nF1y",
+      "name": "Kitchen- Sink - Photo Upload",
+      "type": "FileUpload"
+    },
+    {
+      "id": "hyEh",
+      "name": "Kitchen - Cabinets/Drawers - Task List",
+      "type": "Checkboxes",
+      "options": [
+        {
+          "id": "oKQ3",
+          "value": "Check inside each cabinet/drawer; discard/reset items as necessary (remove to-go containers, plastic bags, etc)",
+          "label": "Check inside each cabinet/drawer; discard/reset items as necessary (remove to-go containers, plastic bags, etc)"
+        },
+        {
+          "id": "oAY3",
+          "value": "Wipe each cabinet/drawer piece of hardware",
+          "label": "Wipe each cabinet/drawerpiece of hardware"
+        },
+        {
+          "id": "3UT9",
+          "value": "Move items to clean/wipe remove gunk, hair, food, etc.",
+          "label": "Move items to clean/wipe remove gunk, hair, food, etc."
+        },
+        {
+          "id": "cuVM",
+          "value": "Move/arrange items so they're grouped together (all mixing bowls, all drinking glasses, etc) and arrange to be neat/orderly",
+          "label": "Move/arrange items sothey're grouped together (all mixing bowls, all drinking glasses, etc) and arrange to be neat/orderly"
+        },
+        {
+          "id": "qZMK",
+          "value": "Check/clean inside silverware tray to remove food, debris, etc.and arrange appropriately",
+          "label": "Check/clean inside silverware tray to remove food, debris, etc. and arrange appropriately"
+        }
+      ]
+    },
+    {
+      "id": "udzq",
+      "name": "Kitchen - Cabinets/Drawers - Photo Upload",
+      "type": "FileUpload"
+    },
+    {
+      "id": "5oCr",
+      "name": "Kitchen - Counters - Task List",
+      "type": "Checkboxes",
+      "options": [
+        {
+          "id": "trZU",
+          "value": "Wipe top & side of \"backsplash\" to remove dust, dirt, debris, etc.",
+          "label": "Wipe top & side of \"backsplash\" to remove dust, dirt,debris, etc."
+        },
+        {
+          "id": "fmra",
+          "value": "Clean/wipe entire surface area to remove any food, debris, gunk, etc.",
+          "label": "Clean/wipe entire surface area to remove any food, debris, gunk, etc."
+        },
+        {
+          "id": "bteG",
+          "value": "Check/inspect/clean the sides/trim of counters",
+          "label": "Check/inspect/clean the sides/trim of counters"
+        }
+      ]
+    },
+    {
+      "id": "ahpg",
+      "name": "Kitchen - Counters - Photo Upload",
+      "type": "FileUpload"
+    },
+    {
+      "id": "2Wwt",
+      "name": "Kitchen - Other - Task List",
+      "type": "Checkboxes",
+      "options": [
+        {
+          "id": "pXzG",
+          "value": "Check/confirm tool kit (above microwave, right side)",
+          "label": "Check/confirm tool kit (above microwave, right side)"
+        },
+        {
+          "id": "iKgb",
+          "value": "Check/confirm mail key (above microwave, left side)",
+          "label": "Check/confirm mail key (above microwave, left side)"
+        },
+        {
+          "id": "6iCj",
+          "value": "Check/confirm bluetooth speaker (entry or kitchen drawer)",
+          "label": "Check/confirm bluetooth speaker (entry or kitchen drawer)"
+        },
+        {
+          "id": "gkJP",
+          "value": "Check/confirm booster seat; inspect for cleanliness",
+          "label": "Check/confirm booster seat; inspect for cleanliness"
+        },
+        {
+          "id": "oTmG",
+          "value": "Check/confirm step stool",
+          "label": "Check/confirm step stool"
+        },
+        {
+          "id": "mv9t",
+          "value": "Clean touch points (light switches, door handles, etc)",
+          "label": "Clean touch points (light switches, door handles, etc)"
+        },
+        {
+          "id": "uDnX",
+          "value": "Clean floors (sweep, mop, vacuum, etc)",
+          "label": "Clean floors (sweep, mop,vacuum, etc)"
+        },
+        {
+          "id": "7kgL",
+          "value": "Clean/inspect bar stools for food, debris, etc in crevices",
+          "label": "Clean/inspect bar stools for food, debris, etc in crevices"
+        },
+        {
+          "id": "2RRf",
+          "value": "Check/confirm welcome items: fob + garage remote + card + 2 water",
+          "label": "Check/confirm welcome items: fob + garage remote + card + 2 water"
+        },
+        {
+          "id": "nF66",
+          "value": "Check/confirm pet towel + frame",
+          "label": "Check/confirm pet towel + frame"
+        }
+      ]
+    },
+    {
+      "id": "mngj",
+      "name": "Kitchen - Other - Photo Upload",
+      "type": "FileUpload"
+    },
+    {
+      "id": "kmJc",
+      "name": "Additional Charge",
+      "type": "MultipleChoice",
+      "options": [
+        {
+          "id": "87TT",
+          "value": "Yes",
+          "label": "Yes"
+        },
+        {
+          "id": "oYp8",
+          "value": "No",
+          "label": "No"
+        }
+      ]
+    },
+    {
+      "id": "7Mpe",
+      "name": "Additional Charge Amount",
+      "type": "NumberInput"
+    },
+    {
+      "id": "jxUf",
+      "name": "Additional Charge Details",
+      "type": "LongAnswer"
+    },
+    {
+      "id": "7p1o",
+      "name": "AdditionalCharge - Photo Upload",
+      "type": "FileUpload"
+    },
+    {
+      "id": "aaYL",
+      "name": "Notes",
+      "type": "LongAnswer"
+    },
+    {
+      "id": "43sB",
+      "name": "+ Base Clean Fee",
+      "type": "NumberInput"
+    },
+    {
+      "id": "8Fo1",
+      "name": "+ Additional Charge Amount",
+      "type": "NumberInput"
+    },
+    {
+      "id": "3sV8",
+      "name": "= Total Amount Due",
+      "type": "NumberInput"
+    }
+  ]
+}

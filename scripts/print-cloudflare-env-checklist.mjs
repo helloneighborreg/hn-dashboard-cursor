@@ -39,41 +39,14 @@ const ENV_GROUPS = [
 		keys: ['HOSPITABLE_API_TOKEN', 'SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY'],
 	},
 	{
-		title: 'Required — Fillout checklists',
-		keys: ['FILLOUT_CHECKLIST_FORMS', 'FILLOUT_CHECKLIST_BASE_URL', 'FILLOUT_WEBHOOK_SECRET'],
-		note: 'Need FILLOUT_CHECKLIST_FORMS or FILLOUT_CHECKLIST_BASE_URL (at least one)',
-	},
-	{
-		title: 'Required — scheduled task sync',
-		keys: ['CRON_SECRET'],
-		note: 'Protects POST /api/tasks/sync-cron (Cloudflare Cron every 30 min)',
-	},
-	{
-		title: 'Optional — notifications',
-		keys: [
-			'RESEND_API_KEY',
-			'TASK_NOTIFY_FROM_EMAIL',
-			'TWILIO_ACCOUNT_SID',
-			'TWILIO_AUTH_TOKEN',
-			'TWILIO_FROM_NUMBER',
-			'TASK_COMPLETION_NOTIFY_EMAIL',
-			'TASK_CHANGE_NOTIFY_EMAIL',
-			'TASK_ASSIGNEE_CONTACTS',
-		],
-	},
-	{
-		title: 'Optional — Fillout backfill / Plaid',
-		keys: ['FILLOUT_API_TOKEN', 'FILLOUT_API_KEY', 'PLAID_CLIENT_ID', 'PLAID_SECRET', 'PLAID_ENV'],
+		title: 'Optional — Plaid',
+		keys: ['PLAID_CLIENT_ID', 'PLAID_SECRET', 'PLAID_ENV'],
 	},
 ];
 
 function isSet(key) {
 	const value = process.env[key]?.trim();
 	return Boolean(value);
-}
-
-function filloutOk() {
-	return isSet('FILLOUT_CHECKLIST_FORMS') || isSet('FILLOUT_CHECKLIST_BASE_URL');
 }
 
 const source = loadEnvLocal();
@@ -88,10 +61,7 @@ if (source) {
 for (const group of ENV_GROUPS) {
 	console.log(group.title);
 	for (const key of group.keys) {
-		let ok = isSet(key);
-		if (group.title.includes('Fillout checklists') && (key === 'FILLOUT_CHECKLIST_FORMS' || key === 'FILLOUT_CHECKLIST_BASE_URL')) {
-			ok = filloutOk();
-		}
+		const ok = isSet(key);
 		console.log(`  ${ok ? '✓' : '✗'} ${key}`);
 	}
 	if (group.note) console.log(`  (${group.note})`);
