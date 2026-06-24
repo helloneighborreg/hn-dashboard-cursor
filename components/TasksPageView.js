@@ -90,6 +90,26 @@ export default function TasksPageView() {
 	const [search, setSearch] = useState('');
 
 	const monthKey = format(calendarMonth, 'yyyy-MM');
+	const filterKey = useMemo(() => JSON.stringify({
+		property_id: router.query.property_id || '',
+		assignee: router.query.assignee || '',
+		status: router.query.status || '',
+		date_from: router.query.date_from || '',
+		date_to: router.query.date_to || '',
+		today: router.query.today || '',
+		view,
+		monthKey,
+	}), [
+		router.query.property_id,
+		router.query.assignee,
+		router.query.status,
+		router.query.date_from,
+		router.query.date_to,
+		router.query.today,
+		view,
+		monthKey,
+	]);
+	const lastCountsFilterKeyRef = useRef(null);
 
 	const filteredTasks = useMemo(() => {
 		if (!search.trim()) return tasks;
@@ -181,12 +201,17 @@ export default function TasksPageView() {
 		setError('');
 		try {
 			const params = buildTaskParams(true);
+			const includeCounts = lastCountsFilterKeyRef.current !== filterKey || !hasLoadedOnce.current;
+			if (!includeCounts) params.set('include_counts', 'false');
 			params.set('_', String(Date.now()));
 			const json = await fetchJson('/api/tasks?' + params);
 			if (generation !== fetchGenerationRef.current) return;
 			if (json) {
 				setTasks(json.data || []);
-				if (json.counts) setTaskCounts(json.counts);
+				if (json.counts) {
+					setTaskCounts(json.counts);
+					lastCountsFilterKeyRef.current = filterKey;
+				}
 			}
 		} catch (err) {
 			if (generation !== fetchGenerationRef.current) return;
@@ -197,7 +222,7 @@ export default function TasksPageView() {
 			setRefreshing(false);
 			hasLoadedOnce.current = true;
 		}
-	}, [buildTaskParams, setTaskCounts]);
+	}, [buildTaskParams, filterKey, setTaskCounts]);
 
 	async function syncTasks() {
 		setSyncing(true);
