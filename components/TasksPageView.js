@@ -9,6 +9,7 @@ import { taskHeadline, taskGuestSubtitle } from '../lib/taskDisplay';
 import { fetchJson } from '../lib/apiClient';
 import { formatSyncResultAlert } from '../lib/syncResultMessage';
 import { TaskItem } from './TaskItem';
+import TaskStatusWidgets from './TaskStatusWidgets';
 import TaskFiltersPanel from './TaskFiltersPanel';
 import TaskCalendarView from './TaskCalendarView';
 import TaskDetailModal from './TaskDetailModal';
@@ -17,7 +18,7 @@ import PageActionButtons from './PageActionButtons';
 import PageSearchInput from './PageSearchInput';
 import { useAuth } from './AuthContext';
 import { hasLimitedTasksView } from '../lib/roles';
-import { tabFromPathname, taskPathForTab, TASK_TAB_PATHS, TASK_TAB_LABELS, TASK_TAB_ORDER } from '../lib/taskRoutes';
+import { tabFromPathname, taskPathForTab, TASK_TAB_PATHS } from '../lib/taskRoutes';
 import { taskFiltersFromQuery, taskFiltersToQuery, EMPTY_TASK_FILTERS } from '../lib/taskFilters';
 import { buildTaskFilterParams } from '../lib/taskCounts';
 import { useTaskCounts } from './TaskCountsContext';
@@ -41,10 +42,7 @@ function adminTaskColumns(isCompleted) {
 		: ['status', 'task', 'checkout', 'due', 'assignee', 'checklist', 'pdf', 'admin'];
 }
 
-const TAB_OPTIONS = TASK_TAB_ORDER.map((value) => ({
-	value,
-	label: TASK_TAB_LABELS[value],
-}));
+const LIMITED_WIDGET_KEYS = ['assigned', 'completed', 'under_review', 'overdue'];
 
 const VIEW_OPTIONS = [
 	{ value: 'list', label: 'List' },
@@ -73,7 +71,7 @@ export default function TasksPageView() {
 	const readOnly = limitedView;
 	const adminColumns = useMemo(() => adminTaskColumns(isCompleted), [isCompleted]);
 	const { isVisible: isAdminColumnVisible, hide: hideColumn, show: showColumn, hiddenColumns } = useColumnVisibility(adminColumns);
-	const { setTaskCounts, refreshTaskCounts: refreshGlobalTaskCounts } = useTaskCounts();
+	const { counts: statusCounts, setTaskCounts, refreshTaskCounts: refreshGlobalTaskCounts } = useTaskCounts();
 	const [tasks, setTasks] = useState([]);
 	const [properties, setProperties] = useState([]);
 	const [loading, setLoading] = useState(true);
@@ -391,12 +389,20 @@ export default function TasksPageView() {
 						</div>
 					</div>
 					<div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-						{isAdmin && (
-							<SegmentedToggle value={tab} onChange={setTab} options={TAB_OPTIONS} />
-						)}
 						<SegmentedToggle value={view} onChange={setView} options={VIEW_OPTIONS} />
 					</div>
 				</div>
+
+				<TaskStatusWidgets
+					counts={statusCounts}
+					activeKey={tab}
+					onSelect={setTab}
+					visibleKeys={limitedView ? LIMITED_WIDGET_KEYS : undefined}
+					clickableKeys={limitedView
+						? LIMITED_WIDGET_KEYS
+						: ['unassigned', 'assigned', 'completed', 'under_review', 'overdue']}
+					cleanerView={limitedView}
+				/>
 
 				{flash && (
 					<div
