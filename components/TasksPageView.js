@@ -17,7 +17,7 @@ import PageActionButtons from './PageActionButtons';
 import PageSearchInput from './PageSearchInput';
 import { useAuth } from './AuthContext';
 import { hasLimitedTasksView } from '../lib/roles';
-import { tabFromPathname, taskPathForTab, TASK_TAB_PATHS } from '../lib/taskRoutes';
+import { tabFromPathname, taskPathForTab, TASK_TAB_PATHS, TASK_TAB_LABELS, TASK_TAB_ORDER } from '../lib/taskRoutes';
 import { taskFiltersFromQuery, taskFiltersToQuery, EMPTY_TASK_FILTERS } from '../lib/taskFilters';
 import { buildTaskFilterParams } from '../lib/taskCounts';
 import { useTaskCounts } from './TaskCountsContext';
@@ -41,11 +41,10 @@ function adminTaskColumns(isCompleted) {
 		: ['status', 'task', 'checkout', 'due', 'assignee', 'checklist', 'pdf', 'admin'];
 }
 
-const TAB_OPTIONS = [
-	{ value: 'unassigned', label: 'Unassigned' },
-	{ value: 'assigned', label: 'Assigned' },
-	{ value: 'completed', label: 'Completed' },
-];
+const TAB_OPTIONS = TASK_TAB_ORDER.map((value) => ({
+	value,
+	label: TASK_TAB_LABELS[value],
+}));
 
 const VIEW_OPTIONS = [
 	{ value: 'list', label: 'List' },

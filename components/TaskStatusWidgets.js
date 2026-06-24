@@ -1,25 +1,29 @@
 import clsx from 'clsx';
 import { StatusKindIcon } from './TaskStatusIndicator';
+import { TASK_TAB_LABELS, TASK_TAB_ORDER } from '../lib/taskRoutes';
 
-export const STATUS_WIDGETS = [
-	{ key: 'unassigned', label: 'Unassigned', countColor: 'text-gray-600' },
-	{ key: 'assigned', label: 'Assigned', countColor: 'text-amber-700' },
-	{
-		key: 'completed',
-		label: 'Completed',
-		countColor: 'text-green-700',
-		cleanerLabel: 'Complete',
-		hint: 'Checklist approved.',
-	},
-	{
-		key: 'under_review',
-		label: 'Review',
-		countColor: 'text-blue-700',
-		cleanerLabel: 'Review',
-		hint: 'Checklist received — waiting for approval.',
-	},
-	{ key: 'overdue', label: 'Overdue', countColor: 'text-red-600' },
-];
+export const STATUS_WIDGETS = TASK_TAB_ORDER.map((key) => {
+	const base = { key, label: TASK_TAB_LABELS[key] };
+	if (key === 'unassigned') return { ...base, countColor: 'text-gray-600' };
+	if (key === 'assigned') return { ...base, countColor: 'text-amber-700' };
+	if (key === 'completed') {
+		return {
+			...base,
+			countColor: 'text-green-700',
+			cleanerLabel: 'Complete',
+			hint: 'Checklist approved.',
+		};
+	}
+	if (key === 'under_review') {
+		return {
+			...base,
+			countColor: 'text-blue-700',
+			cleanerLabel: 'Review',
+			hint: 'Checklist received — waiting for approval.',
+		};
+	}
+	return { ...base, countColor: 'text-red-600' };
+});
 
 export default function TaskStatusWidgets({
 	counts,
@@ -29,7 +33,7 @@ export default function TaskStatusWidgets({
 	activeKey,
 	cleanerView = false,
 }) {
-	const defaultClickable = ['unassigned', 'assigned', 'completed', 'under_review'];
+	const defaultClickable = TASK_TAB_ORDER.filter((key) => key !== 'overdue');
 	const clickable = new Set(clickableKeys ?? defaultClickable);
 	const widgets = visibleKeys
 		? STATUS_WIDGETS.filter(({ key }) => visibleKeys.includes(key))
