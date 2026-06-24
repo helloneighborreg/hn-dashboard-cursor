@@ -70,6 +70,29 @@ function applyTabFilter(filters, query, session) {
 	return { ...rest, unassigned: true, exclude_completed: true, sort_soonest: true };
 }
 
+function scopeHasFilters(query, session) {
+	const { property_id, assignee, due_date, date_from, date_to, type, status } = query;
+	if (property_id || due_date || date_from || date_to || type) return true;
+	if (!hasLimitedTasksView(session.user) && (assignee || status)) return true;
+	return false;
+}
+
+async function resolveTaskCounts({ scopeFilters, today, limitedView, session, hasScopeFilters }) {
+	if (!hasScopeFilters) {
+		return getTaskIndicatorCounts(
+			limitedView ? { assignee: session.user.name } : {},
+		);
+	}
+
+	const countRows = today === 'true'
+		? await getTasksForToday()
+		: await getTasks(scopeFilters);
+	const scoped = limitedView
+		? countRows.filter((t) => t.assignee === session.user.name)
+		: countRows;
+	return countTasksByIndicator(scoped);
+}
+
 export default async function handler(req, res) {
   try {
     await withAuth(req, res, async (session) => {
@@ -79,36 +102,32 @@ export default async function handler(req, res) {
         const scopeFilters = buildScopeFilters(req.query, session);
         const limitedView = hasLimitedTasksView(session.user);
 
+        const hasScopeFilters = scopeHasFilters(req.query, session);
+
         if (counts_only === 'true') {
-          const hasScopeFilters = Boolean(
-            scopeFilters.property_id
-            || scopeFilters.assignee
-            || scopeFilters.status
-            || scopeFilters.type
-            || scopeFilters.due_date
-            || scopeFilters.date_from
-            || scopeFilters.date_to,
-          );
-
-          if (!hasScopeFilters) {
-            const counts = await getTaskIndicatorCounts(
-              limitedView ? { assignee: session.user.name } : {},
-            );
-            return res.json({ counts });
-          }
-
-          const countRows = today === 'true'
-            ? await getTasksForToday()
-            : await getTasks(scopeFilters);
-          const scoped = limitedView
-            ? countRows.filter((t) => t.assignee === session.user.name)
-            : countRows;
-          return res.json({ counts: countTasksByIndicator(scoped) });
+          const counts = await resolveTaskCounts({
+            scopeFilters,
+            today,
+            limitedView,
+            session,
+            hasScopeFilters,
+          });
+          return res.json({ counts });
         }
 
         const listFilters = applyTabFilter(scopeFilters, req.query, session);
 
-        const rows = today === 'true' ? await getTasksForToday() : await getTasks(listFilters);
+        const [rows, counts] = await Promise.all([
+          today === 'true' ? getTasksForToday() : getTasks(listFilters),
+          resolveTaskCounts({
+            scopeFilters,
+            today,
+            limitedView,
+            session,
+            hasScopeFilters,
+          }),
+        ]);
+
         const enriched = await enrichTasks(rows);
         let data = limitedView
           ? enriched.filter((t) => t.assignee === session.user.name).map(withChecklistUrl)
@@ -119,15 +138,6 @@ export default async function handler(req, res) {
         } else if (listFilters.status === 'completed' || listFilters.status === 'under_review') {
           data = sortTasksByDateDesc(data);
         }
-
-        const countRows = today === 'true'
-          ? await getTasksForToday()
-          : await getTasks(scopeFilters);
-        const countEnriched = await enrichTasks(countRows);
-        const scoped = limitedView
-          ? countEnriched.filter((t) => t.assignee === session.user.name)
-          : countEnriched;
-        const counts = countTasksByIndicator(scoped);
 
         return res.json({ data, counts });
       }
