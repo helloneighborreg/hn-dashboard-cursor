@@ -1,6 +1,6 @@
 import { withAuth, isAdmin } from '../../../lib/auth';
 import { hasLimitedTasksView } from '../../../lib/roles';
-import { getTasks, createTask, getTasksForToday } from '../../../lib/db';
+import { getTasks, createTask, getTasksForToday, getTaskIndicatorCounts } from '../../../lib/db';
 import { countTasksByIndicator, sortTasksByDateAsc, sortTasksByDateDesc } from '../../../lib/constants';
 import { getChecklistUrl } from '../../../lib/propertyChecklists';
 import { withChecklistUrl } from '../../../lib/checklistUrl';
@@ -77,11 +77,39 @@ export default async function handler(req, res) {
         res.setHeader('Cache-Control', 'no-store');
         const { today, counts_only } = req.query;
         const scopeFilters = buildScopeFilters(req.query, session);
+        const limitedView = hasLimitedTasksView(session.user);
+
+        if (counts_only === 'true') {
+          const hasScopeFilters = Boolean(
+            scopeFilters.property_id
+            || scopeFilters.assignee
+            || scopeFilters.status
+            || scopeFilters.type
+            || scopeFilters.due_date
+            || scopeFilters.date_from
+            || scopeFilters.date_to,
+          );
+
+          if (!hasScopeFilters) {
+            const counts = await getTaskIndicatorCounts(
+              limitedView ? { assignee: session.user.name } : {},
+            );
+            return res.json({ counts });
+          }
+
+          const countRows = today === 'true'
+            ? await getTasksForToday()
+            : await getTasks(scopeFilters);
+          const scoped = limitedView
+            ? countRows.filter((t) => t.assignee === session.user.name)
+            : countRows;
+          return res.json({ counts: countTasksByIndicator(scoped) });
+        }
+
         const listFilters = applyTabFilter(scopeFilters, req.query, session);
 
         const rows = today === 'true' ? await getTasksForToday() : await getTasks(listFilters);
         const enriched = await enrichTasks(rows);
-        const limitedView = hasLimitedTasksView(session.user);
         let data = limitedView
           ? enriched.filter((t) => t.assignee === session.user.name).map(withChecklistUrl)
           : enriched.map(withChecklistUrl);
@@ -90,17 +118,6 @@ export default async function handler(req, res) {
           data = sortTasksByDateAsc(data);
         } else if (listFilters.status === 'completed' || listFilters.status === 'under_review') {
           data = sortTasksByDateDesc(data);
-        }
-
-        if (counts_only === 'true') {
-          const countRows = today === 'true'
-            ? await getTasksForToday()
-            : await getTasks(scopeFilters);
-          const countEnriched = await enrichTasks(countRows);
-          const scoped = limitedView
-            ? countEnriched.filter((t) => t.assignee === session.user.name)
-            : countEnriched;
-          return res.json({ counts: countTasksByIndicator(scoped) });
         }
 
         const countRows = today === 'true'

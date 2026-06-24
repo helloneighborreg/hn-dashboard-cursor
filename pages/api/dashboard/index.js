@@ -8,30 +8,52 @@ import {
 	reservationCheckIn,
 	reservationCheckOut,
 	withReservationPropertyName,
+	mergeReservationsById,
 } from '../../../lib/hospitable';
 import {
 	sortReservationsByCheckInAsc,
 	sortReservationsByCheckOutAsc,
 } from '../../../lib/reservationDates';
+import { getTasksForToday, getTaskIndicatorCounts } from '../../../lib/db';
+import { enrichTasks } from '../../../lib/taskEnrich';
 import { format, addDays } from 'date-fns';
 
 const CACHE_TTL_MS = 60_000;
+const RESERVATION_OPTS = { perPage: 100, maxPages: 15, include: 'guest' };
+
+async function fetchDashboardReservations(ids, todayStr, in7days) {
+	const in90days = format(addDays(new Date(), 90), 'yyyy-MM-dd');
+	const [{ data: byCheckin }, { data: byCheckout }] = await Promise.all([
+		getReservations(ids, {
+			...RESERVATION_OPTS,
+			dateQuery: 'checkin',
+			startDate: todayStr,
+			endDate: in7days,
+		}),
+		getReservations(ids, {
+			...RESERVATION_OPTS,
+			dateQuery: 'checkout',
+			startDate: todayStr,
+			endDate: in90days,
+		}),
+	]);
+	return mergeReservationsById([...(byCheckin || []), ...(byCheckout || [])]);
+}
 
 async function buildDashboardData() {
-	const properties = await getProperties();
-	const propMap = buildPropertyMap(properties);
-	const ids = properties.map((p) => p.id);
-
 	const todayStr = format(new Date(), 'yyyy-MM-dd');
 	const in7days = format(addDays(new Date(), 7), 'yyyy-MM-dd');
-	const fetchFrom = format(addDays(new Date(), -90), 'yyyy-MM-dd');
 
-	const { data: all } = await getReservations(ids, {
-		perPage: 200,
-		startDate: fetchFrom,
-		endDate: in7days,
-		include: 'guest',
-	});
+	const [properties, taskRows, taskCounts] = await Promise.all([
+		getProperties(),
+		getTasksForToday(),
+		getTaskIndicatorCounts(),
+	]);
+
+	const propMap = buildPropertyMap(properties);
+	const ids = properties.map((p) => p.id);
+	const all = await fetchDashboardReservations(ids, todayStr, in7days);
+	const tasksToday = await enrichTasks(taskRows);
 
 	const active = all.filter(isActiveReservation);
 	const wp = (r) => withReservationPropertyName(r, propMap);
@@ -58,12 +80,17 @@ async function buildDashboardData() {
 		check_outs_today: checkOutsToday,
 		upcoming_check_ins: upcomingCheckIns,
 		upcoming_check_outs: upcomingCheckOuts,
+		tasks_today: tasksToday,
 		stats: {
 			occupied_count: occupied.length,
 			checkins_today: checkInsToday.length,
 			checkouts_today: checkOutsToday.length,
 			upcoming_checkins: upcomingCheckIns.length,
 			upcoming_checkouts: upcomingCheckOuts.length,
+			tasks_today: tasksToday.length,
+			tasks_unassigned: taskCounts.unassigned,
+			tasks_overdue: taskCounts.overdue,
+			tasks_completed: taskCounts.completed,
 		},
 	};
 }

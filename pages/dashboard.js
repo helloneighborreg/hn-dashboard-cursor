@@ -113,33 +113,15 @@ function DashboardPanel({ title, href, children }) {
 
 export default function DashboardPage() {
   const [data, setData] = useState(null);
-  const [overdueCount, setOverdueCount] = useState(0);
-  const [completedCount, setCompletedCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selected, setSelected] = useState(null);
-
-  async function loadTaskCounts() {
-    try {
-      const params = new URLSearchParams({ counts_only: 'true', _: String(Date.now()) });
-      const json = await fetchJson('/api/tasks?' + params);
-      if (json?.counts) {
-        setOverdueCount(json.counts.overdue ?? 0);
-        setCompletedCount(json.counts.completed ?? 0);
-      }
-    } catch {
-      // Keep existing counts on failure.
-    }
-  }
 
   async function load() {
     setLoading(true);
     setError('');
     try {
-      const [dashJson] = await Promise.all([
-        fetchJson('/api/dashboard'),
-        loadTaskCounts(),
-      ]);
+      const dashJson = await fetchJson('/api/dashboard');
       if (dashJson) setData(dashJson.data);
     } catch (err) {
       setError(err.message);
@@ -215,14 +197,14 @@ export default function DashboardPage() {
               />
               <StatCard
                 label="Completed Tasks"
-                value={completedCount}
+                value={data.stats.tasks_completed ?? 0}
                 icon={CircleCheckBig}
                 color="green"
                 href={dashboardLinks?.completed}
               />
               <StatCard
                 label="Overdue Tasks"
-                value={overdueCount}
+                value={data.stats.tasks_overdue ?? 0}
                 icon={AlertCircle}
                 color="red"
                 href={dashboardLinks?.overdue}
