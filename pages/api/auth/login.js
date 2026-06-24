@@ -12,7 +12,8 @@ export default async function handler(req, res) {
 		return res.status(429).json({ error: 'Too many login attempts. Please try again shortly.' });
 	}
 
-	const { username, password, rememberMe } = req.body;
+	const { username, rememberMe } = req.body;
+	const password = typeof req.body?.password === 'string' ? req.body.password.trim() : '';
 	if (!password) return res.status(400).json({ error: 'Password required' });
 
 	const config = getAuthConfigStatus();

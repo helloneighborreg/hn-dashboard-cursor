@@ -1,17 +1,16 @@
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { Eye, EyeOff, Lock } from 'lucide-react';
 import { BrandLogo } from '../components/Logo';
 
 export default function LoginPage() {
-  const router = useRouter();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(true);
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [devUsernames, setDevUsernames] = useState(null);
 
   // Prefill username for convenience (never store password).
   // Uses localStorage since this is explicitly opt-in via "Remember me".
@@ -22,6 +21,18 @@ export default function LoginPage() {
     } catch {
       // ignore
     }
+  }, []);
+
+  useEffect(() => {
+    if (process.env.NODE_ENV !== 'development') return;
+    fetch('/api/auth/status')
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data.dashboard_usernames) && data.dashboard_usernames.length) {
+          setDevUsernames(data.dashboard_usernames);
+        }
+      })
+      .catch(() => {});
   }, []);
 
   async function handleSubmit(e) {
@@ -37,10 +48,21 @@ export default function LoginPage() {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: trimmedUsername, password, rememberMe }),
+        credentials: 'same-origin',
+        body: JSON.stringify({
+          username: trimmedUsername,
+          password: password.trim(),
+          rememberMe,
+        }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) { setError(data.error || 'Invalid username or password'); return; }
+      if (!res.ok) {
+        const hint = process.env.NODE_ENV === 'development' && res.status === 401
+          ? ' Local passwords come from env.local — they may differ from production.'
+          : '';
+        setError((data.error || 'Invalid username or password') + hint);
+        return;
+      }
       if (typeof window !== 'undefined') {
         try {
           if (rememberMe) window.localStorage.setItem('hn_remembered_username', trimmedUsername);
@@ -48,8 +70,9 @@ export default function LoginPage() {
         } catch {
           // ignore
         }
+        // Full navigation ensures the session cookie is sent on the first protected page load.
+        window.location.assign(data.redirect || '/dashboard');
       }
-      router.push(data.redirect || '/dashboard');
     } catch {
       setError('Cannot reach the server. Run npm run dev and open the URL shown in the terminal (e.g. http://localhost:3000).');
     } finally {
@@ -119,6 +142,13 @@ export default function LoginPage() {
                 <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-3 py-2 rounded-lg">
                   {error}
                 </div>
+              )}
+
+              {devUsernames && (
+                <p className="text-xs text-muted">
+                  Local dev accounts: {devUsernames.join(', ')}. Passwords are in{' '}
+                  <code className="text-[11px]">env.local</code>.
+                </p>
               )}
 
               <button

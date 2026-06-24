@@ -3,6 +3,8 @@ import { loadEnvFiles } from './scripts/load-env.mjs';
 
 loadEnvFiles();
 
+const isDev = process.env.NODE_ENV !== 'production';
+
 // Content-Security-Policy tuned for this app: Plaid Link (cdn.plaid.com script + iframe)
 // and Hospitable/Airbnb images. Inter is self-hosted via next/font.
 //
@@ -22,11 +24,11 @@ const CSP = [
   "font-src 'self'",
   "style-src 'self' 'unsafe-inline'",
   "script-src 'self' 'unsafe-inline' https://cdn.plaid.com",
-  "connect-src 'self' https://*.plaid.com",
+  isDev
+    ? "connect-src 'self' ws://localhost:* ws://127.0.0.1:* https://*.plaid.com"
+    : "connect-src 'self' https://*.plaid.com",
   "frame-src https://cdn.plaid.com https://*.plaid.com",
 ].join('; ');
-
-const isDev = process.env.NODE_ENV !== 'production';
 
 const SECURITY_HEADERS = [
   { key: 'Content-Security-Policy', value: CSP },
@@ -58,4 +60,5 @@ const nextConfig = {
 
 export default nextConfig;
 
+// Required for OpenNext/Cloudflare APIs in local dev; pairs with the FOUC fallback in pages/_document.js.
 initOpenNextCloudflareForDev();
