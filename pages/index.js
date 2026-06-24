@@ -1,25 +1,35 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Head from 'next/head';
 import { Eye, EyeOff, Lock } from 'lucide-react';
 import { BrandLogo } from '../components/Logo';
 
-export default function LoginPage() {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+export default function LoginPage({ loginError: initialLoginError = '' }) {
   const [rememberMe, setRememberMe] = useState(true);
   const [showPass, setShowPass] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState(initialLoginError);
   const [devUsernames, setDevUsernames] = useState(null);
+  const usernameRef = useRef(null);
 
-  // Prefill username for convenience (never store password).
-  // Uses localStorage since this is explicitly opt-in via "Remember me".
   useEffect(() => {
     try {
       const saved = window.localStorage.getItem('hn_remembered_username');
-      if (saved) setUsername(saved);
+      if (saved && usernameRef.current) usernameRef.current.value = saved;
     } catch {
       // ignore
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    const loginError = params.get('login_error');
+    if (loginError && loginError !== initialLoginError) {
+      setError(loginError);
+    }
+    if (loginError) {
+      window.history.replaceState({}, '', '/');
+    } else if (params.has('password')) {
+      const savedUser = params.get('username')?.trim();
+      if (savedUser && usernameRef.current) usernameRef.current.value = savedUser;
+      setError('Sign-in was interrupted. Enter your password and try again.');
+      window.history.replaceState({}, '', '/');
     }
   }, []);
 
@@ -35,48 +45,13 @@ export default function LoginPage() {
       .catch(() => {});
   }, []);
 
-  async function handleSubmit(e) {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
+  function rememberUsername() {
     try {
-      const trimmedUsername = username.trim();
-      if (!trimmedUsername) {
-        setError('Username is required.');
-        return;
-      }
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'same-origin',
-        body: JSON.stringify({
-          username: trimmedUsername,
-          password: password.trim(),
-          rememberMe,
-        }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        const hint = process.env.NODE_ENV === 'development' && res.status === 401
-          ? ' Local passwords come from env.local — they may differ from production.'
-          : '';
-        setError((data.error || 'Invalid username or password') + hint);
-        return;
-      }
-      if (typeof window !== 'undefined') {
-        try {
-          if (rememberMe) window.localStorage.setItem('hn_remembered_username', trimmedUsername);
-          else window.localStorage.removeItem('hn_remembered_username');
-        } catch {
-          // ignore
-        }
-        // Full navigation ensures the session cookie is sent on the first protected page load.
-        window.location.assign(data.redirect || '/dashboard');
-      }
+      const value = usernameRef.current?.value?.trim();
+      if (rememberMe && value) window.localStorage.setItem('hn_remembered_username', value);
+      else window.localStorage.removeItem('hn_remembered_username');
     } catch {
-      setError('Cannot reach the server. Run npm run dev and open the URL shown in the terminal (e.g. http://localhost:3000).');
-    } finally {
-      setLoading(false);
+      // ignore
     }
   }
 
@@ -91,15 +66,21 @@ export default function LoginPage() {
             <BrandLogo variant="login" />
           </div>
 
-          {/* Card */}
           <div className="bg-white rounded-2xl shadow-2xl p-8">
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form
+              method="post"
+              action="/api/auth/login"
+              className="space-y-4"
+              autoComplete="on"
+              onSubmit={rememberUsername}
+            >
               <div>
-                <label className="label">Username</label>
+                <label className="label" htmlFor="login-username">Username</label>
                 <input
+                  ref={usernameRef}
+                  id="login-username"
+                  name="username"
                   type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
                   className="input"
                   placeholder="Username"
                   autoComplete="username"
@@ -107,13 +88,13 @@ export default function LoginPage() {
                 />
               </div>
               <div>
-                <label className="label">Password</label>
+                <label className="label" htmlFor="login-password">Password</label>
                 <div className="relative">
                   <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
                   <input
+                    id="login-password"
+                    name="password"
                     type={showPass ? 'text' : 'password'}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
                     className="input pl-9 pr-10"
                     placeholder="Password"
                     autoComplete="current-password"
@@ -132,6 +113,8 @@ export default function LoginPage() {
               <label className="inline-flex items-center gap-2 text-xs text-muted select-none">
                 <input
                   type="checkbox"
+                  name="rememberMe"
+                  value="1"
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
                 />
@@ -147,16 +130,15 @@ export default function LoginPage() {
               {devUsernames && (
                 <p className="text-xs text-muted">
                   Local dev accounts: {devUsernames.join(', ')}. Passwords are in{' '}
-                  <code className="text-[11px]">env.local</code>.
+                  <code className="text-[11px]">env.local</code> (not production).
                 </p>
               )}
 
               <button
                 type="submit"
-                disabled={loading || !password || !username.trim()}
                 className="btn-primary w-full justify-center py-2.5"
               >
-                {loading ? 'Signing in…' : 'Sign in'}
+                Sign in
               </button>
             </form>
           </div>
@@ -168,4 +150,9 @@ export default function LoginPage() {
       </div>
     </>
   );
+}
+
+export async function getServerSideProps({ query }) {
+  const loginError = typeof query.login_error === 'string' ? query.login_error : '';
+  return { props: { loginError } };
 }

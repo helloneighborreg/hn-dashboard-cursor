@@ -9,7 +9,6 @@ import { taskHeadline, taskGuestSubtitle } from '../lib/taskDisplay';
 import { fetchJson } from '../lib/apiClient';
 import { formatSyncResultAlert } from '../lib/syncResultMessage';
 import { TaskItem } from './TaskItem';
-import TaskStatusWidgets from './TaskStatusWidgets';
 import TaskFiltersPanel from './TaskFiltersPanel';
 import TaskCalendarView from './TaskCalendarView';
 import TaskDetailModal from './TaskDetailModal';
@@ -41,8 +40,6 @@ function adminTaskColumns(isCompleted) {
 		? ['status', 'task', 'checkout', 'due', 'assignee', 'checklist', 'pdf']
 		: ['status', 'task', 'checkout', 'due', 'assignee', 'checklist', 'pdf', 'admin'];
 }
-
-const LIMITED_WIDGET_KEYS = ['assigned', 'completed', 'under_review', 'overdue'];
 
 const TAB_OPTIONS = [
 	{ value: 'unassigned', label: 'Unassigned' },
@@ -77,7 +74,7 @@ export default function TasksPageView() {
 	const readOnly = limitedView;
 	const adminColumns = useMemo(() => adminTaskColumns(isCompleted), [isCompleted]);
 	const { isVisible: isAdminColumnVisible, hide: hideColumn, show: showColumn, hiddenColumns } = useColumnVisibility(adminColumns);
-	const { counts: statusCounts, setTaskCounts, refreshTaskCounts: refreshGlobalTaskCounts } = useTaskCounts();
+	const { setTaskCounts, refreshTaskCounts: refreshGlobalTaskCounts } = useTaskCounts();
 	const [tasks, setTasks] = useState([]);
 	const [properties, setProperties] = useState([]);
 	const [loading, setLoading] = useState(true);
@@ -376,17 +373,6 @@ export default function TasksPageView() {
 						<SegmentedToggle value={view} onChange={setView} options={VIEW_OPTIONS} />
 					</div>
 				</div>
-
-				<TaskStatusWidgets
-					counts={statusCounts}
-					activeKey={tab}
-					onSelect={setTab}
-					visibleKeys={limitedView ? LIMITED_WIDGET_KEYS : undefined}
-					clickableKeys={limitedView
-						? LIMITED_WIDGET_KEYS
-						: ['unassigned', 'assigned', 'completed', 'under_review', 'overdue']}
-					cleanerView={limitedView}
-				/>
 
 				{flash && (
 					<div
