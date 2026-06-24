@@ -17,6 +17,9 @@ import { PageLoader, ErrorState } from '../components/LoadingSpinner';
 import ReservationPanel, { reservationGuestName } from '../components/ReservationPanel';
 import TaskPetIndicator from '../components/TaskPetIndicator';
 import { requireAuth } from '../lib/auth';
+import { loadDashboardData } from '../lib/dashboardData';
+import { taskCountsFromDashboardStats } from '../lib/taskCounts';
+import { useTaskCounts } from '../components/TaskCountsContext';
 
 function reservationSubtitle(r, mode) {
   if (mode === 'guest-only') return reservationGuestName(r);
@@ -111,9 +114,10 @@ function DashboardPanel({ title, href, children }) {
   );
 }
 
-export default function DashboardPage() {
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
+export default function DashboardPage({ initialData = null }) {
+  const { setTaskCounts } = useTaskCounts();
+  const [data, setData] = useState(initialData);
+  const [loading, setLoading] = useState(!initialData);
   const [error, setError] = useState('');
   const [selected, setSelected] = useState(null);
 
@@ -122,7 +126,11 @@ export default function DashboardPage() {
     setError('');
     try {
       const dashJson = await fetchJson('/api/dashboard');
-      if (dashJson) setData(dashJson.data);
+      if (dashJson?.data) {
+        setData(dashJson.data);
+        const counts = taskCountsFromDashboardStats(dashJson.data.stats);
+        if (counts) setTaskCounts(counts);
+      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -130,7 +138,15 @@ export default function DashboardPage() {
     }
   }
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    const counts = taskCountsFromDashboardStats(initialData?.stats);
+    if (counts) setTaskCounts(counts);
+  }, [initialData, setTaskCounts]);
+
+  useEffect(() => {
+    if (initialData) return;
+    load();
+  }, []);
 
   const today = data?.today ? formatDateOrDash(data.today) : '';
   const dashboardLinks = useMemo(() => {
@@ -253,4 +269,12 @@ export default function DashboardPage() {
   );
 }
 
-export const getServerSideProps = requireAuth(async () => ({ props: {} }));
+export const getServerSideProps = requireAuth(async () => {
+  try {
+    const initialData = await loadDashboardData();
+    return { props: { initialData } };
+  } catch (err) {
+    console.error('Dashboard SSR load failed:', err?.message || err);
+    return { props: { initialData: null } };
+  }
+});

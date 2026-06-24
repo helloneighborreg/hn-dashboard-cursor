@@ -32,7 +32,7 @@ export function TaskCountsProvider({ children }) {
 			setTaskCounts(EMPTY_TASK_COUNTS);
 			return;
 		}
-		if (router.pathname.startsWith('/tasks')) return;
+		if (router.pathname.startsWith('/tasks') || router.pathname === '/dashboard') return;
 		refreshTaskCounts({});
 	}, [user, router.pathname, refreshTaskCounts]);
 
