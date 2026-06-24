@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import clsx from 'clsx';
-import { ListChecks, FileText } from 'lucide-react';
+import { ChevronDown, ListChecks, FileText } from 'lucide-react';
 import { ASSIGNEES, statusFromAssignee, taskIsOverdue } from '../lib/constants';
 import { fetchJson } from '../lib/apiClient';
 import { taskHeadline, taskGuestSubtitle, formatDateShort, formatClock } from '../lib/taskDisplay';
@@ -54,6 +54,57 @@ function ChecklistLink({ url, label = 'Open checklist' }) {
 	);
 }
 
+function AssigneePicker({ task, isCard, saving, onChange }) {
+	const assigned = Boolean(task.assignee);
+	const options = (
+		<>
+			{!assigned && <option value="">Unassigned</option>}
+			{ASSIGNEES.map((a) => <option key={a} value={a}>{a}</option>)}
+			{assigned && <option value="">Unassigned</option>}
+		</>
+	);
+
+	if (!assigned) {
+		return (
+			<select
+				className={isCard ? 'select text-sm w-full text-muted' : 'select text-xs py-1 w-44 text-muted'}
+				value=""
+				onChange={(e) => onChange(e.target.value)}
+				disabled={saving}
+			>
+				{options}
+			</select>
+		);
+	}
+
+	return (
+		<div
+			className={clsx(
+				'relative inline-flex max-w-full items-center rounded-full bg-brand-50 font-medium text-brand-700',
+				isCard ? 'text-sm px-3 py-1.5' : 'text-xs px-2.5 py-1',
+			)}
+		>
+			<select
+				className={clsx(
+					'appearance-none cursor-pointer border-0 bg-transparent p-0 pr-5 font-medium text-brand-700',
+					'focus:outline-none focus:ring-0',
+					isCard ? 'text-sm w-full min-w-0' : 'text-xs max-w-[10rem]',
+				)}
+				value={task.assignee}
+				onChange={(e) => onChange(e.target.value)}
+				disabled={saving}
+			>
+				{options}
+			</select>
+			<ChevronDown
+				size={isCard ? 14 : 12}
+				className="pointer-events-none absolute right-2 shrink-0 opacity-60"
+				aria-hidden
+			/>
+		</div>
+	);
+}
+
 function ChecklistPdfLink({ url }) {
 	if (!url) return <span className="text-xs text-muted">—</span>;
 	return (
@@ -93,15 +144,12 @@ export function TaskItem({ task, variant, onUpdate, onAssigneeChanged, onSelect,
 	}
 
 	const assigneeSelect = (
-		<select
-			className={isCard ? 'select text-sm w-full' : 'select text-xs py-1 w-44'}
-			value={task.assignee || ''}
-			onChange={(e) => setAssignee(e.target.value)}
-			disabled={saving}
-		>
-			<option value="">Unassigned</option>
-			{ASSIGNEES.map((a) => <option key={a} value={a}>{a}</option>)}
-		</select>
+		<AssigneePicker
+			task={task}
+			isCard={isCard}
+			saving={saving}
+			onChange={setAssignee}
+		/>
 	);
 
 	const adminControl = completed ? (
