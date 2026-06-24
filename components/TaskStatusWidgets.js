@@ -5,18 +5,18 @@ export const STATUS_WIDGETS = [
 	{ key: 'unassigned', label: 'Unassigned', countColor: 'text-gray-600' },
 	{ key: 'assigned', label: 'Assigned', countColor: 'text-amber-700' },
 	{
-		key: 'under_review',
-		label: 'Under Review',
-		countColor: 'text-blue-700',
-		cleanerLabel: 'Under Review',
-		hint: 'Checklist received — waiting for approval.',
-	},
-	{
 		key: 'completed',
 		label: 'Completed',
 		countColor: 'text-green-700',
 		cleanerLabel: 'Complete',
 		hint: 'Checklist approved.',
+	},
+	{
+		key: 'under_review',
+		label: 'Review',
+		countColor: 'text-blue-700',
+		cleanerLabel: 'Review',
+		hint: 'Checklist received — waiting for approval.',
 	},
 	{ key: 'overdue', label: 'Overdue', countColor: 'text-red-600' },
 ];
@@ -29,7 +29,7 @@ export default function TaskStatusWidgets({
 	activeKey,
 	cleanerView = false,
 }) {
-	const defaultClickable = ['unassigned', 'assigned', 'under_review', 'completed'];
+	const defaultClickable = ['unassigned', 'assigned', 'completed', 'under_review'];
 	const clickable = new Set(clickableKeys ?? defaultClickable);
 	const widgets = visibleKeys
 		? STATUS_WIDGETS.filter(({ key }) => visibleKeys.includes(key))

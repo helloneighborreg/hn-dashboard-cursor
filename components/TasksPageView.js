@@ -42,7 +42,7 @@ function adminTaskColumns(isCompleted) {
 		: ['status', 'task', 'checkout', 'due', 'assignee', 'checklist', 'pdf', 'admin'];
 }
 
-const LIMITED_WIDGET_KEYS = ['assigned', 'under_review', 'completed', 'overdue'];
+const LIMITED_WIDGET_KEYS = ['assigned', 'completed', 'under_review', 'overdue'];
 
 const TAB_OPTIONS = [
 	{ value: 'unassigned', label: 'Unassigned' },
@@ -319,7 +319,7 @@ export default function TasksPageView() {
 		if (!taskStaysOnTab(updated)) {
 			setTasks((prev) => prev.filter((t) => t.id !== updated.id));
 			if (updated.status === 'under_review' && isAssigned) {
-				setFlash({ type: 'success', message: 'Checklist submitted. View it under Under Review.' });
+				setFlash({ type: 'success', message: 'Checklist submitted. Find it in Review.' });
 			} else if (updated.status === 'completed' && (isAssigned || isUnderReview)) {
 				setFlash({ type: 'success', message: 'Task approved. View it under Complete.' });
 			}
@@ -384,7 +384,7 @@ export default function TasksPageView() {
 					visibleKeys={limitedView ? LIMITED_WIDGET_KEYS : undefined}
 					clickableKeys={limitedView
 						? LIMITED_WIDGET_KEYS
-						: ['unassigned', 'assigned', 'under_review', 'completed', 'overdue']}
+						: ['unassigned', 'assigned', 'completed', 'under_review', 'overdue']}
 					cleanerView={limitedView}
 				/>
 
@@ -425,11 +425,11 @@ export default function TasksPageView() {
 								title={
 									limitedView
 										? isCompleted ? 'No completed tasks'
-											: isUnderReview ? 'Nothing under review'
+											: isUnderReview ? 'Nothing in review'
 												: isOverdue ? 'No overdue tasks'
 													: 'No tasks assigned'
 										: isCompleted ? 'No completed tasks'
-											: isUnderReview ? 'No tasks under review'
+											: isUnderReview ? 'No tasks in review'
 												: isOverdue ? 'No overdue tasks'
 													: isUnassigned ? 'No unassigned tasks'
 														: 'No assigned tasks'
