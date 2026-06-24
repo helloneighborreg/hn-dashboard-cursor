@@ -45,11 +45,9 @@ node scripts/print-dashboard-users.mjs
 | `HOSPITABLE_API_TOKEN` | Hospitable → Settings → API access |
 | `SUPABASE_URL` | Project URL from Supabase API settings |
 | `SUPABASE_SERVICE_ROLE_KEY` | service_role secret key |
-| `FILLOUT_CHECKLIST_FORMS` or `FILLOUT_CHECKLIST_BASE_URL` | Checklist form URLs |
-| `FILLOUT_WEBHOOK_SECRET` | Same value as Fillout webhook header |
 | `CRON_SECRET` | Random string for scheduled task sync (`/api/tasks/sync-cron`) |
 
-See `.env.local.example` for optional notification, Plaid, and Fillout backfill vars.
+See `.env.local.example` for optional notification and Plaid vars.
 
 ### DASHBOARD_USERS in Cloudflare
 

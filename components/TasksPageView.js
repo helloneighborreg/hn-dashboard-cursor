@@ -359,12 +359,7 @@ export default function TasksPageView() {
 						task={selectedTask}
 						onClose={() => setSelectedTask(null)}
 						showAssignee={isAdmin}
-						showAdmin={isAdmin}
 						forCleaner={limitedView}
-						onTaskUpdated={(updated) => {
-							setSelectedTask(updated);
-							handleUpdate(updated);
-						}}
 					/>
 				)}
 				<div className="flex flex-col gap-4 mb-6 w-full min-w-0">

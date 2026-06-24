@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import { X, Home, CalendarDays, Clock, User, FileText, ExternalLink, Cat, Zap } from 'lucide-react';
+import { X, Home, CalendarDays, Clock, User, FileText, ExternalLink, Cat } from 'lucide-react';
 import clsx from 'clsx';
 import { formatTaskStatus, getCleanerTaskStatusMessage, getTaskStatusIndicator, taskIsOverdue } from '../lib/constants';
 import {
@@ -9,7 +8,6 @@ import {
 	formatClock,
 } from '../lib/taskDisplay';
 import { taskHasPets, taskPetLabel } from '../lib/reservationPets';
-import { fetchJson } from '../lib/apiClient';
 import { useEscapeKey } from '../lib/useEscapeKey';
 import { useFocusTrap } from '../lib/useFocusTrap';
 import TaskStatusIndicator from './TaskStatusIndicator';
@@ -36,9 +34,7 @@ function DetailRow({ icon: Icon, label, value, mono, highlight }) {
 	);
 }
 
-export default function TaskDetailModal({ task, onClose, showAssignee = false, showAdmin = false, forCleaner = false, onTaskUpdated }) {
-	const [webhookTesting, setWebhookTesting] = useState(false);
-	const [webhookResult, setWebhookResult] = useState(null);
+export default function TaskDetailModal({ task, onClose, showAssignee = false, forCleaner = false }) {
 	useEscapeKey(onClose);
 	const dialogRef = useFocusTrap();
 
@@ -47,21 +43,6 @@ export default function TaskDetailModal({ task, onClose, showAssignee = false, s
 	const { label: statusLabel } = getTaskStatusIndicator(task);
 	const cleanerStatus = forCleaner ? getCleanerTaskStatusMessage(task) : null;
 	const isOverdue = taskIsOverdue(task);
-
-	async function handleTestWebhook() {
-		setWebhookTesting(true);
-		setWebhookResult(null);
-		try {
-			const json = await fetchJson(`/api/tasks/${task.id}/test-fillout-webhook`, { method: 'POST' });
-			if (!json) return; // 401 → redirected to login
-			setWebhookResult({ type: 'success', message: json.message || 'Webhook test succeeded' });
-			if (json.data && onTaskUpdated) onTaskUpdated(json.data);
-		} catch (err) {
-			setWebhookResult({ type: 'error', message: err.message || 'Webhook test failed' });
-		} finally {
-			setWebhookTesting(false);
-		}
-	}
 
 	return (
 		<>
@@ -188,31 +169,6 @@ export default function TaskDetailModal({ task, onClose, showAssignee = false, s
 							<ExternalLink size={14} />
 							View PDF
 						</a>
-					)}
-					{showAdmin && (
-						<div className="pt-2 border-t border-border space-y-2">
-							<p className="text-xs text-muted leading-snug">
-								Simulates Fillout&apos;s completion webhook (TaskID + ReservationID + Notion id).
-								{task.status !== 'completed' && ' Assigned tasks will be marked completed.'}
-							</p>
-							<button
-								type="button"
-								onClick={handleTestWebhook}
-								disabled={webhookTesting}
-								className="flex items-center justify-center gap-2 w-full btn-secondary text-sm disabled:opacity-50"
-							>
-								<Zap size={14} />
-								{webhookTesting ? 'Testing…' : 'Test Fillout webhook'}
-							</button>
-							{webhookResult && (
-								<p className={clsx(
-									'text-xs leading-snug',
-									webhookResult.type === 'success' ? 'text-green-700' : 'text-red-600',
-								)}>
-									{webhookResult.message}
-								</p>
-							)}
-						</div>
 					)}
 				</div>
 			</div>

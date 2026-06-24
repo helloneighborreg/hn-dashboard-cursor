@@ -12,7 +12,6 @@
     "start": "next start",
     "db:check": "node scripts/check-supabase.mjs",
     "db:import": "node scripts/import-db-json.mjs",
-    "db:backfill-fillout": "node scripts/backfill-fillout-tasks.mjs",
     "optimize-logos": "node scripts/optimize-logos.mjs"
   },
   "dependencies": {

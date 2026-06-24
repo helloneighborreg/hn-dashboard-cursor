@@ -80,7 +80,7 @@ TWILIO_FROM_NUMBER=+15551234567
 
 If these are not set, assignment still works; notifications are skipped with a server log warning.
 
-When a task is marked **completed** (admin button or Fillout webhook), the app emails configured recipients with a link to the checklist (and PDF when available).
+When a task is marked **completed** (admin button) or a cleaner **submits the in-app checklist**, the app emails configured recipients with a link to the checklist.
 
 When a linked **booking changes** (checkout/due dates, guest, pets, etc.), one email goes to **all recipients on the same To: line** — the assignee (if any) plus admin emails. Unassigned tasks email admins only. SMS (optional) still goes to the assignee’s phone only.
 
@@ -92,105 +92,45 @@ TASK_COMPLETION_NOTIFY_EMAIL=you@example.com
 TASK_CHANGE_NOTIFY_EMAIL=you@example.com
 ```
 
-## Fillout checklist (recommended)
+## In-app turn clean checklist
 
-The **Open Checklist** button builds a Fillout URL with task details as query parameters.
+CJC properties use the built-in checklist at `/forms/cjc-turn-clean-checklist`. The **Open Checklist** button on each task pre-fills guest, property, reservation, task ID, checkout date, and assignee via URL parameters.
 
-### 1. Form link (`env.local`)
+### URL parameter map (`env.local`)
+
+Optional — rename query params if you change the form schema:
 
 ```env
-# Your Fillout form URL (from Share → Link)
-FILLOUT_CHECKLIST_BASE_URL=https://forms.fillout.com/t/your-form-id
-
-# Optional: rename URL params to match your Fillout field URL parameter names
-# FILLOUT_URL_PARAM_MAP={"property":"Property","guest":"Guest","reservation_id":"ReservationID","checkout_date":"CheckOut","task_id":"TaskID"}
+CHECKLIST_URL_PARAM_MAP={"property":"Property","guest":"Guest","reservation_id":"ReservationID","checkout_date":"CheckOut","task_id":"TaskID","assignee":"assignee"}
 ```
 
-In Fillout, set each field’s **default value** to the matching **URL parameter** (same names as above, unless you customized the map).
+`FILLOUT_URL_PARAM_MAP` is still accepted as a legacy alias.
 
-Parameters sent automatically:
+Parameters sent from Tasks:
 
-| Internal field | Fillout URL param (default map) |
-|-----------|--------|
-| `property` | Property code (e.g. CJC8303) → `Property` |
-| `guest` | Guest name → `Guest` |
-| `reservation_id` | Booking code (e.g. HM9CABAAY9) → `ReservationID` |
-| `task_id` | Internal task UUID (for webhook) → `TaskID` |
-| `checkout_date` | Checkout date → `CheckOut` |
+| Internal field | URL param (default map) |
+|----------------|-------------------------|
+| `property` | Property code (e.g. CJC8303) |
+| `guest` | Guest name |
+| `reservation_id` | Booking code (e.g. HM9CABAAY9) |
+| `task_id` | Internal task UUID |
+| `checkout_date` | Checkout date |
 | `assignee` | Assignee name, if set |
 
-### 2. Completion webhook
+### On submit
 
-When a cleaner submits the form, Fillout can call your app to mark the task **completed** and store the submission ID + PDF link. This runs **alongside** your Notion/PDF integrations — add it as a second integration on the same form.
+When a cleaner submits the checklist, the app:
 
-```env
-FILLOUT_WEBHOOK_SECRET=choose-a-long-random-string
-```
+- Saves answers and photos to `form_submissions` (Supabase + storage bucket)
+- Moves the linked task to **Review** (`under_review`)
+- Sets `checklist_submission_url` to the in-app submission view
+- Emails admins that a checklist was submitted
 
-**Fillout setup:** Integrate → Webhook → POST to:
+Run migrations `supabase/migrations/20260625_form_submissions.sql` and `supabase/migrations/20260629_form_submission_permissions.sql` for checklist storage.
 
-`https://your-deployed-domain.com/api/webhooks/fillout`
+Property → checklist mapping is in `lib/propertyChecklists.js` (CJC units only today).
 
-Add header `x-fillout-secret: <same as FILLOUT_WEBHOOK_SECRET>`.
-
-**Critical:** Each checklist link from the dashboard includes `?TaskID=…&ReservationID=…` (and other fields). In Fillout, create **URL parameter** hidden fields for at least:
-
-| URL param | Purpose |
-|-----------|---------|
-| `TaskID` | Primary key — used to mark the correct task complete |
-| `ReservationID` | Fallback lookup (booking code, e.g. HM9CABAAY9) |
-
-Set each field’s default value to the matching URL parameter name (Fillout → field settings → prefilled from URL).
-
-Fillout sends nested JSON (`submission.urlParameters`, `submission.questions`, `submission.documents`). The webhook parser reads all of these automatically. You can also map custom body fields in Fillout’s webhook “Advanced view” if needed.
-
-Optional fields stored on the task:
-
-- `submissionId` — Fillout submission ID (included automatically)
-- Completed checklist URL — stored as `checklist_submission_url` (Fillout edit link with all answers)
-- PDF URL — shown in the **PDF** column on the tasks page. Map your generated document to `pdf_url` in Fillout’s webhook **Advanced view** body, or include it in `submission.documents`.
-
-Run migration `supabase/migrations/20260522_task_fillout.sql` for `fillout_submission_id` and `checklist_pdf_url` columns, then `supabase/migrations/20260530_task_checklist_submission_url.sql` for the completed checklist link.
-
-**Status dot colors:** red = unassigned, green = assigned, blue = completed (after Fillout submit).
-
-### Backfill completed tasks + PDF links
-
-After webhooks are configured, backfill historical Fillout submissions (PDF column + completion status):
-
-1. Generate an API key at https://build.fillout.com/home/settings/developer
-2. Add to `env.local`:
-   ```env
-   FILLOUT_API_TOKEN=sk_prod_...
-   ```
-3. Run locally:
-   ```bash
-   npm run db:backfill-fillout
-   ```
-   Preview first with `npm run db:backfill-fillout -- --dry-run`
-
-Or POST as admin to `/api/tasks/backfill-fillout` on your deployed app (same env var on Vercel).
-
-The script scans both checklist forms (Cascades + Kirkwood), matches submissions to tasks via `reservation_id` / `task_id`, and stores `checklist_submission_url` (Fillout edit link) and `checklist_pdf_url` from Fillout’s generated documents.
-
-### Multiple forms by property group (recommended for this portfolio)
-
-CJC8103, CJC8201, CJC8303, CJC9203, and CJC9206 share one Fillout form; KWD502 uses another.
-Do **not** set `FILLOUT_CHECKLIST_BASE_URL` when using this setup.
-
-```env
-FILLOUT_CHECKLIST_FORMS={"cjc":"https://forms.fillout.com/t/your-cjc-form","kwd502":"https://forms.fillout.com/t/your-kwd-form"}
-```
-
-Property → form mapping is built into `lib/propertyChecklists.js`.
-
-### Per-property URLs (optional override)
-
-To override a single property:
-
-```env
-TASK_CHECKLIST_URLS={"CJC8303":"https://forms.fillout.com/t/..."}
-```
+**Status dot colors:** red = unassigned, green = assigned, blue = under review / completed.
 
 ## 7. Deploy on Vercel
 

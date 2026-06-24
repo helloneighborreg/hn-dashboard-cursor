@@ -54,7 +54,10 @@ export default async function handler(req, res) {
 			const record = await appendSubmissionFile(submissionId, questionId, uploaded);
 			return res.status(201).json({ data: { id: record.id } });
 		} catch (err) {
-			console.error('CJC checklist file upload error:', err.message);
+			const status = err?.status;
+			if (!status || status >= 500) {
+				console.error('CJC checklist file upload error:', err.message);
+			}
 			const message = err?.message || 'Upload failed';
 			if (/bucket not found|Bucket not found/i.test(message)) {
 				return res.status(500).json({

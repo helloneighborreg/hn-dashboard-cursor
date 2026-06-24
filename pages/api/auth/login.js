@@ -29,7 +29,8 @@ export default async function handler(req, res) {
 		const message = 'Too many login attempts. Please try again shortly.';
 		if (formLogin) {
 			res.setHeader('Retry-After', String(limit.retryAfterSec));
-			return loginErrorRedirect(res, message);
+			loginErrorRedirect(res, message);
+			return;
 		}
 		res.setHeader('Retry-After', String(limit.retryAfterSec));
 		return res.status(429).json({ error: message });
@@ -42,14 +43,20 @@ export default async function handler(req, res) {
 
 	if (!password) {
 		const message = 'Password required';
-		if (formLogin) return loginErrorRedirect(res, message);
+		if (formLogin) {
+			loginErrorRedirect(res, message);
+			return;
+		}
 		return res.status(400).json({ error: message });
 	}
 
 	const config = getAuthConfigStatus();
 	if (!username?.trim() && config.dashboard_user_count > 1) {
 		const message = 'Username is required.';
-		if (formLogin) return loginErrorRedirect(res, message);
+		if (formLogin) {
+			loginErrorRedirect(res, message);
+			return;
+		}
 		return res.status(400).json({ error: message });
 	}
 	if (!config.login_ready) {
@@ -59,7 +66,10 @@ export default async function handler(req, res) {
 		} else if (config.dashboard_users_set && !config.dashboard_users_parse_ok) {
 			message = `Server misconfigured: ${config.dashboard_users_parse_error || 'Invalid DASHBOARD_USERS JSON'}.`;
 		}
-		if (formLogin) return loginErrorRedirect(res, message);
+		if (formLogin) {
+			loginErrorRedirect(res, message);
+			return;
+		}
 		return res.status(503).json({ error: message });
 	}
 
@@ -71,7 +81,8 @@ export default async function handler(req, res) {
 				const hint = process.env.NODE_ENV === 'development'
 					? `${message}. Use the password from env.local (not production).`
 					: message;
-				return loginErrorRedirect(res, hint);
+				loginErrorRedirect(res, hint);
+				return;
 			}
 			return res.status(401).json({ error: message });
 		}
@@ -86,7 +97,8 @@ export default async function handler(req, res) {
 
 		const redirect = homePathForRole(user.role);
 		if (formLogin) {
-			return res.redirect(303, redirect);
+			res.redirect(303, redirect);
+			return;
 		}
 
 		return res.json({
@@ -97,7 +109,10 @@ export default async function handler(req, res) {
 	} catch (err) {
 		console.error('Login failed:', err);
 		const message = 'Could not create session. Check SESSION_SECRET on the server.';
-		if (formLogin) return loginErrorRedirect(res, message);
+		if (formLogin) {
+			loginErrorRedirect(res, message);
+			return;
+		}
 		return res.status(500).json({ error: message });
 	}
 }
