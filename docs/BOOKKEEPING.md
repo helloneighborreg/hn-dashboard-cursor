@@ -1,19 +1,31 @@
-# Bookkeeping tab (experimental)
+# Bookkeeping / Transactions
 
-Baselane-style transaction categorization UI at `/bookkeeping`.
+Bank transaction categorization lives under **Transactions** at `/transactions?tab=bank` (not a separate nav item).
 
-## Remove this feature
+## Related routes
 
-1. Delete `pages/bookkeeping.js`
-2. Delete `components/bookkeeping/`
-3. Delete `lib/bookkeepingCategories.js` and `lib/bookkeepingClient.js`
-4. Remove the `/bookkeeping` nav line from `lib/roles.js` and `/bookkeeping` from `NAV_ICONS` in `components/Layout.js`
-5. Optionally revert API/DB changes if you no longer need `reviewed`, `hidden`, `notes` on `bank_transactions`
+| Legacy URL | Redirects to |
+|------------|--------------|
+| `/bookkeeping` | `/transactions?tab=bank` |
+| `/income` | `/transactions?tab=hospitable` |
+| `/expenses` | `/transactions?tab=manual` |
+
+Legacy redirects remain for bookmarks; they are not in the sidebar.
+
+## Key modules
+
+- `components/bookkeeping/` — transaction table, categorization UI, reservation matching
+- `lib/bookkeepingCategories.js` — category taxonomy
+- `lib/bookkeepingClient.js` — client-side edit/exclude helpers
+- `pages/api/bank/` — Plaid link, sync, transaction CRUD
 
 ## Database
 
-Run migration `supabase/migrations/20260606_bank_transaction_categorization.sql` in Supabase SQL editor if not applied via CLI.
+Run these in Supabase SQL editor if not already applied:
+
+- `supabase/migrations/20260606_bank_transaction_categorization.sql`
+- `supabase/migrations/20260607_bank_transaction_reservation_match.sql`
 
 ## Data source
 
-Uses Plaid-imported rows in `bank_transactions`. Connect/sync from **Income** → Bank feed, then categorize here.
+Uses Plaid-imported rows in `bank_transactions`. Connect and sync from **Transactions → Bank** tab.
