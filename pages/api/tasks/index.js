@@ -85,8 +85,8 @@ async function resolveTaskCounts({ scopeFilters, today, limitedView, session, ha
 	}
 
 	const countRows = today === 'true'
-		? await getTasksForToday()
-		: await getTasks(scopeFilters);
+		? await getTasksForToday({ columns: 'status, assignee, due_date' })
+		: await getTasks(scopeFilters, { columns: 'status, assignee, due_date' });
 	const scoped = limitedView
 		? countRows.filter((t) => t.assignee === session.user.name)
 		: countRows;
@@ -116,16 +116,20 @@ export default async function handler(req, res) {
         }
 
         const listFilters = applyTabFilter(scopeFilters, req.query, session);
+        const includeCounts = req.query.include_counts !== 'false';
 
+        const rowsPromise = today === 'true' ? getTasksForToday() : getTasks(listFilters);
         const [rows, counts] = await Promise.all([
-          today === 'true' ? getTasksForToday() : getTasks(listFilters),
-          resolveTaskCounts({
-            scopeFilters,
-            today,
-            limitedView,
-            session,
-            hasScopeFilters,
-          }),
+          rowsPromise,
+          includeCounts
+            ? resolveTaskCounts({
+              scopeFilters,
+              today,
+              limitedView,
+              session,
+              hasScopeFilters,
+            })
+            : Promise.resolve(null),
         ]);
 
         const enriched = await enrichTasks(rows);
@@ -139,7 +143,7 @@ export default async function handler(req, res) {
           data = sortTasksByDateDesc(data);
         }
 
-        return res.json({ data, counts });
+        return res.json(includeCounts ? { data, counts } : { data });
       }
 
       if (req.method === 'POST') {
