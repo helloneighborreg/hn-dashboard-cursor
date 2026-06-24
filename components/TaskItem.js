@@ -64,33 +64,24 @@ function AssigneePicker({ task, isCard, saving, onChange }) {
 		</>
 	);
 
-	if (!assigned) {
-		return (
-			<select
-				className={isCard ? 'select text-sm w-full text-muted' : 'select text-xs py-1 w-44 text-muted'}
-				value=""
-				onChange={(e) => onChange(e.target.value)}
-				disabled={saving}
-			>
-				{options}
-			</select>
-		);
-	}
-
 	return (
 		<div
 			className={clsx(
-				'relative inline-flex max-w-full items-center rounded-full bg-brand-50 font-medium text-brand-700',
+				'relative inline-flex max-w-full items-center rounded-full font-medium transition-colors',
+				assigned
+					? 'bg-brand-50 text-brand-700'
+					: 'bg-gray-100 text-muted hover:bg-gray-200/70',
 				isCard ? 'text-sm px-3 py-1.5' : 'text-xs px-2.5 py-1',
 			)}
 		>
 			<select
 				className={clsx(
-					'appearance-none cursor-pointer border-0 bg-transparent p-0 pr-5 font-medium text-brand-700',
+					'appearance-none cursor-pointer border-0 bg-transparent p-0 pr-5 font-medium',
 					'focus:outline-none focus:ring-0',
+					assigned ? 'text-brand-700' : 'text-muted',
 					isCard ? 'text-sm w-full min-w-0' : 'text-xs max-w-[10rem]',
 				)}
-				value={task.assignee}
+				value={task.assignee || ''}
 				onChange={(e) => onChange(e.target.value)}
 				disabled={saving}
 			>
