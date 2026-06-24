@@ -118,6 +118,7 @@ export default function TaskCalendarView({ tasks, month, onMonthChange, onTaskSe
 					<span className="inline-flex items-center gap-1"><TaskStatusIndicator task={{ status: 'unassigned' }} /> Unassigned</span>
 					<span className="inline-flex items-center gap-1"><TaskStatusIndicator task={{ status: 'assigned', assignee: 'x' }} /> Assigned</span>
 					<span className="inline-flex items-center gap-1"><TaskStatusIndicator task={{ status: 'completed' }} /> Completed</span>
+					<span className="inline-flex items-center gap-1"><TaskStatusIndicator task={{ status: 'under_review' }} /> Review</span>
 					<span className="inline-flex items-center gap-1"><TaskStatusIndicator task={{ due_date: '2000-01-01', status: 'assigned', assignee: 'x' }} /> Overdue</span>
 				</div>
 				<div className="flex items-center gap-2 flex-shrink-0">
