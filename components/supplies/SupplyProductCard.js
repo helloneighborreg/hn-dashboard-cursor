@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import clsx from 'clsx';
-import { Pencil, Package, Trash2 } from 'lucide-react';
+import { Plus, Pencil, Package, Trash2 } from 'lucide-react';
 import { fmtSupplyPrice } from '../../lib/supplies';
+import SupplyAddQuantityModal from './SupplyAddQuantityModal';
 
-export default function SupplyProductCard({ product, inCart, onAdd, onEdit, onDelete, disabled }) {
+export default function SupplyProductCard({ product, onAdd, onEdit, onDelete, disabled }) {
 	const [confirmDelete, setConfirmDelete] = useState(false);
 	const [deleting, setDeleting] = useState(false);
+	const [showQtyModal, setShowQtyModal] = useState(false);
 
 	async function handleDelete() {
 		if (!onDelete) return;
@@ -95,24 +97,31 @@ export default function SupplyProductCard({ product, inCart, onAdd, onEdit, onDe
 				<p className="text-brand-600 font-semibold text-xs mb-2">{fmtSupplyPrice(product.sale_price)}</p>
 
 				{disabled ? (
-					<div className="mt-auto flex items-center justify-center text-muted text-xs py-1.5">
+					<div className="mt-auto flex items-center justify-center text-muted text-xs py-1">
 						Order in progress
-					</div>
-				) : inCart ? (
-					<div className="mt-auto flex items-center justify-center gap-1 text-green-600 text-xs font-medium py-1.5">
-						<span aria-hidden>✓</span>
-						In Cart
 					</div>
 				) : (
 					<button
 						type="button"
-						onClick={() => onAdd?.(product)}
-						className="mt-auto w-full btn-primary py-1.5 text-xs"
+						onClick={() => setShowQtyModal(true)}
+						className="mt-auto self-start btn-primary text-[10px] gap-0.5 py-1 px-2"
 					>
-						Add to Cart
+						<Plus size={12} />
+						Add
 					</button>
 				)}
 			</div>
+
+			{showQtyModal && (
+				<SupplyAddQuantityModal
+					product={product}
+					onClose={() => setShowQtyModal(false)}
+					onConfirm={(quantity) => {
+						onAdd?.(product, quantity);
+						setShowQtyModal(false);
+					}}
+				/>
+			)}
 		</div>
 	);
 }

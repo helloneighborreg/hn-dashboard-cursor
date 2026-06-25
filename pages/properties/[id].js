@@ -10,8 +10,10 @@ import {
 import Layout from '../../components/Layout';
 import Badge from '../../components/Badge';
 import { PageLoader, ErrorState } from '../../components/LoadingSpinner';
+import { useAuth } from '../../components/AuthContext';
 import { fetchJson } from '../../lib/apiClient';
 import { requireAuth } from '../../lib/auth';
+import { isPropertySectionVisible } from '../../lib/propertySectionPermissions';
 import PropertyOwnerSection from '../../components/PropertyOwnerSection';
 import PropertyOwnerStatementsSection from '../../components/PropertyOwnerStatementsSection';
 import PropertySectionAccordion from '../../components/PropertySectionAccordion';
@@ -91,6 +93,7 @@ function AmenitiesList({ amenities }) {
 export default function PropertyDetailPage() {
   const router = useRouter();
   const { id } = router.query;
+  const { user, navPermissions } = useAuth();
   const [property, setProperty] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -116,13 +119,15 @@ export default function PropertyDetailPage() {
 
   const propertyTitle = property?.name || property?.public_name || '';
 
+  const canSeeSection = (key) => isPropertySectionVisible(key, user?.role, navPermissions);
+
   const mainSections = useMemo(() => {
     if (!property) return [];
     return [
       {
         key: 'photos',
         label: 'Photos',
-        visible: allImages.length > 0,
+        visible: allImages.length > 0 && canSeeSection('photos'),
         badge: allImages.length > 1 ? (
           <span className="text-xs text-muted">{allImages.length}</span>
         ) : null,
@@ -138,7 +143,7 @@ export default function PropertyDetailPage() {
       {
         key: 'about',
         label: 'About',
-        visible: Boolean(property.summary),
+        visible: Boolean(property.summary) && canSeeSection('about'),
         content: (
           <p className="text-sm text-dark leading-relaxed">{property.summary}</p>
         ),
@@ -146,18 +151,18 @@ export default function PropertyDetailPage() {
       {
         key: 'amenities',
         label: 'Amenities',
-        visible: amenities.length > 0,
+        visible: amenities.length > 0 && canSeeSection('amenities'),
         badge: (
           <span className="text-xs text-muted">{amenities.length}</span>
         ),
         content: <AmenitiesList amenities={amenities} />,
       },
     ];
-  }, [property, allImages, imgIndex, amenities, propertyTitle]);
+  }, [property, allImages, imgIndex, amenities, propertyTitle, user?.role, navPermissions]);
 
   const sidebarSections = useMemo(() => {
     if (!property) return [];
-    return [
+    const sections = [
       {
         key: 'owner-info',
         label: 'Owner Info',
@@ -257,7 +262,8 @@ export default function PropertyDetailPage() {
         ),
       },
     ];
-  }, [property, rules]);
+    return sections.filter((section) => canSeeSection(section.key));
+  }, [property, rules, user?.role, navPermissions]);
 
   if (!id || loading) return <Layout><PageLoader message="Loading property…" /></Layout>;
   if (error) return <Layout><ErrorState message={error} /></Layout>;
@@ -303,8 +309,13 @@ export default function PropertyDetailPage() {
             <PropertySectionAccordion sections={mainSections} defaultKey="photos" />
           </div>
 
-          <div>
-            <PropertySectionAccordion sections={sidebarSections} defaultKey="owner-info" />
+          <div className="lg:sticky lg:self-start lg:top-[calc(env(safe-area-inset-top,0px)+2.75rem)]">
+            <PropertySectionAccordion
+              sections={sidebarSections}
+              defaultKey="owner-info"
+              stickyHeaders
+              className="lg:max-h-[calc(100dvh-env(safe-area-inset-top,0px)-3.75rem)] lg:overflow-y-auto"
+            />
           </div>
         </div>
       </Layout>

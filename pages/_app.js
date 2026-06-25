@@ -13,7 +13,7 @@ const inter = Inter({
 export default function App({ Component, pageProps }) {
 	return (
 		<div className={inter.className}>
-			<AuthProvider user={pageProps.user}>
+			<AuthProvider user={pageProps.user} navPermissions={pageProps.navPermissions}>
 				<TaskCountsProvider>
 				<Head>
 					<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />

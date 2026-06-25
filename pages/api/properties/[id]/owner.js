@@ -1,7 +1,9 @@
 import { withAuth } from '../../../../lib/auth';
+import { isAdmin } from '../../../../lib/roles';
 import { getPropertyOwner, upsertPropertyOwner } from '../../../../lib/db';
 import { toIsoDate } from '../../../../lib/dates';
 import { DEFAULT_MANAGEMENT_FEE_PERCENT } from '../../../../lib/ownerStatementReport';
+import { diffRecordChanges, logPropertyChange } from '../../../../lib/propertyChangeLog';
 
 function parseManagementFeePercent(value) {
 	if (value === '' || value == null) return DEFAULT_MANAGEMENT_FEE_PERCENT;
@@ -27,7 +29,7 @@ function normalizeOwnerBody(body = {}) {
 }
 
 export default async function handler(req, res) {
-	await withAuth(req, res, async () => {
+	await withAuth(req, res, async (session) => {
 		const { id: propertyId } = req.query;
 		if (!propertyId) return res.status(400).json({ error: 'Property id is required.' });
 
@@ -37,10 +39,23 @@ export default async function handler(req, res) {
 		}
 
 		if (req.method === 'PUT' || req.method === 'PATCH') {
-			const owner = await upsertPropertyOwner(propertyId, normalizeOwnerBody(req.body));
+			if (!isAdmin(session.user)) {
+				return res.status(403).json({ error: 'Forbidden' });
+			}
+			const patch = normalizeOwnerBody(req.body);
+			const previous = await getPropertyOwner(propertyId);
+			const owner = await upsertPropertyOwner(propertyId, patch);
+			const changes = diffRecordChanges(previous, patch);
+			await logPropertyChange({
+				propertyId,
+				section: 'owner-info',
+				resource: 'owner',
+				changes,
+				user: session.user,
+			});
 			return res.json({ data: owner });
 		}
 
 		return res.status(405).end();
-	}, { adminOnly: true });
+	});
 }

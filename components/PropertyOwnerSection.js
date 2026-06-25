@@ -1,7 +1,14 @@
 import { useEffect, useState } from 'react';
 import DateInput from './DateInput';
 import { fetchJson } from '../lib/apiClient';
-import { toIsoDate } from '../lib/dates';
+import { toIsoDate, formatDateOrDash } from '../lib/dates';
+import {
+	usePropertySectionEdit,
+	PropertySectionEditButton,
+	PropertySectionViewHeader,
+	PropertyFieldRow,
+	PropertySectionEditActions,
+} from './PropertySectionEdit';
 
 const EMPTY_FORM = {
 	name: '',
@@ -28,6 +35,28 @@ function ownerToForm(owner) {
 	};
 }
 
+function OwnerView({ form }) {
+	return (
+		<div className="space-y-3">
+			<PropertyFieldRow label="Name" value={form.name} />
+			<PropertyFieldRow label="Address" value={form.address} multiline />
+			<PropertyFieldRow label="Email" value={form.email} />
+			<PropertyFieldRow label="Phone" value={form.phone} />
+			<PropertyFieldRow
+				label="Management Fee %"
+				value={form.management_fee_percent != null && form.management_fee_percent !== ''
+					? `${form.management_fee_percent}%`
+					: ''}
+			/>
+			<PropertyFieldRow
+				label="Management Agreement Expiration"
+				value={formatDateOrDash(form.agreement_expiration)}
+			/>
+			<PropertyFieldRow label="Notes" value={form.notes} multiline />
+		</div>
+	);
+}
+
 export default function PropertyOwnerSection({ propertyId, embedded = false }) {
 	const [form, setForm] = useState(EMPTY_FORM);
 	const [savedForm, setSavedForm] = useState(EMPTY_FORM);
@@ -35,6 +64,7 @@ export default function PropertyOwnerSection({ propertyId, embedded = false }) {
 	const [saving, setSaving] = useState(false);
 	const [error, setError] = useState('');
 	const [saved, setSaved] = useState(false);
+	const { editing, startEditing, finishEditing } = usePropertySectionEdit();
 
 	useEffect(() => {
 		if (!propertyId) return;
@@ -52,6 +82,12 @@ export default function PropertyOwnerSection({ propertyId, embedded = false }) {
 
 	const dirty = JSON.stringify(form) !== JSON.stringify(savedForm);
 
+	function handleCancel() {
+		setForm(savedForm);
+		setError('');
+		finishEditing();
+	}
+
 	async function handleSave(e) {
 		e.preventDefault();
 		setSaving(true);
@@ -61,14 +97,12 @@ export default function PropertyOwnerSection({ propertyId, embedded = false }) {
 		const fd = new FormData(formEl);
 		const payload = {
 			...form,
-			// Read the date input directly so a picker selection is saved even if
-			// React state hasn't flushed yet (same class of bug as the old DateInput blur).
 			agreement_expiration: String(fd.get('agreement_expiration') ?? form.agreement_expiration ?? ''),
 		};
 		try {
 			const json = await fetchJson(`/api/properties/${propertyId}/owner`, {
 				method: 'PUT',
-				body: payload,
+				body: { ...payload, section: 'owner-info' },
 			});
 			if (!json?.data) {
 				throw new Error('Save failed — no response from server.');
@@ -77,6 +111,7 @@ export default function PropertyOwnerSection({ propertyId, embedded = false }) {
 			setForm(next);
 			setSavedForm(next);
 			setSaved(true);
+			finishEditing();
 		} catch (err) {
 			setError(err.message);
 		} finally {
@@ -86,7 +121,7 @@ export default function PropertyOwnerSection({ propertyId, embedded = false }) {
 
 	const formContent = loading ? (
 		<p className="text-sm text-muted">Loading owner info…</p>
-	) : (
+	) : editing ? (
 		<form onSubmit={handleSave} noValidate className="space-y-3">
 			<div>
 				<label className="label" htmlFor="owner-name">Name</label>
@@ -169,14 +204,13 @@ export default function PropertyOwnerSection({ propertyId, embedded = false }) {
 				<p className="text-sm text-red-600">{error}</p>
 			)}
 
-			<button
-				type="submit"
-				disabled={saving || !dirty}
-				className="btn-primary text-sm w-full sm:w-auto justify-center"
-			>
-				{saving ? 'Saving…' : 'Save'}
-			</button>
+			<PropertySectionEditActions saving={saving} dirty={dirty} onCancel={handleCancel} />
 		</form>
+	) : (
+		<>
+			<PropertySectionViewHeader onEdit={startEditing} />
+			<OwnerView form={savedForm} />
+		</>
 	);
 
 	if (embedded) return formContent;
@@ -185,9 +219,14 @@ export default function PropertyOwnerSection({ propertyId, embedded = false }) {
 		<div className="card p-6 mb-4">
 			<div className="flex items-start justify-between gap-3 mb-4">
 				<h2 className="font-semibold text-dark text-sm uppercase tracking-wide text-muted">Owner Info</h2>
-				{saved && !dirty && (
-					<span className="text-xs text-green-600 font-medium">Saved</span>
-				)}
+				<div className="flex items-center gap-2">
+					{saved && !dirty && !editing && (
+						<span className="text-xs text-green-600 font-medium">Saved</span>
+					)}
+					{!editing && !loading && (
+						<PropertySectionEditButton onClick={startEditing} />
+					)}
+				</div>
 			</div>
 			{formContent}
 		</div>

@@ -8,5 +8,5 @@ export default async function handler(req, res) {
 		if (!id) return res.status(400).json({ error: 'Order id is required' });
 		const order = await submitSupplyOrder(id);
 		return res.json({ data: order });
-	}, { adminOnly: true });
+	});
 }

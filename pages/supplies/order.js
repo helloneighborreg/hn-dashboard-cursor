@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import Head from 'next/head';
-import Link from 'next/link';
-import { ArrowLeft, Plus, ShoppingCart, RefreshCw, PackageCheck } from 'lucide-react';
+import { Plus, ShoppingCart, RefreshCw, PackageCheck, ChevronDown } from 'lucide-react';
 import Layout from '../../components/Layout';
 import PageSearchInput from '../../components/PageSearchInput';
 import SupplyProductCard from '../../components/supplies/SupplyProductCard';
@@ -139,8 +138,6 @@ export default function SuppliesOrderPage() {
 		[products],
 	);
 
-	const cartProductIds = useMemo(() => new Set(cart.map((c) => c.product_id)), [cart]);
-
 	const locations = useMemo(() => {
 		const fromInventory = inventory.map((i) => i.location).filter(Boolean);
 		return [...new Set([DEFAULT_INVENTORY_LOCATION, ...fromInventory])].sort();
@@ -155,20 +152,21 @@ export default function SuppliesOrderPage() {
 		});
 	}, [products, search, category]);
 
-	const addToCart = useCallback((product) => {
+	const addToCart = useCallback((product, quantity = 1) => {
 		if (orderLocked) return;
+		const qty = Math.max(1, Math.floor(Number(quantity)) || 1);
 		setCart((prev) => {
 			const existing = prev.find((c) => c.product_id === product.id);
 			if (existing) {
 				return prev.map((c) =>
-					c.product_id === product.id ? { ...c, quantity: c.quantity + 1 } : c,
+					c.product_id === product.id ? { ...c, quantity: c.quantity + qty } : c,
 				);
 			}
 			return [
 				...prev,
 				{
 					product_id: product.id,
-					quantity: 1,
+					quantity: qty,
 					unit_price: product.sale_price,
 					sales_tax_percent: product.sales_tax_percent,
 				},
@@ -237,10 +235,6 @@ export default function SuppliesOrderPage() {
 			<Layout title="">
 				<div className="flex flex-col gap-4 mb-6 sm:flex-row sm:items-start sm:justify-between">
 					<div className="min-w-0">
-						<Link href="/supplies" className="inline-flex items-center gap-1 text-xs text-muted hover:text-brand-500 mb-2">
-							<ArrowLeft size={14} />
-							Supplies
-						</Link>
 						<h1 className="text-xl sm:text-2xl font-bold text-dark">Supply Order</h1>
 						{orderLocked && (
 							<p className="text-sm text-amber-700 mt-1 flex items-center gap-1.5">
@@ -253,13 +247,33 @@ export default function SuppliesOrderPage() {
 						)}
 					</div>
 					<div className="flex flex-wrap items-center gap-2 w-full sm:w-auto sm:self-start">
+						<PageSearchInput
+							value={search}
+							onChange={(e) => setSearch(e.target.value)}
+							placeholder="Search…"
+							className="min-w-0 flex-1 sm:flex-none sm:w-44 sm:max-w-xs"
+						/>
+						<div className="relative">
+							<select
+								className="select-compact sm:w-40 pr-7"
+								value={category}
+								onChange={(e) => setCategory(e.target.value)}
+								aria-label="Categories"
+							>
+								<option value="">All Categories</option>
+								{SUPPLY_CATEGORIES.map((cat) => (
+									<option key={cat} value={cat}>{cat}</option>
+								))}
+							</select>
+							<ChevronDown size={12} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-muted" aria-hidden />
+						</div>
 						<button
 							type="button"
 							onClick={openAddProduct}
 							className="btn-secondary text-xs gap-1.5"
 						>
 							<Plus size={14} />
-							Add Product
+							Add
 						</button>
 						<button
 							type="button"
@@ -286,25 +300,6 @@ export default function SuppliesOrderPage() {
 					</div>
 				</div>
 
-				<div className="flex flex-col sm:flex-row gap-3 mb-6">
-					<PageSearchInput
-						value={search}
-						onChange={(e) => setSearch(e.target.value)}
-						placeholder="Search…"
-						className="flex-1 w-full sm:w-auto"
-					/>
-					<select
-						className="input sm:w-48"
-						value={category}
-						onChange={(e) => setCategory(e.target.value)}
-					>
-						<option value="">All categories</option>
-						{SUPPLY_CATEGORIES.map((cat) => (
-							<option key={cat} value={cat}>{cat}</option>
-						))}
-					</select>
-				</div>
-
 				{loading && <PageLoader message="Loading products…" />}
 				{error && <ErrorState message={error} retry={load} />}
 				{!loading && !error && (
@@ -313,7 +308,6 @@ export default function SuppliesOrderPage() {
 							<SupplyProductCard
 								key={product.id}
 								product={product}
-								inCart={cartProductIds.has(product.id)}
 								onAdd={addToCart}
 								onEdit={openEditProduct}
 								onDelete={deleteProduct}

@@ -5,7 +5,6 @@ import { Star } from 'lucide-react';
 import ReportFilters from './ReportFilters';
 import ReportPicker from './ReportPicker';
 import { PageLoader, ErrorState } from '../LoadingSpinner';
-import PageActionButtons from '../PageActionButtons';
 import { fetchJson } from '../../lib/apiClient';
 import { startOfYearIso, todayIso } from '../../lib/dates';
 import { resolvePropertyIds } from '../../lib/propertyGroups';
@@ -141,60 +140,60 @@ export default function ReportsPage() {
 		<div className="-mt-1 lg:-mt-3">
 			<div className="flex flex-col gap-2 mb-3">
 				<div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-					<div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3 min-w-0 flex-1">
-						<h1 className="text-xl font-bold text-dark shrink-0">Reports</h1>
-						<ReportPicker
-							reportId={reportId}
-							favorites={favorites}
-							onSelect={selectReport}
-							onToggleFavorite={handleToggleFavorite}
-						/>
-					</div>
-					<PageActionButtons onRefresh={() => reportId && load()} refreshing={loading && Boolean(reportId)} />
+					<h1 className="text-xl font-bold text-dark shrink-0">Reports</h1>
 				</div>
 
-				{favoriteReports.length > 0 && (
-					<div className="flex flex-wrap items-center gap-1.5">
-						<span className="text-[11px] font-medium text-muted uppercase tracking-wide mr-0.5">Favorites</span>
-						{favoriteReports.map((report) => {
-							const selected = report.id === reportId;
-							const favorited = favorites.includes(report.id);
-							return (
-								<div key={report.id} className="inline-flex items-center">
-									<button
-										type="button"
-										onClick={() => selectReport(report.id)}
-										className={clsx(
-											'text-xs px-2.5 py-1 rounded-l-full border font-medium transition-colors',
-											selected
-												? 'border-brand-400 bg-brand-50 text-brand-700'
-												: 'border-border text-muted hover:border-brand-300 hover:text-brand-600',
-										)}
-									>
-										{report.label}
-									</button>
-									<button
-										type="button"
-										onClick={() => handleToggleFavorite(report.id)}
-										className={clsx(
-											'text-xs px-1.5 py-1 rounded-r-full border border-l-0 transition-colors',
-											selected
-												? 'border-brand-400 bg-brand-50'
-												: 'border-border hover:border-brand-300',
-											favorited
-												? 'text-amber-500 hover:text-amber-600'
-												: 'text-gray-300 hover:text-amber-400',
-										)}
-										aria-label={`Remove ${report.label} from favorites`}
-										aria-pressed={favorited}
-									>
-										<Star size={12} className={clsx(favorited && 'fill-current')} />
-									</button>
-								</div>
-							);
-						})}
-					</div>
-				)}
+				<div className="flex flex-col gap-1.5 min-w-0">
+					<ReportPicker
+						reportId={reportId}
+						favorites={favorites}
+						onSelect={selectReport}
+						onToggleFavorite={handleToggleFavorite}
+					/>
+
+					{favoriteReports.length > 0 && (
+						<div className="flex flex-wrap items-center gap-1.5">
+							<span className="text-[11px] font-medium text-muted uppercase tracking-wide mr-0.5">Favorites</span>
+							{favoriteReports.map((report) => {
+								const selected = report.id === reportId;
+								const favorited = favorites.includes(report.id);
+								return (
+									<div key={report.id} className="inline-flex items-center">
+										<button
+											type="button"
+											onClick={() => selectReport(report.id)}
+											className={clsx(
+												'text-xs px-2.5 py-1 rounded-l-full border font-medium transition-colors',
+												selected
+													? 'border-brand-400 bg-brand-50 text-brand-700'
+													: 'border-border text-muted hover:border-brand-300 hover:text-brand-600',
+											)}
+										>
+											{report.label}
+										</button>
+										<button
+											type="button"
+											onClick={() => handleToggleFavorite(report.id)}
+											className={clsx(
+												'text-xs px-1.5 py-1 rounded-r-full border border-l-0 transition-colors',
+												selected
+													? 'border-brand-400 bg-brand-50'
+													: 'border-border hover:border-brand-300',
+												favorited
+													? 'text-amber-500 hover:text-amber-600'
+													: 'text-gray-300 hover:text-amber-400',
+											)}
+											aria-label={`Remove ${report.label} from favorites`}
+											aria-pressed={favorited}
+										>
+											<Star size={12} className={clsx(favorited && 'fill-current')} />
+										</button>
+									</div>
+								);
+							})}
+						</div>
+					)}
+				</div>
 			</div>
 
 			{reportId && (

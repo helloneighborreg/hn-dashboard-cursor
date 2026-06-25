@@ -9,7 +9,6 @@ import ExpensesTable from '../components/financials/ExpensesTable';
 import HospitableTransactionsTable from '../components/financials/HospitableTransactionsTable';
 import ExpenseModal from '../components/ExpenseModal';
 import ManualExpenseDetailModal from '../components/ManualExpenseDetailModal';
-import PageActionButtons from '../components/PageActionButtons';
 import { PageLoader, ErrorState } from '../components/LoadingSpinner';
 import { fetchJson } from '../lib/apiClient';
 import { requireAuth } from '../lib/auth';
@@ -146,11 +145,6 @@ export default function TransactionsPage() {
 							Bank activity, manual expenses, and Hospitable payouts in one place
 						</p>
 					</div>
-					<PageActionButtons
-						onRefresh={() => load()}
-						refreshing={loading}
-						expenseTitle="Add Manual Expense"
-					/>
 				</div>
 
 				<div className="flex flex-wrap gap-1 border-b border-border mb-4">

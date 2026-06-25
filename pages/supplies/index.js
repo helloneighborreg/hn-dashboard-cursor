@@ -8,13 +8,13 @@ const ACTIONS = [
 	{
 		href: '/supplies/inventory',
 		label: 'Inventory',
-		description: 'View items in storage by location',
+		description: 'View items in storage by location.',
 		icon: Warehouse,
 	},
 	{
 		href: '/supplies/order',
 		label: 'Supply Order',
-		description: 'Browse the supply store and create an order',
+		description: 'Create a new order for supplies.',
 		icon: ShoppingCart,
 	},
 ];
@@ -26,7 +26,6 @@ export default function SuppliesHubPage() {
 			<Layout title="">
 				<div className="mb-8">
 					<h1 className="text-2xl font-bold text-dark">Supplies</h1>
-					<p className="text-muted text-sm mt-0.5">Inventory and supply ordering</p>
 				</div>
 
 				<div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl">

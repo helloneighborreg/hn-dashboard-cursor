@@ -11,6 +11,7 @@ import { OwnerStatementAdditionalItemsList, OwnerStatementAddedItems } from './O
 import {
 	applyOwnerStatementItemSelection,
 	OWNER_STATEMENT_HN_TOTAL_LABEL,
+	OWNER_STATEMENT_MANAGEMENT_FEE_NOTE,
 	OWNER_STATEMENT_MANAGER,
 	OWNER_STATEMENT_MANAGER_ADDRESS,
 	formatAddressTwoLines,
@@ -46,9 +47,16 @@ function CollapsibleSection({ title, open, onToggle, children }) {
 }
 
 function StatementReservationsTable({ reservations, totals, onReservationClick }) {
-	const { sortKey, sortDir, toggleSort } = useTableSort('net_revenue', 'desc');
+	const { sortKey, sortDir, toggleSort } = useTableSort('booking_net_revenue', 'desc');
 	const numericKeys = useMemo(
-		() => new Set(['nights', 'net_revenue', 'guest_service_fee', 'cleaning_fee', 'reservation_commissions']),
+		() => new Set([
+			'nights',
+			'gross_booking_amount',
+			'guest_service_fee',
+			'reservation_commissions',
+			'cleaning_fee',
+			'booking_net_revenue',
+		]),
 		[],
 	);
 
@@ -85,10 +93,11 @@ function StatementReservationsTable({ reservations, totals, onReservationClick }
 						<SortableTableHead sortKey="platform" label="Platform" active={sortKey === 'platform'} direction={sortDir} onSort={toggleSort} />
 						<SortableTableHead sortKey="dates" label="Dates" active={sortKey === 'dates'} direction={sortDir} onSort={toggleSort} />
 						<SortableTableHead sortKey="nights" label="Nights" align="right" active={sortKey === 'nights'} direction={sortDir} onSort={toggleSort} />
-						<SortableTableHead sortKey="net_revenue" label="Net Booking Revenue" align="right" active={sortKey === 'net_revenue'} direction={sortDir} onSort={toggleSort} />
+						<SortableTableHead sortKey="gross_booking_amount" label="Gross Booking Amount" align="right" active={sortKey === 'gross_booking_amount'} direction={sortDir} onSort={toggleSort} />
 						<SortableTableHead sortKey="guest_service_fee" label="Guest Service Fee" align="right" active={sortKey === 'guest_service_fee'} direction={sortDir} onSort={toggleSort} />
-						<SortableTableHead sortKey="cleaning_fee" label="Cleaning" align="right" active={sortKey === 'cleaning_fee'} direction={sortDir} onSort={toggleSort} />
 						<SortableTableHead sortKey="reservation_commissions" label="Management Fee" align="right" active={sortKey === 'reservation_commissions'} direction={sortDir} onSort={toggleSort} />
+						<SortableTableHead sortKey="cleaning_fee" label="Cleaning Fee" align="right" active={sortKey === 'cleaning_fee'} direction={sortDir} onSort={toggleSort} />
+						<SortableTableHead sortKey="booking_net_revenue" label="Booking Net Revenue" align="right" active={sortKey === 'booking_net_revenue'} direction={sortDir} onSort={toggleSort} />
 					</tr>
 				</thead>
 				<tbody className="divide-y divide-border">
@@ -103,19 +112,21 @@ function StatementReservationsTable({ reservations, totals, onReservationClick }
 							<td className="table-cell">{row.platform_label || row.platform || '—'}</td>
 							<td className="table-cell">{row.date_range || formatDateOrDash(row.check_in)}</td>
 							<td className="table-cell text-right tabular-nums">{row.nights || '—'}</td>
-							<td className="table-cell text-right tabular-nums">{fmtReport$(row.net_revenue)}</td>
+							<td className="table-cell text-right tabular-nums">{fmtReport$(row.gross_booking_amount)}</td>
 							<td className="table-cell text-right tabular-nums">{fmtReport$(row.guest_service_fee)}</td>
-							<td className="table-cell text-right tabular-nums">{fmtReport$(row.cleaning_fee)}</td>
 							<td className="table-cell text-right tabular-nums">{fmtReport$(row.reservation_commissions)}</td>
+							<td className="table-cell text-right tabular-nums">{fmtReport$(row.cleaning_fee)}</td>
+							<td className="table-cell text-right tabular-nums">{fmtReport$(row.booking_net_revenue)}</td>
 						</tr>
 					))}
 					<tr className="bg-gray-50 font-semibold">
 						<td className="table-cell" colSpan={4} />
 						<td className="table-cell text-right tabular-nums">{totals?.total_nights || 0}</td>
-						<td className="table-cell text-right tabular-nums">{fmtReport$(totals?.total_net_revenue)}</td>
+						<td className="table-cell text-right tabular-nums">{fmtReport$(totals?.total_gross_booking_amount)}</td>
 						<td className="table-cell text-right tabular-nums">{fmtReport$(totals?.total_guest_service_fee)}</td>
-						<td className="table-cell text-right tabular-nums">{fmtReport$(totals?.total_cleaning_fee)}</td>
 						<td className="table-cell text-right tabular-nums">{fmtReport$(totals?.reservation_commissions_to_manager)}</td>
+						<td className="table-cell text-right tabular-nums">{fmtReport$(totals?.total_cleaning_fee)}</td>
+						<td className="table-cell text-right tabular-nums">{fmtReport$(totals?.total_booking_net_revenue)}</td>
 					</tr>
 				</tbody>
 			</table>
@@ -125,23 +136,30 @@ function StatementReservationsTable({ reservations, totals, onReservationClick }
 
 function StatementSummary({ totals, ownerName }) {
 	const adjustmentsTotal = statementAdjustmentsTotal(totals);
-	const items = [
-		['Net Booking Revenue', totals?.total_net_revenue],
-		['Management', totals?.reservation_commissions_to_manager],
-		['Cleaning', totals?.total_cleaning_fee],
-		[OWNER_STATEMENT_HN_TOTAL_LABEL, totals?.total_owed_to_manager],
+	const dueToHnItems = [
+		['Management Fee', totals?.reservation_commissions_to_manager],
+		['Cleaning Fee', totals?.total_cleaning_fee],
 		['Adjustments', adjustmentsTotal],
 	];
 	const dueToOwnerLabel = ownerName ? `Due to ${ownerName}` : 'Due to Owner';
 
 	return (
 		<div className="mt-6 space-y-2 max-w-md ml-auto">
-			{items.map(([label, amount]) => (
-				<div key={label} className="flex items-baseline justify-between gap-4 text-sm">
-					<span className="text-muted">{label}</span>
-					<span className="tabular-nums font-medium text-dark">{fmtReport$(amount)}</span>
-				</div>
-			))}
+			<div className="flex items-baseline justify-between gap-4 text-sm">
+				<span className="text-muted">Net Booking Revenue</span>
+				<span className="tabular-nums font-medium text-dark">{fmtReport$(totals?.total_net_revenue)}</span>
+			</div>
+			<div className="pt-2 space-y-2">
+				<p className="text-xs font-semibold uppercase tracking-wide text-muted">
+					{OWNER_STATEMENT_HN_TOTAL_LABEL}
+				</p>
+				{dueToHnItems.map(([label, amount]) => (
+					<div key={label} className="flex items-baseline justify-between gap-4 text-sm pl-3">
+						<span className="text-muted">{label}</span>
+						<span className="tabular-nums font-medium text-dark">{fmtReport$(amount)}</span>
+					</div>
+				))}
+			</div>
 			<div className="flex items-baseline justify-between gap-4 bg-dark text-white rounded-md px-4 py-3 mt-3">
 				<span className="font-semibold">{dueToOwnerLabel}</span>
 				<span className="tabular-nums text-lg font-bold">{fmtReport$(totals?.total_due_to_owner)}</span>
@@ -242,6 +260,8 @@ function StatementPage({
 				totals={statement.totals}
 				onReservationClick={onReservationClick}
 			/>
+
+			<p className="text-sm text-muted">{OWNER_STATEMENT_MANAGEMENT_FEE_NOTE}</p>
 
 			{hasAddedItems && (
 				<div>

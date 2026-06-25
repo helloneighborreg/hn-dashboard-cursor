@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import Head from 'next/head';
-import Link from 'next/link';
-import { ArrowLeft, RefreshCw } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import Layout from '../../components/Layout';
 import PageSearchInput from '../../components/PageSearchInput';
 import SupplyInventoryCard from '../../components/supplies/SupplyInventoryCard';
@@ -54,12 +53,7 @@ export default function SuppliesInventoryPage() {
 			<Layout title="">
 				<div className="flex flex-col gap-4 mb-6 sm:flex-row sm:items-start sm:justify-between">
 					<div>
-						<Link href="/supplies" className="inline-flex items-center gap-1 text-xs text-muted hover:text-brand-500 mb-2">
-							<ArrowLeft size={14} />
-							Supplies
-						</Link>
 						<h1 className="text-2xl font-bold text-dark">Inventory</h1>
-						<p className="text-muted text-sm mt-0.5">Items currently in storage</p>
 					</div>
 					<button
 						type="button"
@@ -96,10 +90,7 @@ export default function SuppliesInventoryPage() {
 				{loading && <PageLoader message="Loading inventory…" />}
 				{error && <ErrorState message={error} retry={load} />}
 				{!loading && !error && filtered.length === 0 && (
-					<EmptyState
-						title="No inventory yet"
-						message="Mark a supply order as delivered to add items to storage."
-					/>
+					<EmptyState title="No inventory yet" />
 				)}
 				{!loading && !error && filtered.length > 0 && (
 					<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">

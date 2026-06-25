@@ -1,5 +1,6 @@
 import { withAuth, isAdmin } from '../../../../lib/auth';
 import { validateChecklistGeofence } from '../../../../lib/geofence';
+import { applyChecklistSubmissionToTask, markTaskChecklistStarted } from '../../../../lib/checklistTaskUpdate';
 import { uploadChecklistFile } from '../../../../lib/forms/checklistFormStorage';
 import {
 	buildSubmissionViewUrl,
@@ -22,6 +23,12 @@ export const config = {
 		},
 	},
 };
+
+/** Expected validation / state errors — no server log noise in dev. */
+function isExpectedChecklistClientError(err) {
+	const status = err?.status;
+	return status >= 400 && status < 500;
+}
 
 function isUuid(value) {
 	return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(value || ''));
@@ -244,18 +251,44 @@ export default async function handler(req, res) {
 			}
 
 			try {
+				const resolvedTaskId = isUuid(taskId)
+					? taskId
+					: (isUuid(answers?.['nqZp']?.value) ? answers['nqZp'].value : null);
+
 				const record = await persistSubmission({
 					answers,
 					fileUploads,
 					submissionId: isUuid(submissionId) ? submissionId : null,
-					taskId: isUuid(taskId) ? taskId : null,
-					reservationId: reservationId || null,
+					taskId: resolvedTaskId,
+					reservationId: reservationId || answers?.['cdyd']?.value || null,
 					propertyCode: propertyCode || null,
 					guestName: guestName || null,
 					cleanerName: cleanerName || null,
 					submittedBy: session.user?.username || session.user?.name || null,
 					save: Boolean(save),
 				});
+
+				let taskLink = null;
+				if (!save) {
+					try {
+						taskLink = await applyChecklistSubmissionToTask({
+							submissionId: record.id,
+							taskId: record.task_id || resolvedTaskId,
+							reservationId: record.reservation_id || reservationId || answers?.['cdyd']?.value || null,
+						});
+					} catch (err) {
+						console.error('Checklist task link failed:', err.message);
+					}
+				} else {
+					const draftTaskId = record.task_id || resolvedTaskId;
+					if (draftTaskId) {
+						try {
+							await markTaskChecklistStarted(draftTaskId);
+						} catch (err) {
+							console.error('Checklist started timestamp failed:', err.message);
+						}
+					}
+				}
 
 				return res.status(save ? 200 : 201).json({
 					data: {
@@ -264,10 +297,13 @@ export default async function handler(req, res) {
 						status: record.status,
 						submitted_at: record.submitted_at,
 						locked: isSubmissionLocked(record),
+						task_completion_skipped: taskLink?.completionSkipped ? 'future_checkout' : undefined,
 					},
 				});
 			} catch (err) {
-				console.error('CJC checklist submit error:', err.message);
+				if (!isExpectedChecklistClientError(err)) {
+					console.error('CJC checklist submit error:', err.message);
+				}
 				const message = err?.message || 'Submission failed';
 				if (/form_submissions|form_submission_files/i.test(message) && /does not exist|PGRST205/i.test(message)) {
 					return res.status(500).json({

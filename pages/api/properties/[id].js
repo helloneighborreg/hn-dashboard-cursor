@@ -15,5 +15,5 @@ export default async function handler(req, res) {
       console.error('Property detail error:', err.message);
       res.status(502).json({ error: err.message });
     }
-  }, { adminOnly: true });
+  });
 }

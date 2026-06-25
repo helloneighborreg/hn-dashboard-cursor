@@ -2,8 +2,41 @@ import { useEffect, useState } from 'react';
 import DollarInput from './forms/DollarInput';
 import { fetchJson } from '../lib/apiClient';
 import { detailsToUtilityForm } from '../lib/propertyDetailsForm';
+import { fmt$ } from './financials/format';
+import {
+	usePropertySectionEdit,
+	PropertySectionEditButton,
+	PropertySectionViewHeader,
+	PropertyFieldRow,
+	PropertyFieldGroup,
+	PropertySectionEditActions,
+} from './PropertySectionEdit';
 
 const EMPTY_FORM = detailsToUtilityForm(null);
+
+function UtilityView({ form }) {
+	return (
+		<div className="space-y-4">
+			<PropertyFieldGroup title="Cleaning">
+				<PropertyFieldRow label="Primary Cleaner" value={form.primary_cleaner} />
+				<PropertyFieldRow
+					label="Base Cleaning Rate"
+					value={form.base_cleaning_rate ? fmt$(form.base_cleaning_rate) : ''}
+				/>
+			</PropertyFieldGroup>
+
+			<PropertyFieldGroup title="Utilities" className="pt-2 border-t border-border/40">
+				<PropertyFieldRow label="Utilities Provider" value={form.utilities_provider} />
+				<PropertyFieldRow label="Utilities Account #" value={form.utilities_account_number} />
+			</PropertyFieldGroup>
+
+			<PropertyFieldGroup title="Internet" className="pt-2 border-t border-border/40">
+				<PropertyFieldRow label="Internet Provider" value={form.internet_provider} />
+				<PropertyFieldRow label="Internet Account #" value={form.internet_account_number} />
+			</PropertyFieldGroup>
+		</div>
+	);
+}
 
 export default function PropertyUtilityInfoSection({ propertyId, embedded = false }) {
 	const [form, setForm] = useState(EMPTY_FORM);
@@ -12,6 +45,7 @@ export default function PropertyUtilityInfoSection({ propertyId, embedded = fals
 	const [loading, setLoading] = useState(true);
 	const [saving, setSaving] = useState(false);
 	const [error, setError] = useState('');
+	const { editing, startEditing, finishEditing } = usePropertySectionEdit();
 
 	useEffect(() => {
 		if (!propertyId) return;
@@ -30,6 +64,12 @@ export default function PropertyUtilityInfoSection({ propertyId, embedded = fals
 
 	const dirty = JSON.stringify(form) !== JSON.stringify(savedForm);
 
+	function handleCancel() {
+		setForm(savedForm);
+		setError('');
+		finishEditing();
+	}
+
 	async function handleSave(e) {
 		e.preventDefault();
 		setSaving(true);
@@ -37,11 +77,12 @@ export default function PropertyUtilityInfoSection({ propertyId, embedded = fals
 		try {
 			const json = await fetchJson(`/api/properties/${propertyId}/details`, {
 				method: 'PUT',
-				body: form,
+				body: { ...form, section: 'utility-info' },
 			});
 			const next = detailsToUtilityForm(json?.data);
 			setForm(next);
 			setSavedForm(next);
+			finishEditing();
 		} catch (err) {
 			setError(err.message);
 		} finally {
@@ -51,7 +92,7 @@ export default function PropertyUtilityInfoSection({ propertyId, embedded = fals
 
 	const formContent = loading ? (
 		<p className="text-sm text-muted">Loading utility info…</p>
-	) : (
+	) : editing ? (
 		<form onSubmit={handleSave} noValidate className="space-y-4">
 			<div className="space-y-3">
 				<h3 className="text-xs font-semibold uppercase tracking-wide text-muted">Cleaning</h3>
@@ -133,21 +174,25 @@ export default function PropertyUtilityInfoSection({ propertyId, embedded = fals
 
 			{error && <p className="text-sm text-red-600">{error}</p>}
 
-			<button
-				type="submit"
-				disabled={saving || !dirty}
-				className="btn-primary text-sm w-full sm:w-auto justify-center"
-			>
-				{saving ? 'Saving…' : 'Save'}
-			</button>
+			<PropertySectionEditActions saving={saving} dirty={dirty} onCancel={handleCancel} />
 		</form>
+	) : (
+		<>
+			<PropertySectionViewHeader onEdit={startEditing} />
+			<UtilityView form={savedForm} />
+		</>
 	);
 
 	if (embedded) return formContent;
 
 	return (
 		<div className="card p-6 mb-4">
-			<h2 className="font-semibold text-dark text-sm uppercase tracking-wide text-muted mb-4">Utility Info</h2>
+			<div className="flex items-start justify-between gap-3 mb-4">
+				<h2 className="font-semibold text-dark text-sm uppercase tracking-wide text-muted">Utility Info</h2>
+				{!editing && !loading && (
+					<PropertySectionEditButton onClick={startEditing} />
+				)}
+			</div>
 			{formContent}
 		</div>
 	);

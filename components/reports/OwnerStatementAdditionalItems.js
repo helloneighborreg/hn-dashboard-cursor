@@ -6,9 +6,9 @@ import { categoryLabel } from '../../lib/bookkeepingCategories';
 
 const TABLE_HEAD = 'px-4 py-2.5 text-left text-xs font-semibold text-white uppercase tracking-wide';
 
-function sourceLabel(row) {
+function notesLabel(row) {
+	if (row.source === 'manual') return row.notes?.trim() || '—';
 	if (row.kind === 'adjustment') return 'Adjustment';
-	if (row.source === 'manual') return 'Manual expense';
 	return 'Bank transaction';
 }
 
@@ -57,7 +57,7 @@ export function OwnerStatementAdditionalItemsList({
 					<tr>
 						<th className={TABLE_HEAD}>Date</th>
 						<th className={TABLE_HEAD}>Property</th>
-						<th className={TABLE_HEAD}>Type</th>
+						<th className={TABLE_HEAD}>Notes</th>
 						<th className={TABLE_HEAD}>Category</th>
 						<th className={clsx(TABLE_HEAD, 'text-right')}>Amount</th>
 						<th className={clsx(TABLE_HEAD, 'text-center w-28')}>
@@ -75,7 +75,7 @@ export function OwnerStatementAdditionalItemsList({
 							>
 								<td className="table-cell-date">{formatDateOrDash(row.date)}</td>
 								<td className="table-cell">{row.property_name || '—'}</td>
-								<td className="table-cell">{sourceLabel(row)}</td>
+								<td className="table-cell max-w-[220px] truncate">{notesLabel(row)}</td>
 								<td className="table-cell max-w-[220px] truncate">{labelForRow(row)}</td>
 								<td className="table-cell text-right tabular-nums font-medium">
 									{fmtReport$(row.amount)}
@@ -127,7 +127,7 @@ export function OwnerStatementAddedItems({
 						<tr>
 							<th className={TABLE_HEAD}>Date</th>
 							<th className={TABLE_HEAD}>Property</th>
-							<th className={TABLE_HEAD}>Type</th>
+							<th className={TABLE_HEAD}>Notes</th>
 							<th className={TABLE_HEAD}>Category</th>
 							<th className={clsx(TABLE_HEAD, 'text-right')}>Amount</th>
 							<th className={clsx(TABLE_HEAD, 'text-center w-28')}>
@@ -140,7 +140,7 @@ export function OwnerStatementAddedItems({
 							<tr key={rowKey(row)} className="bg-green-50/40">
 								<td className="table-cell-date">{formatDateOrDash(row.date)}</td>
 								<td className="table-cell">{row.property_name || '—'}</td>
-								<td className="table-cell">{sourceLabel(row)}</td>
+								<td className="table-cell max-w-[220px] truncate">{notesLabel(row)}</td>
 								<td className="table-cell max-w-[220px] truncate">{labelForRow(row)}</td>
 								<td className="table-cell text-right tabular-nums font-medium">
 									{fmtReport$(row.amount)}

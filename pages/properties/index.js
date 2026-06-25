@@ -4,13 +4,10 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { MapPin, Bed, Bath, Users } from 'lucide-react';
 import Layout from '../../components/Layout';
-import PageActionButtons from '../../components/PageActionButtons';
-import PageSearchInput from '../../components/PageSearchInput';
 import SegmentedToggle from '../../components/SegmentedToggle';
 import { PageLoader, ErrorState, EmptyState } from '../../components/LoadingSpinner';
 import Badge from '../../components/Badge';
 import { fetchJson } from '../../lib/apiClient';
-import { getPropertyDisplayName } from '../../lib/codes';
 import { requireAuth } from '../../lib/auth';
 
 function PropertyCard({ property }) {
@@ -66,7 +63,6 @@ export default function PropertiesPage() {
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('active');
 
   async function load() {
@@ -94,42 +90,17 @@ export default function PropertiesPage() {
   ], [activeCount, inactiveCount]);
 
   const filtered = useMemo(() => {
-    const byStatus = properties.filter((p) =>
+    return properties.filter((p) =>
       statusFilter === 'active' ? p.listed : !p.listed
     );
-    if (!search.trim()) return byStatus;
-    const q = search.toLowerCase();
-    return byStatus.filter(
-      (p) =>
-        p.name?.toLowerCase().includes(q) ||
-        getPropertyDisplayName(p)?.toLowerCase().includes(q) ||
-        p.public_name?.toLowerCase().includes(q) ||
-        p.address?.city?.toLowerCase().includes(q) ||
-        p.address?.display?.toLowerCase().includes(q)
-    );
-  }, [properties, search, statusFilter]);
+  }, [properties, statusFilter]);
 
   return (
     <>
       <Head><title>Properties — Hello Neighbor</title></Head>
       <Layout title="">
         <div className="flex flex-col gap-4 mb-6">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-dark">Properties</h1>
-              <p className="text-muted text-sm mt-0.5">
-                {activeCount} active · {inactiveCount} inactive
-              </p>
-            </div>
-            <div className="flex flex-wrap items-center gap-2 justify-end w-full lg:w-auto">
-              <PageSearchInput
-                placeholder="Search properties…"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-              <PageActionButtons onRefresh={load} refreshing={loading} />
-            </div>
-          </div>
+          <h1 className="text-2xl font-bold text-dark">Properties</h1>
           <SegmentedToggle
             value={statusFilter}
             onChange={setStatusFilter}
@@ -143,18 +114,14 @@ export default function PropertiesPage() {
         {!loading && !error && filtered.length === 0 && (
           <EmptyState
             title={
-              search
-                ? 'No properties match your search'
-                : statusFilter === 'active'
-                  ? 'No active properties'
-                  : 'No inactive properties'
+              statusFilter === 'active'
+                ? 'No active properties'
+                : 'No inactive properties'
             }
             message={
-              search
-                ? 'Try a different search term'
-                : statusFilter === 'active'
-                  ? 'Listed properties from Hospitable will appear here'
-                  : 'Unlisted properties from Hospitable will appear here'
+              statusFilter === 'active'
+                ? 'Listed properties from Hospitable will appear here'
+                : 'Unlisted properties from Hospitable will appear here'
             }
           />
         )}

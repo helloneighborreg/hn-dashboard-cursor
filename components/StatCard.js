@@ -18,19 +18,19 @@ export default function StatCard({ label, value, sub, icon: Icon, color = 'brand
       onClick={onClick}
       className={clsx(
         // Compact, near-square widgets on mobile; roomier on larger screens.
-        'bg-white rounded-xl border border-border shadow-card p-3 sm:p-5 flex items-start gap-3 sm:gap-4 w-full min-w-0 h-full min-h-[6.5rem] sm:min-h-[7.5rem]',
+        'bg-white rounded-xl border border-border shadow-card p-2.5 sm:p-3.5 flex items-start gap-2.5 sm:gap-3 w-full min-w-0 h-full min-h-[4.75rem] sm:min-h-[5.25rem]',
         interactive && 'cursor-pointer hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-150',
         className,
       )}
     >
       {Icon && (
-        <div className={clsx('p-2 rounded-lg flex-shrink-0', c.bg)}>
-          <Icon size={18} className={c.icon} />
+        <div className={clsx('p-1.5 rounded-lg flex-shrink-0', c.bg)}>
+          <Icon size={16} className={c.icon} />
         </div>
       )}
       <div className="min-w-0">
         <p className="text-xs font-medium text-muted uppercase tracking-wide">{label}</p>
-        <p className="text-xl sm:text-2xl font-bold text-dark mt-0.5">{value}</p>
+        <p className="text-lg sm:text-xl font-bold text-dark mt-0.5">{value}</p>
         {sub && <p className="text-xs text-muted mt-1 truncate">{sub}</p>}
       </div>
     </div>

@@ -1,75 +1,133 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Head from 'next/head';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
 import {
-  format, addDays, subDays, isToday, parseISO, differenceInDays,
+  format, addDays, isToday, parseISO, differenceInDays,
 } from 'date-fns';
 import Layout from '../components/Layout';
-import PageActionButtons from '../components/PageActionButtons';
 import ReservationPanel, { reservationGuestName } from '../components/ReservationPanel';
 import { fetchJson } from '../lib/apiClient';
 import { formatDateRange } from '../lib/dates';
 import { platformStyle } from '../lib/platformStyles';
 import { getPropertyDisplayName } from '../lib/codes';
+import { isConfirmedReservation } from '../lib/reservationDates';
 import { requireAuth } from '../lib/auth';
 
-const COL_W    = 42;
-const ROW_H    = 48;
-const NAME_W   = 180;
-const NUM_DAYS = 28;
+const COL_W         = 42;
+const ROW_H         = 48;
+const HEADER_H      = 36;
+const NAME_W        = 180;
+const INITIAL_DAYS  = 42;
+const LOAD_MORE_DAYS = 28;
+const SCROLL_THRESHOLD = 320;
+
+function reservationBarGeometry(arrStr, depStr, startDate, numDays) {
+  const arrIdx = differenceInDays(parseISO(arrStr), startDate);
+  const depIdx = differenceInDays(parseISO(depStr), startDate);
+  if (depIdx <= arrIdx) return null;
+  if (depIdx <= 0 || arrIdx >= numDays) return null;
+
+  let leftPx  = NAME_W + arrIdx * COL_W + COL_W / 2;
+  let rightPx = NAME_W + depIdx * COL_W + COL_W / 2;
+
+  const clipLeft  = NAME_W;
+  const clipRight = NAME_W + numDays * COL_W;
+  leftPx  = Math.max(leftPx, clipLeft);
+  rightPx = Math.min(rightPx, clipRight);
+
+  const width = rightPx - leftPx;
+  if (width <= 2) return null;
+
+  return { leftPx, width };
+}
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function CalendarPage() {
-  const [startDate, setStartDate] = useState(() => {
+  const anchorStart = useRef((() => {
     const d = new Date();
     d.setHours(0, 0, 0, 0);
     return addDays(d, -7);
-  });
+  })());
+
+  const [numDays, setNumDays] = useState(INITIAL_DAYS);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState('');
-  const [selected, setSelected] = useState(null); // { resv, propName }
+  const [selected, setSelected] = useState(null);
 
-  const days    = Array.from({ length: NUM_DAYS }, (_, i) => addDays(startDate, i));
+  const scrollRef = useRef(null);
+  const loadingMoreRef = useRef(false);
+  const loadedEndRef = useRef('');
+
+  const startDate = anchorStart.current;
+  const days    = Array.from({ length: numDays }, (_, i) => addDays(startDate, i));
   const endDate = days[days.length - 1];
   const startStr = format(startDate, 'yyyy-MM-dd');
   const endStr   = format(endDate, 'yyyy-MM-dd');
 
-  async function load() {
-    setLoading(true); setError('');
+  const load = useCallback(async ({ append = false } = {}) => {
+    if (append) {
+      setLoadingMore(true);
+    } else {
+      setLoading(true);
+    }
+    setError('');
     try {
       const params = new URLSearchParams({ start: startStr, end: endStr });
       const json = await fetchJson('/api/calendar?' + params);
-      if (json) setData(json.data);
+      if (json) {
+        setData(json.data);
+        loadedEndRef.current = endStr;
+      }
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
+      loadingMoreRef.current = false;
     }
+  }, [startStr, endStr]);
+
+  useEffect(() => {
+    if (loadedEndRef.current && endStr <= loadedEndRef.current) return;
+    load({ append: Boolean(loadedEndRef.current) });
+  }, [endStr, load]);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+
+    function onScroll() {
+      const nearRight = el.scrollLeft + el.clientWidth >= el.scrollWidth - SCROLL_THRESHOLD;
+      if (nearRight && !loadingMoreRef.current && !loading && !loadingMore) {
+        loadingMoreRef.current = true;
+        setNumDays((n) => n + LOAD_MORE_DAYS);
+      }
+    }
+
+    el.addEventListener('scroll', onScroll, { passive: true });
+    return () => el.removeEventListener('scroll', onScroll);
+  }, [loading, loadingMore]);
+
+  function scrollToToday() {
+    const el = scrollRef.current;
+    if (!el) return;
+    const todayIdx = differenceInDays(new Date(), startDate);
+    if (todayIdx < 0 || todayIdx >= numDays) return;
+    const target = todayIdx * COL_W - el.clientWidth / 2 + COL_W / 2;
+    el.scrollTo({ left: Math.max(0, target), behavior: 'smooth' });
   }
 
-  useEffect(() => { load(); }, [startStr]);
-
-  function prev()   { setStartDate((d) => subDays(d, 7)); }
-  function next()   { setStartDate((d) => addDays(d, 7)); }
-  function goToday() {
-    const d = new Date(); d.setHours(0, 0, 0, 0);
-    setStartDate(addDays(d, -7));
-  }
-
-  // Build a quick property lookup
-  const propMap = Object.fromEntries((data?.properties || []).map((p) => [p.id, p]));
-
-  // availability[propId][dateStr] = { available, reason }
   const availability = data?.availability || {};
+  const properties = (data?.properties || []).filter((p) => p.listed);
+  const reservations = (data?.reservations || []).filter(isConfirmedReservation);
 
   return (
     <>
       <Head><title>Calendar — Hello Neighbor</title></Head>
       <Layout title="">
 
-        {/* Reservation detail panel */}
         {selected && (
           <ReservationPanel
             resv={selected.resv}
@@ -78,27 +136,16 @@ export default function CalendarPage() {
           />
         )}
 
-        {/* Page header */}
         <div className="flex flex-col gap-4 mb-5 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <h1 className="text-2xl font-bold text-dark">Calendar</h1>
-            <p className="text-muted text-sm mt-0.5">Reservation timeline across all properties</p>
           </div>
           <div className="flex flex-col gap-3 w-full lg:w-auto lg:items-end">
-            <PageActionButtons onRefresh={load} refreshing={loading} />
             <div className="flex items-center gap-2 flex-shrink-0 self-end">
-              <button onClick={goToday} className="btn-secondary text-sm">Today</button>
-              <div className="flex items-center border border-border rounded-lg overflow-hidden divide-x divide-border bg-white">
-                <button onClick={prev} className="px-2.5 py-2 hover:bg-gray-50 transition-colors text-dark">
-                  <ChevronLeft size={16} />
-                </button>
-                <span className="px-4 py-2 text-sm font-medium text-dark whitespace-nowrap select-none">
-                  {formatDateRange(startDate, endDate)}
-                </span>
-                <button onClick={next} className="px-2.5 py-2 hover:bg-gray-50 transition-colors text-dark">
-                  <ChevronRight size={16} />
-                </button>
-              </div>
+              <button type="button" onClick={scrollToToday} className="btn-secondary text-sm">Today</button>
+              <span className="px-3 py-1.5 text-sm font-medium text-dark whitespace-nowrap select-none border border-border rounded-lg bg-white">
+                {formatDateRange(startDate, endDate)}
+              </span>
             </div>
           </div>
         </div>
@@ -109,13 +156,11 @@ export default function CalendarPage() {
           </div>
         )}
 
-        {/* Calendar card */}
         <div className="card overflow-hidden flex flex-col">
-          {/* Legend — outside scroll area so it stays visible */}
           {!loading && (
             <div className="flex flex-wrap items-center gap-5 px-4 py-3 border-b border-border bg-gray-50 flex-shrink-0">
               {[
-                { label: 'Airbnb', color: '#E31C5F' },
+                { label: 'Airbnb', color: '#FF5A5F' },
                 { label: 'VRBO / HomeAway', color: '#00A699' },
                 { label: 'Booking.com', color: '#003580' },
                 { label: 'Direct / Manual', color: '#5B9AB8' },
@@ -129,16 +174,20 @@ export default function CalendarPage() {
             </div>
           )}
 
-          <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 260px)' }}>
-            <div style={{ minWidth: NAME_W + NUM_DAYS * COL_W }}>
+          <div
+            ref={scrollRef}
+            className="overflow-auto"
+            style={{ maxHeight: 'calc(100vh - 240px)' }}
+          >
+            <div style={{ minWidth: NAME_W + numDays * COL_W }}>
 
               {/* ── Date header ── */}
-              <div className="flex border-b border-border sticky top-0 z-30" style={{ height: 54 }}>
+              <div className="flex border-b border-border sticky top-0 z-30" style={{ height: HEADER_H }}>
                 <div
-                  className="sticky left-0 z-40 flex-shrink-0 flex items-end px-3 pb-2 border-r border-border bg-gray-50 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]"
+                  className="sticky left-0 z-40 flex-shrink-0 flex items-end px-3 pb-1 border-r border-border bg-gray-50 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]"
                   style={{ width: NAME_W, minWidth: NAME_W }}
                 >
-                  <span className="text-[11px] font-semibold text-muted uppercase tracking-wide">Property</span>
+                  <span className="text-[10px] font-semibold text-muted uppercase tracking-wide leading-none">Property</span>
                 </div>
                 {days.map((day, i) => {
                   const tod = isToday(day);
@@ -148,19 +197,19 @@ export default function CalendarPage() {
                     <div
                       key={i}
                       style={{ width: COL_W, minWidth: COL_W }}
-                      className={`flex-shrink-0 flex flex-col items-center justify-end pb-1.5 border-r border-border last:border-r-0 ${
+                      className={`flex-shrink-0 flex flex-col items-center justify-end pb-0.5 border-r border-border last:border-r-0 ${
                         tod ? 'bg-brand-500' : isWknd ? 'bg-gray-50' : 'bg-white'
                       }`}
                     >
                       {showMonth && (
-                        <span className={`text-[9px] font-bold uppercase tracking-wide leading-none mb-0.5 ${tod ? 'text-white/70' : 'text-muted'}`}>
+                        <span className={`text-[8px] font-bold uppercase tracking-wide leading-none mb-px ${tod ? 'text-white/70' : 'text-muted'}`}>
                           {format(day, 'MMM')}
                         </span>
                       )}
-                      <span className={`text-xs font-bold leading-none ${tod ? 'text-white' : isWknd ? 'text-gray-400' : 'text-dark'}`}>
+                      <span className={`text-[11px] font-bold leading-none ${tod ? 'text-white' : isWknd ? 'text-gray-400' : 'text-dark'}`}>
                         {format(day, 'd')}
                       </span>
-                      <span className={`text-[9px] leading-none mt-0.5 ${tod ? 'text-white/80' : 'text-muted'}`}>
+                      <span className={`text-[8px] leading-none ${tod ? 'text-white/80' : 'text-muted'}`}>
                         {format(day, 'EEE')}
                       </span>
                     </div>
@@ -168,19 +217,16 @@ export default function CalendarPage() {
                 })}
               </div>
 
-              {/* ── Property rows ── */}
-              {loading ? (
+              {loading && !data ? (
                 <div className="py-16 text-center">
                   <div className="inline-block w-6 h-6 border-2 border-brand-500 border-t-transparent rounded-full animate-spin mb-3" />
                   <p className="text-muted text-sm">Loading calendar…</p>
                 </div>
-              ) : (data?.properties || []).length === 0 ? (
-                <div className="py-16 text-center text-muted text-sm">No properties found</div>
+              ) : properties.length === 0 ? (
+                <div className="py-16 text-center text-muted text-sm">No active properties found</div>
               ) : (
-                (data?.properties || []).map((prop, pi) => {
-                  const propResvs = (data?.reservations || []).filter(
-                    (r) => r.property_id === prop.id
-                  );
+                properties.map((prop, pi) => {
+                  const propResvs = reservations.filter((r) => r.property_id === prop.id);
                   const isEven = pi % 2 === 0;
 
                   return (
@@ -189,7 +235,6 @@ export default function CalendarPage() {
                       className={`flex border-b border-border last:border-b-0 relative ${isEven ? 'bg-white' : 'bg-gray-50/50'}`}
                       style={{ height: ROW_H }}
                     >
-                      {/* Property name — sticky left so it stays visible when scrolling horizontally */}
                       <div
                         className={`sticky left-0 z-20 flex-shrink-0 flex items-center px-3 border-r border-border shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)] ${isEven ? 'bg-white' : 'bg-gray-50'}`}
                         style={{ width: NAME_W, minWidth: NAME_W }}
@@ -197,7 +242,6 @@ export default function CalendarPage() {
                         <p className="text-xs font-semibold text-dark truncate">{getPropertyDisplayName(prop) || prop.name}</p>
                       </div>
 
-                      {/* Background grid */}
                       <div
                         className="absolute inset-y-0 flex pointer-events-none"
                         style={{ left: NAME_W }}
@@ -227,35 +271,28 @@ export default function CalendarPage() {
                         })}
                       </div>
 
-                      {/* Reservation bars */}
                       {propResvs.map((resv) => {
                         const arrStr = (resv.arrival_date || resv.check_in || '').slice(0, 10);
                         const depStr = (resv.departure_date || resv.check_out || '').slice(0, 10);
                         if (!arrStr || !depStr) return null;
-                        if (depStr <= startStr || arrStr > endStr) return null;
 
-                        let colStart = differenceInDays(parseISO(arrStr), startDate);
-                        let colEnd   = differenceInDays(parseISO(depStr), startDate);
-                        colStart = Math.max(0, colStart);
-                        colEnd   = Math.min(NUM_DAYS, colEnd);
-                        const span = colEnd - colStart;
-                        if (span <= 0) return null;
+                        const geom = reservationBarGeometry(arrStr, depStr, startDate, numDays);
+                        if (!geom) return null;
 
-                        const left  = NAME_W + colStart * COL_W + 2;
-                        const width = Math.max(span * COL_W - 4, 6);
-                        const ps    = platformStyle(resv.platform);
-                        const name  = reservationGuestName(resv);
-                        const showLabel = width >= 40;
+                        const ps = platformStyle(resv.platform);
+                        const name = reservationGuestName(resv);
+                        const showLabel = geom.width >= 40;
 
                         return (
                           <button
                             key={resv.id}
-                            title={`${name} · ${arrStr} → ${depStr} · ${resv.nights || span} nights · Click to view`}
+                            type="button"
+                            title={`${name} · ${arrStr} → ${depStr} · ${resv.nights || ''} nights · Click to view`}
                             onClick={() => setSelected({ resv, propName: getPropertyDisplayName(prop) || prop.name })}
                             className="absolute top-1.5 bottom-1.5 rounded-md flex items-center overflow-hidden transition-opacity hover:opacity-90 active:opacity-75 focus:outline-none focus:ring-2 focus:ring-white/50"
                             style={{
-                              left,
-                              width,
+                              left: geom.leftPx + 1,
+                              width: Math.max(geom.width - 2, 4),
                               backgroundColor: ps.bg,
                               color: ps.text,
                               zIndex: 5,
@@ -272,6 +309,12 @@ export default function CalendarPage() {
                     </div>
                   );
                 })
+              )}
+
+              {loadingMore && (
+                <div className="py-2 text-center text-xs text-muted border-t border-border bg-gray-50">
+                  Loading more dates…
+                </div>
               )}
             </div>
           </div>

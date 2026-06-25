@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
-import { ArrowLeft, CheckCircle2, Lock } from 'lucide-react';
+import { CheckCircle2, Lock, Settings } from 'lucide-react';
 import Layout from '../../components/Layout';
 import AdminPasswordPrompt from '../../components/AdminPasswordPrompt';
 import ChecklistGeofenceGate from '../../components/forms/ChecklistGeofenceGate';
@@ -14,8 +14,10 @@ import {
 	applyUrlParamsToFormValues,
 	applyCalculations,
 	CJC_TURN_CLEAN_FORM,
+	CJC_TURN_CLEAN_FORM_SLUG,
 	deserializeAnswers,
 } from '../../lib/forms/cjcTurnCleanChecklist';
+import { getSectionExamplesByForm } from '../../lib/forms/checklistSectionExamples';
 import { persistChecklist } from '../../lib/forms/checklistSubmitClient';
 import { getPropertyGeolocation } from '../../lib/propertyGeolocations';
 import { getBaseCleaningRateForPropertyCode } from '../../lib/propertyBaseCleaningRate';
@@ -35,6 +37,7 @@ export default function CjcTurnCleanChecklistPage({
 	submissionId: initialSubmissionId = null,
 	initialLocked = false,
 	geolocationTarget = null,
+	sectionExamples = {},
 	dbError = null,
 }) {
 	const { isAdmin } = useAuth();
@@ -181,6 +184,11 @@ export default function CjcTurnCleanChecklistPage({
 					<p className="text-sm text-muted">
 						Your turn clean checklist was saved.
 					</p>
+					{submitted?.task_completion_skipped === 'future_checkout' && (
+						<p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3">
+							Your checklist was saved, but the task was not marked complete because checkout is still in the future.
+						</p>
+					)}
 					<div className="flex flex-wrap items-center justify-center gap-3 pt-2">
 						<Link href="/forms/cjc-turn-clean-checklist" className="btn-primary">Back to checklist</Link>
 						{submitted?.view_url && (
@@ -199,17 +207,19 @@ export default function CjcTurnCleanChecklistPage({
 			</Head>
 			<div className="max-w-3xl mx-auto py-6 sm:py-8">
 				<div className="mb-6">
-					<Link href="/forms/cjc-turn-clean-checklist" className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-dark mb-3">
-						<ArrowLeft size={14} />
-						Checklist
-					</Link>
 					<h1 className="text-2xl font-semibold text-dark">{CJC_TURN_CLEAN_FORM.name}</h1>
-					<p className="text-sm text-muted mt-1">
-						Complete every checklist item and take photos for each area before submitting.
-						{geolocationTarget && !isAdmin && (
-							<> {CHECKLIST_LOCATION_REQUIRED_MESSAGE}</>
-						)}
-					</p>
+					{geolocationTarget && !isAdmin && (
+						<p className="text-sm text-muted mt-1">{CHECKLIST_LOCATION_REQUIRED_MESSAGE}</p>
+					)}
+					{isAdmin && (
+						<Link
+							href="/forms/cjc-turn-clean-checklist/examples"
+							className="inline-flex mt-3 items-center gap-1.5 text-sm text-brand-700 hover:text-brand-800 font-medium"
+						>
+							<Settings size={14} />
+							Manage Example Photos
+						</Link>
+					)}
 				</div>
 
 				{dbError && (
@@ -268,6 +278,7 @@ export default function CjcTurnCleanChecklistPage({
 								locked={locked}
 								saving={saving}
 								saveMessage={saveMessage}
+								sectionExamples={sectionExamples}
 							/>
 						</>
 					)}
@@ -331,6 +342,18 @@ export const getServerSideProps = requireAuth(async (context) => {
 	const propertyCode = initialValues['jXsd'] || query.Property || query.property || '';
 	const geolocationTarget = getPropertyGeolocation(propertyCode);
 
+	let sectionExamples = {};
+	try {
+		sectionExamples = await getSectionExamplesByForm(CJC_TURN_CLEAN_FORM_SLUG);
+	} catch (err) {
+		const message = err?.message || '';
+		if (!dbError && /form_checklist_section_examples/i.test(message) && /does not exist|PGRST205/i.test(message)) {
+			dbError = 'Example photos are not configured yet. Admins can still use the checklist after running supabase/migrations/20260630_checklist_section_examples.sql.';
+		} else if (!/form_checklist_section_examples/i.test(message)) {
+			console.error('Checklist example photos lookup failed:', message);
+		}
+	}
+
 	return {
 		props: {
 			initialValues,
@@ -338,6 +361,7 @@ export const getServerSideProps = requireAuth(async (context) => {
 			submissionId: submission?.id || null,
 			initialLocked: isSubmissionLocked(submission),
 			geolocationTarget,
+			sectionExamples,
 			dbError,
 		},
 	};

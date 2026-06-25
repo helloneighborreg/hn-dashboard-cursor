@@ -2,13 +2,15 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import clsx from 'clsx';
 import { ChevronDown, CheckCircle2, Cloud, Loader2 } from 'lucide-react';
 import ChecklistFormField from './ChecklistFormField';
+import ChecklistSectionExamples from './ChecklistSectionExamples';
 import {
 	CJC_TURN_CLEAN_FORM,
 	HEADER_QUESTION_IDS,
 	FOOTER_QUESTION_IDS,
 	HIDDEN_FOOTER_QUESTION_IDS,
-	buildChecklistSections,
+	buildChecklistRoomGroups,
 	getQuestion,
+	isRoomGroupComplete,
 	applyCalculations,
 	validateForm,
 	serializeAnswers,
@@ -17,12 +19,15 @@ import { stripUploadedBase64 } from '../../lib/forms/checklistSubmitClient';
 
 const AUTO_SAVE_DELAY_MS = 2500;
 
-function HeaderFieldGrid({ values, errors, onFieldChange, readOnly }) {
+function HeaderFieldGrid({ values, errors, onFieldChange, readOnly, sectionExamples = {} }) {
 	const headerQuestions = CJC_TURN_CLEAN_FORM.questions.filter((q) => HEADER_QUESTION_IDS.has(q.id));
 	return (
 		<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
 			{headerQuestions.map((q) => (
 				<div key={q.id} className={q.type === 'FileUpload' ? 'sm:col-span-2' : ''}>
+					{q.type === 'FileUpload' && (
+						<ChecklistSectionExamples photos={sectionExamples[q.id] || []} />
+					)}
 					<ChecklistFormField
 						question={q}
 						value={values[q.id]}
@@ -36,9 +41,52 @@ function HeaderFieldGrid({ values, errors, onFieldChange, readOnly }) {
 	);
 }
 
-function SectionAccordion({ section, index, values, errors, onFieldChange, open, onToggle, readOnly }) {
-	const complete = (!section.checklist || !errors[section.checklist.id])
-		&& (!section.photo || !errors[section.photo.id]);
+function SectionPanel({
+	section,
+	values,
+	errors,
+	onFieldChange,
+	readOnly,
+	sectionExamples = {},
+}) {
+	return (
+		<div className="rounded-lg border border-border bg-gray-50/40 p-4 space-y-4">
+			<h3 className="text-sm font-medium text-dark">{section.areaTitle}</h3>
+			<ChecklistSectionExamples photos={sectionExamples[section.id] || []} />
+			{section.checklist && (
+				<ChecklistFormField
+					question={section.checklist}
+					value={values[section.checklist.id]}
+					onChange={(next) => onFieldChange(section.checklist.id, next)}
+					error={errors[section.checklist.id]}
+					readOnly={readOnly}
+				/>
+			)}
+			{section.photo && (
+				<ChecklistFormField
+					question={section.photo}
+					value={values[section.photo.id]}
+					onChange={(next) => onFieldChange(section.photo.id, next)}
+					error={errors[section.photo.id]}
+					readOnly={readOnly}
+				/>
+			)}
+		</div>
+	);
+}
+
+function RoomGroupAccordion({
+	group,
+	index,
+	values,
+	errors,
+	onFieldChange,
+	open,
+	onToggle,
+	readOnly,
+	sectionExamples = {},
+}) {
+	const complete = isRoomGroupComplete(group, errors);
 
 	return (
 		<div className="card overflow-hidden">
@@ -53,29 +101,27 @@ function SectionAccordion({ section, index, values, errors, onFieldChange, open,
 				)}>
 					{complete ? <CheckCircle2 size={14} /> : index + 1}
 				</span>
-				<span className="flex-1 font-medium text-sm text-dark">{section.title}</span>
-				<ChevronDown size={16} className={clsx('text-muted transition-transform', open && 'rotate-180')} />
+				<span className="flex-1 min-w-0">
+					<span className="block font-medium text-sm text-dark">{group.title}</span>
+					<span className="block text-xs text-muted mt-0.5">
+						{group.sections.length} area{group.sections.length === 1 ? '' : 's'}
+					</span>
+				</span>
+				<ChevronDown size={16} className={clsx('text-muted transition-transform shrink-0', open && 'rotate-180')} />
 			</button>
 			{open && (
 				<div className="px-4 pb-4 space-y-4 border-t border-border pt-4">
-					{section.checklist && (
-						<ChecklistFormField
-							question={section.checklist}
-							value={values[section.checklist.id]}
-							onChange={(next) => onFieldChange(section.checklist.id, next)}
-							error={errors[section.checklist.id]}
+					{group.sections.map((section) => (
+						<SectionPanel
+							key={section.id}
+							section={section}
+							values={values}
+							errors={errors}
+							onFieldChange={onFieldChange}
 							readOnly={readOnly}
+							sectionExamples={sectionExamples}
 						/>
-					)}
-					{section.photo && (
-						<ChecklistFormField
-							question={section.photo}
-							value={values[section.photo.id]}
-							onChange={(next) => onFieldChange(section.photo.id, next)}
-							error={errors[section.photo.id]}
-							readOnly={readOnly}
-						/>
-					)}
+					))}
 				</div>
 			)}
 		</div>
@@ -117,17 +163,18 @@ export default function CjcTurnCleanChecklistForm({
 	onSave,
 	onAutoSave,
 	onClear,
-	submitLabel = 'Submit checklist',
+	submitLabel = 'Submit',
 	locked = false,
 	saving = false,
 	saveMessage = '',
+	sectionExamples = {},
 }) {
-	const sections = useMemo(() => buildChecklistSections(), []);
+	const roomGroups = useMemo(() => buildChecklistRoomGroups(), []);
 	const [values, setValues] = useState(() => applyCalculations(initialValues));
 	const [errors, setErrors] = useState({});
 	const [submitting, setSubmitting] = useState(false);
 	const [submitError, setSubmitError] = useState('');
-	const [openSectionId, setOpenSectionId] = useState(sections[0]?.id || null);
+	const [openRoomId, setOpenRoomId] = useState(roomGroups[0]?.id || null);
 	const [autoSaveStatus, setAutoSaveStatus] = useState('idle');
 	const [autoSaveTick, setAutoSaveTick] = useState(0);
 	const skipAutoSaveRef = useRef(true);
@@ -208,7 +255,7 @@ export default function CjcTurnCleanChecklistForm({
 		setErrors({});
 		setSubmitError('');
 		setAutoSaveStatus('idle');
-		setOpenSectionId(sections[0]?.id || null);
+		setOpenRoomId(roomGroups[0]?.id || null);
 		onClear?.();
 	}
 
@@ -241,7 +288,7 @@ export default function CjcTurnCleanChecklistForm({
 		<form onSubmit={handleSubmit} className="space-y-6 pb-36 sm:pb-28">
 			<div className="card p-4 sm:p-5 space-y-4">
 				<div>
-					<h2 className="text-sm font-semibold text-dark">Job details</h2>
+					<h2 className="text-sm font-semibold text-dark">Reservation Details</h2>
 					<p className="text-xs text-muted mt-1">Prefilled from the task when opened from Tasks. Changes auto-save as you go.</p>
 				</div>
 				<HeaderFieldGrid
@@ -249,22 +296,23 @@ export default function CjcTurnCleanChecklistForm({
 					errors={errors}
 					onFieldChange={onFieldChange}
 					readOnly={locked}
+					sectionExamples={sectionExamples}
 				/>
 			</div>
 
 			<div className="space-y-3">
-				<h2 className="text-sm font-semibold text-dark px-1">Room checklist</h2>
-				{sections.map((section, index) => (
-					<SectionAccordion
-						key={section.id}
-						section={section}
+				{roomGroups.map((group, index) => (
+					<RoomGroupAccordion
+						key={group.id}
+						group={group}
 						index={index}
 						values={values}
 						errors={errors}
 						onFieldChange={onFieldChange}
-						open={openSectionId === section.id}
-						onToggle={() => setOpenSectionId((cur) => (cur === section.id ? null : section.id))}
+						open={openRoomId === group.id}
+						onToggle={() => setOpenRoomId((cur) => (cur === group.id ? null : group.id))}
 						readOnly={locked}
+						sectionExamples={sectionExamples}
 					/>
 				))}
 			</div>

@@ -3,7 +3,6 @@ import Head from 'next/head';
 import dynamic from 'next/dynamic';
 import { DollarSign, TrendingUp, Home, BarChart3 } from 'lucide-react';
 import Layout from '../components/Layout';
-import PageActionButtons from '../components/PageActionButtons';
 import StatCard from '../components/StatCard';
 import { PageLoader, ErrorState } from '../components/LoadingSpinner';
 import FinancialsFilters from '../components/financials/FinancialsFilters';
@@ -70,7 +69,6 @@ export default function FinancialsPage() {
             <h1 className="text-2xl font-bold text-dark">Financials</h1>
             <p className="text-muted text-sm mt-0.5">Revenue, expenses & performance</p>
           </div>
-          <PageActionButtons onRefresh={load} refreshing={loading} />
         </div>
 
         <FinancialsFilters

@@ -2,8 +2,6 @@ import { useState, useEffect, useMemo } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import Layout from '../components/Layout';
-import PageActionButtons from '../components/PageActionButtons';
-import PageSearchInput from '../components/PageSearchInput';
 import ReservationFiltersPanel from '../components/ReservationFiltersPanel';
 import Badge from '../components/Badge';
 import ReservationPanel, { reservationGuestName } from '../components/ReservationPanel';
@@ -14,7 +12,8 @@ import { formatClock } from '../lib/taskDisplay';
 import { groupReservationsByTimeline, reservationCheckInDate, reservationCheckOutDate } from '../lib/reservationDates';
 import { requireAuth } from '../lib/auth';
 
-const VALID_TABS = new Set(['future', 'active', 'past', 'cancelled']);
+const VALID_TABS = new Set(['future', 'active']);
+const CANCELLED_STATUSES = new Set(['cancelled', 'expired', 'declined']);
 
 function filtersFromQuery(query = {}) {
   return {
@@ -47,7 +46,6 @@ export default function ReservationsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [filters, setFilters] = useState(() => filtersFromQuery(router.query));
-  const [search, setSearch] = useState('');
   const [selected, setSelected] = useState(null);
   const [tab, setTab] = useState(() => tabFromQuery(router.query));
   const [initializedFromQuery, setInitializedFromQuery] = useState(false);
@@ -98,30 +96,28 @@ export default function ReservationsPage() {
     if (match) setSelected(match);
   }, [router.query.code, reservations]);
 
-  // Filter by search locally
-  const filtered = useMemo(() => {
-    if (!search.trim()) return reservations;
-    const q = search.toLowerCase();
-    return reservations.filter(
-      (r) =>
-        reservationGuestName(r).toLowerCase().includes(q) ||
-        r.code?.toLowerCase().includes(q) ||
-        r.property_name?.toLowerCase().includes(q) ||
-        r.id?.toLowerCase().includes(q) ||
-        r.platform?.toLowerCase().includes(q)
-    );
-  }, [reservations, search]);
-
   const { future, active, past, cancelled } = useMemo(
-    () => groupReservationsByTimeline(filtered),
-    [filtered],
+    () => groupReservationsByTimeline(reservations),
+    [reservations],
   );
 
-  const displayed =
-    tab === 'future' ? future
-      : tab === 'active' ? active
-        : tab === 'cancelled' ? cancelled
-          : past;
+  const filteredView = useMemo(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    if (CANCELLED_STATUSES.has(filters.status)) return 'cancelled';
+    if (filters.end && filters.end < today) return 'historical';
+    return null;
+  }, [filters.status, filters.end]);
+
+  const displayed = useMemo(() => {
+    if (filteredView === 'cancelled') return cancelled;
+    if (filteredView === 'historical') {
+      return [...past, ...cancelled].sort((a, b) =>
+        (reservationCheckOutDate(b) || reservationCheckInDate(b) || '')
+          .localeCompare(reservationCheckOutDate(a) || reservationCheckInDate(a) || ''),
+      );
+    }
+    return tab === 'future' ? future : active;
+  }, [filteredView, tab, future, active, past, cancelled]);
 
   function applyFilters() { load(); }
 
@@ -147,18 +143,8 @@ export default function ReservationsPage() {
           />
         )}
 
-        <div className="flex flex-col gap-4 mb-6 lg:flex-row lg:items-start lg:justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-dark">Reservations</h1>
-          </div>
-          <div className="flex flex-wrap items-center gap-2 justify-end w-full lg:w-auto">
-            <PageSearchInput
-              placeholder="Search code, property…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-            <PageActionButtons onRefresh={load} refreshing={loading} />
-          </div>
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-dark">Reservations</h1>
         </div>
 
         <ReservationFiltersPanel
@@ -168,25 +154,24 @@ export default function ReservationsPage() {
           onApply={applyFilters}
         />
 
-        {/* Tabs */}
-        <div className="flex flex-wrap border-b border-border mb-4 gap-0">
-          {[
-            { key: 'future', label: `Future (${future.length})` },
-            { key: 'active', label: `Active (${active.length})` },
-            { key: 'past', label: `Past (${past.length})` },
-            { key: 'cancelled', label: `Cancelled (${cancelled.length})` },
-          ].map(({ key, label }) => (
-            <button
-              key={key}
-              onClick={() => selectTab(key)}
-              className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
-                tab === key ? 'border-brand-500 text-brand-600' : 'border-transparent text-muted hover:text-dark'
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+        {!filteredView && (
+          <div className="flex flex-wrap border-b border-border mb-4 gap-0">
+            {[
+              { key: 'future', label: `Future (${future.length})` },
+              { key: 'active', label: `Active (${active.length})` },
+            ].map(({ key, label }) => (
+              <button
+                key={key}
+                onClick={() => selectTab(key)}
+                className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
+                  tab === key ? 'border-brand-500 text-brand-600' : 'border-transparent text-muted hover:text-dark'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
 
         {loading && <PageLoader message="Loading reservations…" />}
         {error && <ErrorState message={error} retry={load} />}

@@ -22,5 +22,5 @@ export default async function handler(req, res) {
 			return res.json({ data: order });
 		}
 		res.status(405).end();
-	}, { adminOnly: true });
+	});
 }

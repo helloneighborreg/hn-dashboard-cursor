@@ -1,7 +1,13 @@
 import { listDashboardCleaners, withAuth } from '../../../../lib/auth';
+import { isAdmin } from '../../../../lib/roles';
 import { getPropertyDetails, upsertPropertyDetails } from '../../../../lib/db';
 import { toIsoDate } from '../../../../lib/dates';
 import { getPropertyBackupImagePublicUrl } from '../../../../lib/propertyDetailsStorage';
+import {
+	diffRecordChanges,
+	inferDetailsSection,
+	logPropertyChange,
+} from '../../../../lib/propertyChangeLog';
 
 function parseOptionalAmount(value) {
 	if (value === '' || value == null) return null;
@@ -64,7 +70,7 @@ function enrichDetails(row) {
 }
 
 export default async function handler(req, res) {
-	await withAuth(req, res, async () => {
+	await withAuth(req, res, async (session) => {
 		const { id: propertyId } = req.query;
 		if (!propertyId) return res.status(400).json({ error: 'Property id is required.' });
 
@@ -77,12 +83,26 @@ export default async function handler(req, res) {
 		}
 
 		if (req.method === 'PUT' || req.method === 'PATCH') {
+			if (!isAdmin(session.user)) {
+				return res.status(403).json({ error: 'Forbidden' });
+			}
 			try {
-				const patch = normalizeDetailsPatch(req.body || {});
+				const body = req.body || {};
+				const section = typeof body.section === 'string' ? body.section.trim() : '';
+				const patch = normalizeDetailsPatch(body);
 				if (!Object.keys(patch).length) {
 					return res.status(400).json({ error: 'No fields to update.' });
 				}
+				const previous = await getPropertyDetails(propertyId);
 				const details = await upsertPropertyDetails(propertyId, patch);
+				const changes = diffRecordChanges(previous, patch);
+				await logPropertyChange({
+					propertyId,
+					section: inferDetailsSection(patch, section),
+					resource: 'details',
+					changes,
+					user: session.user,
+				});
 				return res.json({ data: enrichDetails(details) });
 			} catch (err) {
 				return res.status(400).json({ error: err.message || 'Invalid property details.' });
@@ -90,5 +110,5 @@ export default async function handler(req, res) {
 		}
 
 		return res.status(405).end();
-	}, { adminOnly: true });
+	});
 }

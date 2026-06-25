@@ -1,8 +1,35 @@
 import { useEffect, useState } from 'react';
 import { fetchJson } from '../lib/apiClient';
 import { detailsToExtrasForm } from '../lib/propertyDetailsForm';
+import {
+	usePropertySectionEdit,
+	PropertySectionViewHeader,
+	PropertyFieldRow,
+	PropertyFieldGroup,
+	PropertySectionEditActions,
+} from './PropertySectionEdit';
 
 const EMPTY_FORM = detailsToExtrasForm(null);
+
+function ExtrasView({ form }) {
+	return (
+		<div className="space-y-4">
+			<PropertyFieldGroup title="Square Feet">
+				<PropertyFieldRow label="Square Feet" value={form.square_feet} />
+			</PropertyFieldGroup>
+
+			<PropertyFieldGroup title="Year Built" className="pt-2 border-t border-border/40">
+				<PropertyFieldRow label="Year Built" value={form.year_built} />
+			</PropertyFieldGroup>
+
+			<PropertyFieldGroup title="Mailbox & Parking" className="pt-2 border-t border-border/40">
+				<PropertyFieldRow label="Mailbox" value={form.mailbox} />
+				<PropertyFieldRow label="Parking #" value={form.parking_number} />
+				<PropertyFieldRow label="Parking Code" value={form.parking_code} />
+			</PropertyFieldGroup>
+		</div>
+	);
+}
 
 export default function PropertyDetailsExtrasSection({ propertyId }) {
 	const [form, setForm] = useState(EMPTY_FORM);
@@ -10,6 +37,7 @@ export default function PropertyDetailsExtrasSection({ propertyId }) {
 	const [loading, setLoading] = useState(true);
 	const [saving, setSaving] = useState(false);
 	const [error, setError] = useState('');
+	const { editing, startEditing, finishEditing } = usePropertySectionEdit();
 
 	useEffect(() => {
 		if (!propertyId) return;
@@ -27,6 +55,12 @@ export default function PropertyDetailsExtrasSection({ propertyId }) {
 
 	const dirty = JSON.stringify(form) !== JSON.stringify(savedForm);
 
+	function handleCancel() {
+		setForm(savedForm);
+		setError('');
+		finishEditing();
+	}
+
 	async function handleSave(e) {
 		e.preventDefault();
 		setSaving(true);
@@ -34,11 +68,12 @@ export default function PropertyDetailsExtrasSection({ propertyId }) {
 		try {
 			const json = await fetchJson(`/api/properties/${propertyId}/details`, {
 				method: 'PUT',
-				body: form,
+				body: { ...form, section: 'property-details' },
 			});
 			const next = detailsToExtrasForm(json?.data);
 			setForm(next);
 			setSavedForm(next);
+			finishEditing();
 		} catch (err) {
 			setError(err.message);
 		} finally {
@@ -48,6 +83,15 @@ export default function PropertyDetailsExtrasSection({ propertyId }) {
 
 	if (loading) {
 		return <p className="text-sm text-muted pt-4 border-t border-border/60">Loading property details…</p>;
+	}
+
+	if (!editing) {
+		return (
+			<div className="pt-4 border-t border-border/60">
+				<PropertySectionViewHeader onEdit={startEditing} />
+				<ExtrasView form={savedForm} />
+			</div>
+		);
 	}
 
 	return (
@@ -114,13 +158,7 @@ export default function PropertyDetailsExtrasSection({ propertyId }) {
 
 			{error && <p className="text-sm text-red-600">{error}</p>}
 
-			<button
-				type="submit"
-				disabled={saving || !dirty}
-				className="btn-primary text-sm w-full sm:w-auto justify-center"
-			>
-				{saving ? 'Saving…' : 'Save'}
-			</button>
+			<PropertySectionEditActions saving={saving} dirty={dirty} onCancel={handleCancel} />
 		</form>
 	);
 }

@@ -1,4 +1,5 @@
 import { withAuth } from '../../../../../lib/auth';
+import { isAdmin } from '../../../../../lib/roles';
 import { uploadPropertyBackupImage } from '../../../../../lib/propertyDetailsStorage';
 
 export const config = {
@@ -10,10 +11,13 @@ export const config = {
 };
 
 export default async function handler(req, res) {
-	await withAuth(req, res, async () => {
+	await withAuth(req, res, async (session) => {
 		if (req.method !== 'POST') {
 			res.status(405).end();
 			return;
+		}
+		if (!isAdmin(session.user)) {
+			return res.status(403).json({ error: 'Forbidden' });
 		}
 		const { id: propertyId } = req.query;
 		const { base64, contentType, filename } = req.body || {};
@@ -40,5 +44,5 @@ export default async function handler(req, res) {
 			}
 			return res.status(400).json({ error: message });
 		}
-	}, { adminOnly: true });
+	});
 }
