@@ -3,7 +3,7 @@ import { useRouter } from 'next/router';
 import Link from 'next/link';
 import {
   LayoutDashboard, Building2, CalendarDays, Calendar, CheckSquare,
-  DollarSign, LogOut, Menu, X, ChevronRight, ChevronDown, Tags, FileBarChart,
+  DollarSign, LogOut, Menu, X, ChevronRight, ChevronDown, Tags, FileBarChart, Wallet,
   UserX, UserCheck, AlertCircle, CircleCheckBig, ClipboardList, Package, ExternalLink,
   PanelLeftClose, PanelLeft, Warehouse, ShoppingCart, Settings,
 } from 'lucide-react';
@@ -30,6 +30,7 @@ const NAV_ICONS = {
   '/financials': DollarSign,
   '/transactions': Tags,
   '/reports': FileBarChart,
+  '/billpay': Wallet,
   '/forms': ClipboardList,
   '/forms/cjc-turn-clean-checklist': ClipboardList,
   '/supplies': Package,

@@ -163,6 +163,23 @@ for (const table of ['supply_products', 'supply_inventory', 'supply_orders', 'su
 	}
 }
 
+console.log('\n— Billpay —');
+
+for (const table of ['billpay_invoices']) {
+	const { error } = await supabase.from(table).select('id').limit(1);
+	if (error?.code === 'PGRST205' || /Could not find the table/i.test(error?.message || '')) {
+		console.error(`✗ Table "${table}" missing`);
+		console.error('  → Run supabase/migrations/20260705_billpay_invoices.sql in Supabase SQL Editor');
+		ok = false;
+	} else if (error) {
+		console.error(`✗ Table "${table}": ${error.message}`);
+		ok = false;
+	} else {
+		const { count } = await supabase.from(table).select('*', { count: 'exact', head: true });
+		console.log(`✓ Table "${table}" exists (${count ?? 0} rows)`);
+	}
+}
+
 if (!ok) {
 	process.exit(1);
 }
