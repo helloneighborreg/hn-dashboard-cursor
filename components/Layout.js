@@ -5,12 +5,13 @@ import {
   LayoutDashboard, Building2, CalendarDays, Calendar, CheckSquare,
   DollarSign, LogOut, Menu, X, ChevronRight, ChevronDown, Tags, FileBarChart,
   UserX, UserCheck, AlertCircle, CircleCheckBig, ClipboardList, Package, ExternalLink,
-  PanelLeftClose, PanelLeft, Warehouse, ShoppingCart,
+  PanelLeftClose, PanelLeft, Warehouse, ShoppingCart, Settings,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useAuth } from './AuthContext';
 import { useTaskCounts } from './TaskCountsContext';
 import { BrandLogo } from './Logo';
+import AppActionBar from './AppActionBar';
 import { homePathForRole, navItemsForRole, roleLabel } from '../lib/roles';
 import { fetchJson } from '../lib/apiClient';
 
@@ -24,6 +25,7 @@ const NAV_ICONS = {
   '/tasks': CheckSquare,
   '/tasks/unassigned': UserX,
   '/tasks/assigned': UserCheck,
+  '/tasks/under-review': ClipboardList,
   '/tasks/overdue': AlertCircle,
   '/tasks/completed': CircleCheckBig,
   '/financials': DollarSign,
@@ -34,6 +36,8 @@ const NAV_ICONS = {
   '/supplies': Package,
   '/supplies/inventory': Warehouse,
   '/supplies/order': ShoppingCart,
+  '/settings': Settings,
+  '/settings/permissions': Settings,
 };
 
 function navLinkClass(active, collapsed) {
@@ -78,6 +82,7 @@ function userInitials(name) {
 
 function taskNavCount(href, taskCounts) {
   if (href === '/tasks/unassigned') return taskCounts?.unassigned ?? 0;
+  if (href === '/tasks/assigned') return taskCounts?.assigned ?? 0;
   if (href === '/tasks/overdue') return taskCounts?.overdue ?? 0;
   return undefined;
 }
@@ -250,7 +255,7 @@ function NavSection({
 
 export default function Layout({ children, title }) {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, navPermissions } = useAuth();
   const { counts: taskCounts } = useTaskCounts();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -290,11 +295,11 @@ export default function Layout({ children, title }) {
   }
 
   const navItems = useMemo(
-    () => navItemsForRole(user?.role).map((item) => ({
+    () => navItemsForRole(user?.role, navPermissions).map((item) => ({
       ...item,
       icon: NAV_ICONS[item.href] || Building2,
     })),
-    [user?.role],
+    [user?.role, navPermissions],
   );
 
   const parentItems = useMemo(
@@ -334,7 +339,7 @@ export default function Layout({ children, title }) {
 
   const closeSidebar = () => setSidebarOpen(false);
 
-  const homeHref = user ? homePathForRole(user.role) : '/';
+  const homeHref = user ? homePathForRole(user.role, navPermissions) : '/';
 
   async function handleLogout() {
     try {
@@ -447,7 +452,9 @@ export default function Layout({ children, title }) {
               >
                 <Icon size={18} className={clsx(active ? 'text-white' : 'text-white/50 group-hover:text-white flex-shrink-0')} />
                 {!collapsed && item.label}
-                {!collapsed && active && <ChevronRight size={14} className="ml-auto" />}
+                {!collapsed && active && item.href !== '/dashboard' && (
+                  <ChevronRight size={14} className="ml-auto" />
+                )}
               </Link>
             );
             return (
@@ -510,15 +517,23 @@ export default function Layout({ children, title }) {
         </header>
 
         <main className="flex-1 flex flex-col min-w-0 min-h-0 overflow-y-auto">
+          {user && (
+            <div
+              className="sticky top-0 z-20 shrink-0 bg-white/95 backdrop-blur-sm border-b border-border px-4 lg:px-8"
+              style={{ paddingTop: 'max(0.5rem, env(safe-area-inset-top))' }}
+            >
+              <AppActionBar />
+            </div>
+          )}
           {title && (
-            <div className="shrink-0 px-4 pt-4 lg:px-8 lg:pt-8 hidden lg:block">
+            <div className="shrink-0 px-4 pt-3 lg:px-8 lg:pt-4 hidden lg:block">
               <h1 className="text-xl sm:text-2xl font-bold text-dark">{title}</h1>
             </div>
           )}
           <div
             className={clsx(
               'flex-1 min-w-0 w-full px-4 pb-4 lg:px-8 lg:pb-8',
-              title ? 'pt-4' : 'pt-4 lg:pt-8',
+              title ? 'pt-3' : 'pt-3 lg:pt-4',
             )}
           >
             {children}
