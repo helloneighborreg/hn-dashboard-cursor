@@ -45,6 +45,78 @@ function hospitableDateRange(filters) {
 	};
 }
 
+function MobileTransactionCard({
+	tx,
+	selected,
+	propertyName,
+	onToggleSelect,
+	onOpen,
+}) {
+	const amount = Number(tx.amount);
+
+	return (
+		<div className={clsx(
+			'rounded-xl border border-border bg-white p-3 shadow-card',
+			tx.hidden && 'opacity-60',
+		)}>
+			<div className="flex items-start gap-3">
+				<input
+					type="checkbox"
+					checked={selected}
+					onChange={onToggleSelect}
+					aria-label={`Select ${tx.description}`}
+					className="mt-1 h-4 w-4 rounded border-border text-brand-600 focus:ring-brand-500"
+				/>
+				<button
+					type="button"
+					onClick={onOpen}
+					className="min-w-0 flex-1 text-left focus:outline-none focus:ring-2 focus:ring-brand-500 rounded-lg"
+				>
+					<div className="flex items-start justify-between gap-3">
+						<div className="min-w-0">
+							<p className="truncate text-sm font-semibold text-dark">{tx.description || 'Transaction'}</p>
+							<p className="mt-0.5 text-xs text-muted">
+								{formatDateOrDash(tx.date)}{tx.account ? ` · ${tx.account}` : ''}
+							</p>
+						</div>
+						<p className={clsx(
+							'shrink-0 text-sm font-semibold tabular-nums',
+							amount >= 0 ? 'text-green-600' : 'text-red-600',
+						)}>
+							{fmt$(amount)}
+						</p>
+					</div>
+
+					<div className="mt-3 flex flex-wrap items-center gap-1.5">
+						{tx.category ? (
+							<CategoryTypeBadge category={tx.category} />
+						) : (
+							<span className="rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">
+								Uncategorized
+							</span>
+						)}
+						{propertyName && (
+							<span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-muted">
+								{propertyName}
+							</span>
+						)}
+						{tx.pending && (
+							<span className="rounded-full bg-sky-50 px-2 py-0.5 text-xs font-medium text-sky-700">
+								Pending
+							</span>
+						)}
+						{!tx.reviewed && (
+							<span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-muted">
+								Needs review
+							</span>
+						)}
+					</div>
+				</button>
+			</div>
+		</div>
+	);
+}
+
 export default function BookkeepingPage() {
 	const [properties, setProperties] = useState([]);
 	const [reservations, setReservations] = useState([]);
@@ -655,7 +727,19 @@ export default function BookkeepingPage() {
 					</p>
 				) : (
 					<>
-						<div className="transactions-table-scroll mt-2">
+						<div className="space-y-2 px-3 pb-3 pt-2 lg:hidden">
+							{sortedDisplayed.map((tx) => (
+								<MobileTransactionCard
+									key={tx.id}
+									tx={tx}
+									selected={selected.has(tx.id)}
+									propertyName={tx.property_id ? propertyNameById[tx.property_id] : ''}
+									onToggleSelect={() => toggleSelect(tx.id)}
+									onOpen={() => setDetailTx(tx)}
+								/>
+							))}
+						</div>
+						<div className="transactions-table-scroll mt-2 hidden lg:block">
 							<table className="w-full text-sm">
 								<thead>
 									<tr className="border-b border-border bg-gray-50/50">

@@ -69,6 +69,12 @@ html {
   .table-cell {
     @apply px-4 py-3 text-sm text-dark whitespace-nowrap;
   }
+  .table-cell-wrap {
+    @apply px-4 py-3 text-sm text-dark whitespace-normal;
+  }
+  .table-scroll {
+    @apply overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0;
+  }
   .table-head {
     @apply px-4 py-2.5 text-left text-xs font-semibold text-muted uppercase tracking-wide;
   }

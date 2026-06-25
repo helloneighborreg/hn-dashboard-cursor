@@ -112,7 +112,7 @@ export default function TaskCalendarView({ tasks, month, onMonthChange, onTaskSe
 					onClose={() => setOverflowDay(null)}
 				/>
 			)}
-			<div className="card overflow-hidden min-w-[36rem]">
+			<div className="card overflow-hidden min-w-0">
 			<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between px-4 py-3 border-b border-border bg-gray-50">
 				<div className="flex items-center gap-2 flex-wrap text-xs text-muted">
 					<span className="inline-flex items-center gap-1"><TaskStatusIndicator task={{ status: 'unassigned' }} /> Unassigned</span>
@@ -120,7 +120,7 @@ export default function TaskCalendarView({ tasks, month, onMonthChange, onTaskSe
 					<span className="inline-flex items-center gap-1"><TaskStatusIndicator task={{ status: 'completed' }} /> Completed</span>
 					<span className="inline-flex items-center gap-1"><TaskStatusIndicator task={{ due_date: '2000-01-01', status: 'assigned', assignee: 'x' }} /> Overdue</span>
 				</div>
-				<div className="flex items-center gap-2 flex-shrink-0">
+				<div className="flex flex-wrap items-center gap-2 flex-shrink-0">
 					<button type="button" onClick={goToday} className="btn-secondary text-sm py-1.5">
 						Today
 					</button>
@@ -133,7 +133,7 @@ export default function TaskCalendarView({ tasks, month, onMonthChange, onTaskSe
 						>
 							<ChevronLeft size={16} />
 						</button>
-						<span className="px-4 py-2 text-sm font-medium text-dark whitespace-nowrap select-none min-w-[9rem] text-center">
+						<span className="px-3 sm:px-4 py-2 text-sm font-medium text-dark whitespace-nowrap select-none min-w-[7.5rem] sm:min-w-[9rem] text-center">
 							{format(month, 'MMMM yyyy')}
 						</span>
 						<button
@@ -156,7 +156,7 @@ export default function TaskCalendarView({ tasks, month, onMonthChange, onTaskSe
 				))}
 			</div>
 
-			<div className="grid grid-cols-7 auto-rows-fr min-h-[32rem]">
+			<div className="grid grid-cols-7 auto-rows-fr min-h-[24rem] sm:min-h-[32rem]">
 				{days.map((day) => {
 					const dateStr = format(day, 'yyyy-MM-dd');
 					const dayTasks = tasksByDate[dateStr] || [];
@@ -167,7 +167,7 @@ export default function TaskCalendarView({ tasks, month, onMonthChange, onTaskSe
 						<div
 							key={dateStr}
 							className={clsx(
-								'min-h-[5.5rem] border-b border-r border-border p-1.5 flex flex-col gap-1',
+								'min-h-[4.5rem] sm:min-h-[5.5rem] border-b border-r border-border p-1 sm:p-1.5 flex flex-col gap-1',
 								!inMonth && 'bg-gray-50/80',
 								today && 'bg-brand-50/40 ring-1 ring-inset ring-brand-200',
 							)}

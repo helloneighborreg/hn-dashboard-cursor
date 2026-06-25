@@ -25,7 +25,7 @@ export default function SuppliesHubPage() {
 			<Head><title>Supplies — Hello Neighbor</title></Head>
 			<Layout title="">
 				<div className="mb-8">
-					<h1 className="text-2xl font-bold text-dark">Supplies</h1>
+					<h1 className="text-xl sm:text-2xl font-bold text-dark">Supplies</h1>
 				</div>
 
 				<div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl">

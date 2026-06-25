@@ -39,6 +39,53 @@ function fmtTime(dateStr) {
   return time ? formatClock(time) : '';
 }
 
+function ReservationMobileCard({ reservation, onSelect }) {
+  const checkInTime = fmtTime(reservation.check_in || reservation.arrival_date);
+  const checkOutTime = fmtTime(reservation.check_out || reservation.departure_date);
+
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(reservation)}
+      className="w-full rounded-xl border border-border bg-white p-4 text-left shadow-card transition-colors hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-brand-500"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="font-mono text-xs font-semibold tracking-wide text-muted">
+            {reservation.code || 'Reservation'}
+          </p>
+          <p className="mt-1 truncate text-base font-semibold text-dark">
+            {reservationGuestName(reservation) || 'Guest'}
+          </p>
+          <p className="mt-0.5 truncate text-sm text-muted">{reservation.property_name || '—'}</p>
+        </div>
+        <div className="flex shrink-0 flex-col items-end gap-1">
+          <Badge label={reservation.status} variant={reservation.status} />
+          <Badge label={reservation.platform_label || reservation.platform} variant={reservation.platform} />
+        </div>
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+        <div>
+          <p className="text-xs font-medium uppercase tracking-wide text-muted">Check-in</p>
+          <p className="font-medium text-dark">{fmt(reservationCheckInDate(reservation))}</p>
+          {checkInTime && <p className="text-xs text-muted">{checkInTime}</p>}
+        </div>
+        <div>
+          <p className="text-xs font-medium uppercase tracking-wide text-muted">Check-out</p>
+          <p className="font-medium text-dark">{fmt(reservationCheckOutDate(reservation))}</p>
+          {checkOutTime && <p className="text-xs text-muted">{checkOutTime}</p>}
+        </div>
+      </div>
+
+      <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted">
+        <span className="rounded-full bg-gray-100 px-2 py-0.5">{reservation.nights ?? '—'} nights</span>
+        <span className="rounded-full bg-gray-100 px-2 py-0.5">{reservation.guests?.total ?? '—'} guests</span>
+      </div>
+    </button>
+  );
+}
+
 export default function ReservationsPage() {
   const router = useRouter();
   const [reservations, setReservations] = useState([]);
@@ -144,7 +191,7 @@ export default function ReservationsPage() {
         )}
 
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-dark">Reservations</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-dark">Reservations</h1>
         </div>
 
         <ReservationFiltersPanel
@@ -180,9 +227,20 @@ export default function ReservationsPage() {
           displayed.length === 0
             ? <EmptyState title="No reservations" message="No reservations match your current filters" />
             : (
-              <div className="card overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full">
+              <>
+                <div className="space-y-3 lg:hidden">
+                  {displayed.map((r) => (
+                    <ReservationMobileCard
+                      key={r.id}
+                      reservation={r}
+                      onSelect={setSelected}
+                    />
+                  ))}
+                </div>
+
+                <div className="card hidden overflow-hidden lg:block">
+                  <div className="table-scroll">
+                    <table className="w-full">
                     <thead className="bg-gray-50 border-b border-border">
                       <tr>
                         <th className="table-head">Reservation ID</th>
@@ -231,9 +289,10 @@ export default function ReservationsPage() {
                         </tr>
                       ))}
                     </tbody>
-                  </table>
+                    </table>
+                  </div>
                 </div>
-              </div>
+              </>
             )
         )}
       </Layout>

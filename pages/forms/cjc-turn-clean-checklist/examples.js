@@ -221,7 +221,7 @@ export default function CjcChecklistExamplesPage({ initialExamples = {}, dbError
 						<div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-50 text-brand-600 shrink-0">
 							<Settings size={20} strokeWidth={1.75} />
 						</div>
-						<h1 className="text-2xl font-bold text-dark">Manage Example Photos</h1>
+						<h1 className="text-xl sm:text-2xl font-bold text-dark">Manage Example Photos</h1>
 					</div>
 					<p className="text-sm text-muted mt-2">
 						Upload reference photos for required questions.

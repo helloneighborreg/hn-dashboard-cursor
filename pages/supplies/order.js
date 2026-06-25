@@ -253,9 +253,9 @@ export default function SuppliesOrderPage() {
 							placeholder="Search…"
 							className="min-w-0 flex-1 sm:flex-none sm:w-44 sm:max-w-xs"
 						/>
-						<div className="relative">
+						<div className="relative min-w-[8rem] flex-1 sm:flex-none">
 							<select
-								className="select-compact sm:w-40 pr-7"
+								className="select-compact w-full sm:w-40 pr-7"
 								value={category}
 								onChange={(e) => setCategory(e.target.value)}
 								aria-label="Categories"
@@ -303,7 +303,7 @@ export default function SuppliesOrderPage() {
 				{loading && <PageLoader message="Loading products…" />}
 				{error && <ErrorState message={error} retry={load} />}
 				{!loading && !error && (
-					<div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-3">
+					<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-3">
 						{filtered.map((product) => (
 							<SupplyProductCard
 								key={product.id}

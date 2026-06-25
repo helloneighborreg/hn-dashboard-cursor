@@ -22,6 +22,17 @@ function getPropertySortValue(row, key) {
 	return row[key] || 0;
 }
 
+function PropertyMetric({ label, value, tone = 'dark' }) {
+	return (
+		<div>
+			<p className="text-xs font-medium uppercase tracking-wide text-muted">{label}</p>
+			<p className={`mt-0.5 text-sm font-semibold ${tone === 'red' ? 'text-red-600' : tone === 'green' ? 'text-green-600' : 'text-dark'}`}>
+				{value}
+			</p>
+		</div>
+	);
+}
+
 export default function FinancialsTables({ data }) {
 	const { sortKey, sortDir, toggleSort } = useTableSort('revenue', 'desc');
 
@@ -41,7 +52,26 @@ export default function FinancialsTables({ data }) {
 	return (
 		<div className="card p-5 mb-6">
 			<h2 className="font-semibold text-dark mb-4">Property Profitability Report</h2>
-			<div className="overflow-x-auto">
+			<div className="space-y-3 lg:hidden">
+				{sortedRows.map((p) => (
+					<div key={p.property_id} className="rounded-xl border border-border bg-white p-4">
+						<p className="font-semibold text-dark">{p.property_name}</p>
+						<div className="mt-3 grid grid-cols-2 gap-3">
+							<PropertyMetric label="Revenue" value={fmt$(p.revenue)} tone="green" />
+							<PropertyMetric label="Expenses" value={fmt$(p.expenses)} tone="red" />
+							<PropertyMetric
+								label="Net income"
+								value={fmt$(p.net_income)}
+								tone={p.net_income >= 0 ? 'green' : 'red'}
+							/>
+							<PropertyMetric label="Margin" value={fmtPct(p.margin_pct || 0)} />
+							<PropertyMetric label="Occupancy" value={fmtPct(p.occupancy_rate || 0)} />
+							<PropertyMetric label="ADR / RevPAR" value={`${fmt$(p.adr)} / ${fmt$(p.revpar)}`} />
+						</div>
+					</div>
+				))}
+			</div>
+			<div className="table-scroll hidden lg:block">
 				<table className="w-full">
 					<thead>
 						<tr className="border-b border-border">

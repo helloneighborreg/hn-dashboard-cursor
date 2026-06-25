@@ -167,7 +167,7 @@ export default function PermissionsSettingsPage({ initialPermissions }) {
 			<Layout title="">
 				<div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
 					<div>
-						<h1 className="text-2xl font-bold text-dark">Permissions</h1>
+						<h1 className="text-xl sm:text-2xl font-bold text-dark">Permissions</h1>
 						<p className="text-sm text-muted mt-1">
 							Choose what is visible to admin and non-admin users in the app.
 						</p>
