@@ -1,4 +1,4 @@
-import { withAuth } from '../../../lib/auth';
+import { withAuth, isAdmin } from '../../../lib/auth';
 import { getCached } from '../../../lib/cache';
 import {
 	getProperties,
@@ -13,11 +13,17 @@ import {
 	sortReservationsByCheckInAsc,
 	sortReservationsByCheckOutAsc,
 } from '../../../lib/reservationDates';
+import { getTasks } from '../../../lib/db';
+import { sortTasksByDateAsc, sortTasksByDateDesc } from '../../../lib/constants';
+import { enrichTasks } from '../../../lib/taskEnrich';
+import { withChecklistUrl } from '../../../lib/checklistUrl';
+import { sanitizeTasksForViewer } from '../../../lib/taskSanitize';
 import { format, addDays } from 'date-fns';
 
 const CACHE_TTL_MS = 60_000;
+const TASK_LIST_LIMIT = 50;
 
-async function buildDashboardData() {
+async function buildAdminDashboardData() {
 	const properties = await getProperties();
 	const propMap = buildPropertyMap(properties);
 	const ids = properties.map((p) => p.id);
@@ -51,6 +57,7 @@ async function buildDashboardData() {
 	);
 
 	return {
+		view: 'full',
 		today: todayStr,
 		properties_count: properties.length,
 		occupied,
@@ -68,14 +75,95 @@ async function buildDashboardData() {
 	};
 }
 
+async function buildUserTaskDashboardData(session, navPermissions) {
+	const assignee = session.user?.name;
+	const todayStr = format(new Date(), 'yyyy-MM-dd');
+
+	const [todayRows, completedRows, overdueRows] = await Promise.all([
+		getTasks({
+			due_date: todayStr,
+			assignee,
+			assigned: true,
+			exclude_completed: true,
+			sort_soonest: true,
+			limit: TASK_LIST_LIMIT,
+		}),
+		getTasks({
+			assignee,
+			status: 'completed',
+			limit: TASK_LIST_LIMIT,
+		}),
+		getTasks({
+			assignee,
+			assigned: true,
+			exclude_completed: true,
+			overdue: true,
+			sort_soonest: true,
+			limit: TASK_LIST_LIMIT,
+		}),
+	]);
+
+	const [todayEnriched, completedEnriched, overdueEnriched] = await Promise.all([
+		enrichTasks(todayRows),
+		enrichTasks(completedRows),
+		enrichTasks(overdueRows),
+	]);
+
+	const tasksToday = sortTasksByDateAsc(
+		sanitizeTasksForViewer(
+			todayEnriched.map(withChecklistUrl),
+			session.user,
+			navPermissions,
+		),
+	);
+	const tasksCompleted = sortTasksByDateDesc(
+		sanitizeTasksForViewer(
+			completedEnriched.map(withChecklistUrl),
+			session.user,
+			navPermissions,
+		),
+	);
+	const tasksOverdue = sortTasksByDateAsc(
+		sanitizeTasksForViewer(
+			overdueEnriched.map(withChecklistUrl),
+			session.user,
+			navPermissions,
+		),
+	);
+
+	return {
+		view: 'tasks',
+		today: todayStr,
+		tasks_today: tasksToday,
+		tasks_completed: tasksCompleted,
+		tasks_overdue: tasksOverdue,
+		stats: {
+			tasks_today: tasksToday.length,
+			tasks_completed: tasksCompleted.length,
+			tasks_overdue: tasksOverdue.length,
+		},
+	};
+}
+
 export default async function handler(req, res) {
-	await withAuth(req, res, async () => {
+	await withAuth(req, res, async (session, navPermissions) => {
 		if (req.method !== 'GET') {
 			res.status(405).end();
 			return;
 		}
 
-		const data = await getCached('dashboard', CACHE_TTL_MS, buildDashboardData);
+		if (isAdmin(session.user)) {
+			const data = await getCached('dashboard', CACHE_TTL_MS, buildAdminDashboardData);
+			res.json({ data });
+			return;
+		}
+
+		const cacheKey = `dashboard:tasks:${session.user?.username || session.user?.name || 'user'}`;
+		const data = await getCached(
+			cacheKey,
+			CACHE_TTL_MS,
+			() => buildUserTaskDashboardData(session, navPermissions),
+		);
 		res.json({ data });
-	}, { adminOnly: true });
+	});
 }

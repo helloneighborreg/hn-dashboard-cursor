@@ -16,6 +16,7 @@ import Badge from '../components/Badge';
 import { PageLoader, ErrorState } from '../components/LoadingSpinner';
 import ReservationPanel, { reservationGuestName } from '../components/ReservationPanel';
 import TaskPetIndicator from '../components/TaskPetIndicator';
+import { useAuth } from '../components/AuthContext';
 import { requireAuth } from '../lib/auth';
 
 function reservationSubtitle(r, mode) {
@@ -62,8 +63,8 @@ function ReservationList({ items, emptyMsg, subtitle = 'code', footer = 'nights'
   );
 }
 
-function TaskList({ items }) {
-  if (!items?.length) return <p className="text-muted text-sm py-4 text-center">No tasks due today</p>;
+function TaskList({ items, emptyMsg = 'No tasks due today' }) {
+  if (!items?.length) return <p className="text-muted text-sm py-4 text-center">{emptyMsg}</p>;
   return (
     <ul className="divide-y divide-border">
       {items.map((t) => (
@@ -112,6 +113,7 @@ function DashboardPanel({ title, href, children }) {
 }
 
 export default function DashboardPage() {
+  const { isAdmin } = useAuth();
   const [data, setData] = useState(null);
   const [overdueCount, setOverdueCount] = useState(0);
   const [completedCount, setCompletedCount] = useState(0);
@@ -120,6 +122,7 @@ export default function DashboardPage() {
   const [selected, setSelected] = useState(null);
 
   async function loadTaskCounts() {
+    if (!isAdmin) return;
     try {
       const params = new URLSearchParams({ counts_only: 'true', _: String(Date.now()) });
       const json = await fetchJson('/api/tasks?' + params);
@@ -136,11 +139,9 @@ export default function DashboardPage() {
     setLoading(true);
     setError('');
     try {
-      const [dashJson] = await Promise.all([
-        fetchJson('/api/dashboard'),
-        loadTaskCounts(),
-      ]);
+      const dashJson = await fetchJson('/api/dashboard');
       if (dashJson) setData(dashJson.data);
+      if (isAdmin) await loadTaskCounts();
     } catch (err) {
       setError(err.message);
     } finally {
@@ -148,11 +149,12 @@ export default function DashboardPage() {
     }
   }
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [isAdmin]);
 
-  const today = data?.today ? formatDateOrDash(data.today) : '';
-  const dashboardLinks = useMemo(() => {
-    if (!data?.today) return null;
+  const isTaskDashboard = data?.view === 'tasks';
+
+  const adminLinks = useMemo(() => {
+    if (!isAdmin || !data?.today) return null;
     const todayIso = data.today;
     const todayDate = new Date(`${todayIso}T12:00:00`);
     const tomorrow = format(addDays(todayDate, 1), 'yyyy-MM-dd');
@@ -168,13 +170,19 @@ export default function DashboardPage() {
       completed: '/tasks/completed',
       overdue: '/tasks/overdue',
     };
-  }, [data?.today]);
+  }, [isAdmin, data?.today]);
+
+  const taskLinks = useMemo(() => ({
+    tasksToday: '/tasks/assigned?today=true',
+    completed: '/tasks/completed',
+    overdue: '/tasks/overdue',
+  }), []);
 
   return (
     <>
       <Head><title>Dashboard — Hello Neighbor</title></Head>
       <Layout title="">
-        {selected && (
+        {!isTaskDashboard && selected && (
           <ReservationPanel
             resv={selected}
             propName={selected.property_name}
@@ -185,7 +193,6 @@ export default function DashboardPage() {
         <div className="flex flex-col gap-4 mb-6 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
             <h1 className="text-xl sm:text-2xl font-bold text-dark">Dashboard</h1>
-            {today && <p className="text-muted text-sm mt-0.5">{today}</p>}
           </div>
           <PageActionButtons
             onRefresh={load}
@@ -198,39 +205,63 @@ export default function DashboardPage() {
         {loading && <PageLoader message="Loading dashboard…" />}
         {error && <ErrorState message={error} retry={load} />}
 
-        {data && !loading && (
+        {data && !loading && isTaskDashboard && (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-6 sm:mb-8 w-full auto-rows-fr">
+              <StatCard label="Tasks Due Today" value={data.stats.tasks_today} icon={CheckSquare} color="green" href={taskLinks.tasksToday} />
+              <StatCard label="Completed Tasks" value={data.stats.tasks_completed} icon={CircleCheckBig} color="green" href={taskLinks.completed} />
+              <StatCard label="Overdue Tasks" value={data.stats.tasks_overdue} icon={AlertCircle} color="red" href={taskLinks.overdue} />
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <DashboardPanel title="Tasks Due Today" href={taskLinks.tasksToday}>
+                <TaskList items={data.tasks_today} />
+              </DashboardPanel>
+
+              <DashboardPanel title="Completed Tasks" href={taskLinks.completed}>
+                <TaskList items={data.tasks_completed} emptyMsg="No completed tasks" />
+              </DashboardPanel>
+
+              <DashboardPanel title="Overdue Tasks" href={taskLinks.overdue}>
+                <TaskList items={data.tasks_overdue} emptyMsg="No overdue tasks" />
+              </DashboardPanel>
+            </div>
+          </>
+        )}
+
+        {data && !loading && !isTaskDashboard && (
           <>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8 w-full auto-rows-fr">
-              <StatCard label="Check-ins Today" value={data.stats.checkins_today} icon={LogIn} color="green" href={dashboardLinks?.checkinsToday} />
-              <StatCard label="Checkouts Today" value={data.stats.checkouts_today} icon={LogOutIcon} color="green" href={dashboardLinks?.checkoutsToday} />
-              <StatCard label="Tasks Due Today" value={data.stats.tasks_today} icon={CheckSquare} color="green" href={dashboardLinks?.tasksToday} />
-              <StatCard label="Upcoming Check-ins" value={data.stats.upcoming_checkins} icon={CalendarDays} color="brand" href={dashboardLinks?.upcomingCheckins} />
-              <StatCard label="Upcoming Checkouts" value={data.stats.upcoming_checkouts} icon={CalendarDays} color="brand" href={dashboardLinks?.upcomingCheckouts} />
+              <StatCard label="Check-ins Today" value={data.stats.checkins_today} icon={LogIn} color="green" href={adminLinks?.checkinsToday} />
+              <StatCard label="Checkouts Today" value={data.stats.checkouts_today} icon={LogOutIcon} color="green" href={adminLinks?.checkoutsToday} />
+              <StatCard label="Tasks Due Today" value={data.stats.tasks_today} icon={CheckSquare} color="green" href={adminLinks?.tasksToday} />
+              <StatCard label="Upcoming Check-ins" value={data.stats.upcoming_checkins} icon={CalendarDays} color="brand" href={adminLinks?.upcomingCheckins} />
+              <StatCard label="Upcoming Checkouts" value={data.stats.upcoming_checkouts} icon={CalendarDays} color="brand" href={adminLinks?.upcomingCheckouts} />
               <StatCard
                 label="Unassigned Tasks"
                 value={data.stats.tasks_unassigned ?? 0}
                 icon={CheckSquare}
                 color="brand"
-                href={dashboardLinks?.unassigned}
+                href={adminLinks?.unassigned}
               />
               <StatCard
                 label="Completed Tasks"
                 value={completedCount}
                 icon={CircleCheckBig}
                 color="green"
-                href={dashboardLinks?.completed}
+                href={adminLinks?.completed}
               />
               <StatCard
                 label="Overdue Tasks"
                 value={overdueCount}
                 icon={AlertCircle}
                 color="red"
-                href={dashboardLinks?.overdue}
+                href={adminLinks?.overdue}
               />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <DashboardPanel title="Occupied Today" href={dashboardLinks?.occupied || '/reservations'}>
+              <DashboardPanel title="Occupied Today" href={adminLinks?.occupied || '/reservations'}>
                 <ReservationList
                   items={data.occupied}
                   emptyMsg="No units occupied today"
@@ -240,11 +271,11 @@ export default function DashboardPage() {
                 />
               </DashboardPanel>
 
-              <DashboardPanel title="Tasks Due Today" href={dashboardLinks?.tasksToday || '/tasks/assigned'}>
+              <DashboardPanel title="Tasks Due Today" href={adminLinks?.tasksToday || '/tasks/assigned'}>
                 <TaskList items={data.tasks_today} />
               </DashboardPanel>
 
-              <DashboardPanel title="Upcoming Check-ins (7 days)" href={dashboardLinks?.upcomingCheckins || '/reservations'}>
+              <DashboardPanel title="Upcoming Check-ins (7 days)" href={adminLinks?.upcomingCheckins || '/reservations'}>
                 <ReservationList
                   items={data.upcoming_check_ins}
                   emptyMsg="No upcoming check-ins"
@@ -254,7 +285,7 @@ export default function DashboardPage() {
                 />
               </DashboardPanel>
 
-              <DashboardPanel title="Upcoming Checkouts (7 days)" href={dashboardLinks?.upcomingCheckouts || '/reservations'}>
+              <DashboardPanel title="Upcoming Checkouts (7 days)" href={adminLinks?.upcomingCheckouts || '/reservations'}>
                 <ReservationList
                   items={data.upcoming_check_outs}
                   emptyMsg="No upcoming checkouts"

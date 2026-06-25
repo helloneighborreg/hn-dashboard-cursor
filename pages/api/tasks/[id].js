@@ -3,6 +3,7 @@ import { getTaskById, updateTask, deleteTask } from '../../../lib/db';
 import { notifyTaskAssigned, notifyTaskBookingChanged, notifyIfTaskCompleted } from '../../../lib/notify';
 import { withChecklistUrl } from '../../../lib/checklistUrl';
 import { enrichTasks } from '../../../lib/taskEnrich';
+import { sanitizeTaskForViewer } from '../../../lib/taskSanitize';
 import { taskBookingChanged } from '../../../lib/taskSchedule';
 
 function taskBelongsToCleaner(task, user) {
@@ -10,7 +11,7 @@ function taskBelongsToCleaner(task, user) {
 }
 
 export default async function handler(req, res) {
-	await withAuth(req, res, async (session) => {
+	await withAuth(req, res, async (session, navPermissions) => {
 		const { id } = req.query;
 
 		if (req.method === 'GET') {
@@ -20,7 +21,7 @@ export default async function handler(req, res) {
 				return res.status(403).json({ error: 'Forbidden' });
 			}
 			const enriched = await enrichTasks([task]);
-			return res.json({ data: withChecklistUrl(enriched[0]) });
+			return res.json({ data: sanitizeTaskForViewer(withChecklistUrl(enriched[0]), session.user, navPermissions) });
 		}
 		if (req.method === 'PATCH') {
 			if (!isAdmin(session.user)) {
@@ -30,8 +31,19 @@ export default async function handler(req, res) {
 			const task = await getTaskById(id);
 			if (!task) return res.status(404).json({ error: 'Task not found' });
 
+			const body = { ...req.body };
+			if (body.paid === true) {
+				body.paid_at = new Date().toISOString();
+				body.paid_by = session.user?.name || session.user?.username || null;
+				delete body.paid;
+			} else if (body.paid === false) {
+				body.paid_at = null;
+				body.paid_by = null;
+				delete body.paid;
+			}
+
 			const prevAssignee = task.assignee;
-			const updated = await updateTask(id, req.body, { previousTask: task });
+			const updated = await updateTask(id, body, { previousTask: task });
 			const [enrichedRow] = await enrichTasks([updated]);
 			const enriched = withChecklistUrl(enrichedRow);
 			const newAssignee =

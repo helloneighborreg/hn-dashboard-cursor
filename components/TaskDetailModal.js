@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { X, Home, CalendarDays, Clock, User, FileText, ExternalLink, Cat, Zap } from 'lucide-react';
+import { X, Home, CalendarDays, Clock, User, FileText, ExternalLink, Cat, UserCircle, Trash2 } from 'lucide-react';
 import clsx from 'clsx';
-import { formatTaskStatus, getCleanerTaskStatusMessage, getTaskStatusIndicator, taskIsOverdue } from '../lib/constants';
+import { taskIsOverdue } from '../lib/constants';
 import {
 	taskHeadline,
 	taskGuestSubtitle,
@@ -9,14 +9,22 @@ import {
 	formatClock,
 } from '../lib/taskDisplay';
 import { taskHasPets, taskPetLabel } from '../lib/reservationPets';
-import { fetchJson } from '../lib/apiClient';
+import { getTaskTypeStyle, taskTypeLabel } from '../lib/taskTypeStyles';
+import { taskScheduledByLabel } from '../lib/taskHistory';
 import { useEscapeKey } from '../lib/useEscapeKey';
 import { useFocusTrap } from '../lib/useFocusTrap';
 import TaskStatusIndicator from './TaskStatusIndicator';
-import TaskCleanerStatus from './TaskCleanerStatus';
 import TaskPetIndicator from './TaskPetIndicator';
+import TaskTimeline from './TaskTimeline';
+import TaskDueEditor from './TaskDueEditor';
+import TaskPaidToggle from './TaskPaidToggle';
+import TaskPaidIndicator from './TaskPaidIndicator';
+import { useTaskActions } from './TaskItem';
+import { useAuth } from './AuthContext';
+import { canViewReservationData } from '../lib/roles';
 
-function DetailRow({ icon: Icon, label, value, mono, highlight }) {
+function DetailRow({ icon: Icon, label, value, mono, highlight, children }) {
+	const content = children ?? value;
 	return (
 		<div className="flex items-start gap-3">
 			<div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -24,44 +32,46 @@ function DetailRow({ icon: Icon, label, value, mono, highlight }) {
 			</div>
 			<div className="min-w-0">
 				<p className="text-xs text-muted leading-none mb-0.5">{label}</p>
-				<p className={clsx(
-					'text-sm leading-snug break-words',
-					highlight ? 'text-red-600 font-semibold' : 'text-dark font-medium',
-					mono && 'font-mono text-xs bg-gray-100 px-1.5 py-0.5 rounded inline-block',
-				)}>
-					{value || '—'}
-				</p>
+				{children ? (
+					<div>{children}</div>
+				) : (
+					<p className={clsx(
+						'text-sm leading-snug break-words',
+						highlight ? 'text-red-600 font-semibold' : 'text-dark font-medium',
+						mono && 'font-mono text-xs bg-gray-100 px-1.5 py-0.5 rounded inline-block',
+					)}>
+						{content || '—'}
+					</p>
+				)}
 			</div>
 		</div>
 	);
 }
 
-export default function TaskDetailModal({ task, onClose, showAssignee = false, showAdmin = false, forCleaner = false, onTaskUpdated }) {
-	const [webhookTesting, setWebhookTesting] = useState(false);
-	const [webhookResult, setWebhookResult] = useState(null);
+export default function TaskDetailModal({ task, onClose, onUpdate, onDeleted, showAssignee = false }) {
 	useEscapeKey(onClose);
 	const dialogRef = useFocusTrap();
+	const { user, navPermissions } = useAuth();
+	const showReservationDetails = canViewReservationData(user, navPermissions);
+	const { patch, saving, remove, deleting } = useTaskActions(task, onUpdate, undefined, onDeleted);
+	const [confirmDelete, setConfirmDelete] = useState(false);
+	const [deleteError, setDeleteError] = useState('');
+
+	async function handleDelete() {
+		setDeleteError('');
+		const ok = await remove();
+		if (ok) {
+			onClose?.();
+		} else {
+			setDeleteError('Could not delete task');
+			setConfirmDelete(false);
+		}
+	}
 
 	if (!task) return null;
 
-	const { label: statusLabel } = getTaskStatusIndicator(task);
-	const cleanerStatus = forCleaner ? getCleanerTaskStatusMessage(task) : null;
 	const isOverdue = taskIsOverdue(task);
-
-	async function handleTestWebhook() {
-		setWebhookTesting(true);
-		setWebhookResult(null);
-		try {
-			const json = await fetchJson(`/api/tasks/${task.id}/test-fillout-webhook`, { method: 'POST' });
-			if (!json) return; // 401 → redirected to login
-			setWebhookResult({ type: 'success', message: json.message || 'Webhook test succeeded' });
-			if (json.data && onTaskUpdated) onTaskUpdated(json.data);
-		} catch (err) {
-			setWebhookResult({ type: 'error', message: err.message || 'Webhook test failed' });
-		} finally {
-			setWebhookTesting(false);
-		}
-	}
+	const typeStyle = getTaskTypeStyle(task.type);
 
 	return (
 		<>
@@ -75,16 +85,21 @@ export default function TaskDetailModal({ task, onClose, showAssignee = false, s
 				role="dialog"
 				aria-modal="true"
 				aria-label={`Task: ${taskHeadline(task)}`}
-				className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-sm bg-white shadow-2xl flex flex-col overflow-hidden focus:outline-none"
+				className={clsx(
+					'fixed right-0 top-0 bottom-0 z-50 w-full max-w-sm bg-white shadow-2xl flex flex-col overflow-hidden focus:outline-none',
+					typeStyle.rowClass,
+				)}
 			>
 				<div className="flex items-center justify-between px-5 py-4 border-b border-border">
 					<div className="flex items-center gap-3 min-w-0">
 						<TaskStatusIndicator task={task} />
 						<div className="min-w-0">
 							<p className="font-semibold text-dark text-sm leading-snug truncate font-mono">
-								{taskHeadline(task)}
+								{taskHeadline(task, { showReservationDetails })}
 							</p>
-							<p className="text-xs text-muted truncate">{taskGuestSubtitle(task)}</p>
+							{showReservationDetails && (
+								<p className="text-xs text-muted truncate">{taskGuestSubtitle(task)}</p>
+							)}
 						</div>
 					</div>
 					<button
@@ -98,44 +113,59 @@ export default function TaskDetailModal({ task, onClose, showAssignee = false, s
 				</div>
 
 				<div className="flex-1 overflow-y-auto p-5 space-y-5">
-					{cleanerStatus && (
-						<div className="rounded-lg border border-border bg-gray-50 p-3">
-							<TaskCleanerStatus task={task} />
-						</div>
-					)}
 					<div className="flex items-center gap-2 flex-wrap">
-						<span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-dark capitalize">
-							{formatTaskStatus(task.status)}
-						</span>
+						{task.type && task.type !== 'other' && (
+							<span className={clsx('inline-flex px-2 py-0.5 rounded-full text-xs font-semibold', typeStyle.badgeClass)}>
+								{taskTypeLabel(task.type)}
+							</span>
+						)}
 						{isOverdue && (
 							<span className="text-xs font-medium text-red-600 bg-red-50 px-2 py-0.5 rounded-full">
 								Overdue
 							</span>
 						)}
-						<span className="text-xs text-muted">{statusLabel}</span>
 					</div>
 
 					<div className="space-y-3">
 						<DetailRow icon={Home} label="Property" value={task.property_name} />
 						<DetailRow
 							icon={CalendarDays}
-							label="Check-out"
+							label="Check-Out"
 							value={`${formatDateShort(task.checkout_date || task.due_date)} · ${formatClock(task.start_time || '10:00')}`}
 						/>
-						<DetailRow
-							icon={Clock}
-							label="Due"
-							value={`${formatDateShort(task.due_date)} · ${formatClock(task.due_time || '16:00')}`}
-							highlight={isOverdue}
-						/>
+						<DetailRow icon={Clock} label="Due" highlight={isOverdue && !showAssignee}>
+							{showAssignee ? (
+								<TaskDueEditor task={task} onSave={patch} saving={saving} />
+							) : (
+								<p className={clsx('text-sm leading-snug', isOverdue ? 'text-red-600 font-semibold' : 'text-dark font-medium')}>
+									{`${formatDateShort(task.due_date)} · ${formatClock(task.due_time || '16:00')}`}
+								</p>
+							)}
+						</DetailRow>
 						{showAssignee && task.assignee && (
 							<DetailRow icon={User} label="Assignee" value={task.assignee} />
 						)}
-						{task.type && task.type !== 'other' && (
+						{showAssignee && (
+							<DetailRow
+								icon={UserCircle}
+								label="Scheduled by"
+								value={taskScheduledByLabel(task) || '—'}
+							/>
+						)}
+						{task.status === 'completed' && (
+							<DetailRow icon={FileText} label="Payment">
+								{showAssignee ? (
+									<TaskPaidToggle task={task} onSave={patch} saving={saving} showDate />
+								) : (
+									<TaskPaidIndicator task={task} showDate />
+								)}
+							</DetailRow>
+						)}
+						{task.type && task.type !== 'other' && !showAssignee && (
 							<DetailRow icon={FileText} label="Type" value={task.type.replace(/_/g, ' ')} />
 						)}
-						{task.description?.trim() && (
-							<DetailRow icon={FileText} label="Description" value={task.description.trim()} />
+						{(showReservationDetails && (task.guest_name || task.description)?.trim()) && (
+							<DetailRow icon={FileText} label="Guest" value={(task.guest_name || task.description).trim()} />
 						)}
 						{taskHasPets(task) && (
 							<DetailRow
@@ -143,8 +173,8 @@ export default function TaskDetailModal({ task, onClose, showAssignee = false, s
 								label="Notes"
 								value={
 									<span className="inline-flex items-center gap-1.5">
-										<TaskPetIndicator task={task} size={16} />
-										<span>{taskPetLabel(task)}</span>
+										<TaskPetIndicator task={task} size={16} showReservationDetails={showReservationDetails} />
+										<span>{taskPetLabel(task, { showReservationDetails })}</span>
 									</span>
 								}
 							/>
@@ -153,10 +183,47 @@ export default function TaskDetailModal({ task, onClose, showAssignee = false, s
 							<DetailRow icon={FileText} label={taskHasPets(task) ? 'Other notes' : 'Notes'} value={task.notes.trim()} />
 						)}
 					</div>
+
+					<TaskTimeline task={task} />
 				</div>
 
 				<div className="p-4 border-t border-border space-y-2">
-					{task.checklist_url && !['completed', 'under_review'].includes(task.status) && (
+					{showAssignee && onDeleted && (
+						confirmDelete ? (
+							<div className="space-y-2">
+								<p className="text-sm text-amber-800">Delete this task? This cannot be undone.</p>
+								<div className="flex gap-2">
+									<button
+										type="button"
+										onClick={() => setConfirmDelete(false)}
+										disabled={deleting}
+										className="btn-secondary flex-1 justify-center text-sm"
+									>
+										Cancel
+									</button>
+									<button
+										type="button"
+										onClick={handleDelete}
+										disabled={deleting}
+										className={clsx('btn-danger flex-1 justify-center text-sm', deleting && 'opacity-60')}
+									>
+										{deleting ? 'Deleting…' : 'Delete'}
+									</button>
+								</div>
+							</div>
+						) : (
+							<button
+								type="button"
+								onClick={() => setConfirmDelete(true)}
+								className="btn-secondary w-full text-sm gap-2 inline-flex items-center justify-center text-red-600 hover:text-red-700 hover:bg-red-50"
+							>
+								<Trash2 size={14} />
+								Delete task
+							</button>
+						)
+					)}
+					{deleteError && <p className="text-red-600 text-sm">{deleteError}</p>}
+					{task.checklist_url && task.status !== 'completed' && (
 						<a
 							href={task.checklist_url}
 							target="_blank"
@@ -188,31 +255,6 @@ export default function TaskDetailModal({ task, onClose, showAssignee = false, s
 							<ExternalLink size={14} />
 							View PDF
 						</a>
-					)}
-					{showAdmin && (
-						<div className="pt-2 border-t border-border space-y-2">
-							<p className="text-xs text-muted leading-snug">
-								Simulates Fillout&apos;s completion webhook (TaskID + ReservationID + Notion id).
-								{task.status !== 'completed' && ' Assigned tasks will be marked completed.'}
-							</p>
-							<button
-								type="button"
-								onClick={handleTestWebhook}
-								disabled={webhookTesting}
-								className="flex items-center justify-center gap-2 w-full btn-secondary text-sm disabled:opacity-50"
-							>
-								<Zap size={14} />
-								{webhookTesting ? 'Testing…' : 'Test Fillout webhook'}
-							</button>
-							{webhookResult && (
-								<p className={clsx(
-									'text-xs leading-snug',
-									webhookResult.type === 'success' ? 'text-green-700' : 'text-red-600',
-								)}>
-									{webhookResult.message}
-								</p>
-							)}
-						</div>
 					)}
 				</div>
 			</div>

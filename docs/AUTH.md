@@ -33,7 +33,7 @@ Set **`DASHBOARD_USERS`** (recommended) as a JSON array:
 In Vercel/local `.env`, put it on one line:
 
 ```bash
-DASHBOARD_USERS=[{"username":"josiah","name":"Josiah Burton","role":"admin","password":"..."},{"username":"brandi","name":"Brandi Drielsien","role":"cleaner","password":"..."}]
+DASHBOARD_USERS=[{"username":"josiah","name":"Josiah Burton","role":"admin","password":"...","email":"josiah@example.com"},{"username":"brandi","name":"Brandi Drieslein","role":"cleaner","password":"...","email":"brandi@example.com","phone":"+15551234567"}]
 ```
 
 For production, use bcrypt hashes instead of plain passwords (same format as `DASHBOARD_PASSWORD` — values starting with `$2` are verified with bcrypt).

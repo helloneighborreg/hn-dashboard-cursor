@@ -19,6 +19,8 @@ import { taskHeadline, formatClock } from '../lib/taskDisplay';
 import { taskHasPets, taskPetLabel } from '../lib/reservationPets';
 import TaskStatusIndicator from './TaskStatusIndicator';
 import TaskPetIndicator from './TaskPetIndicator';
+import { useAuth } from './AuthContext';
+import { canViewReservationData } from '../lib/roles';
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MAX_CHIPS = 3;
@@ -30,7 +32,7 @@ const CHIP_CLASS = {
 	overdue: 'bg-red-50 text-red-800 border-red-300',
 };
 
-function TaskChip({ task, onSelect }) {
+function TaskChip({ task, onSelect, showReservationDetails }) {
 	const { kind } = getTaskStatusIndicator(task);
 	return (
 		<button
@@ -40,17 +42,17 @@ function TaskChip({ task, onSelect }) {
 				'w-full text-left rounded px-1.5 py-0.5 text-[10px] leading-tight border truncate transition-opacity hover:opacity-80',
 				CHIP_CLASS[kind],
 			)}
-			title={`${taskHeadline(task)} · due ${formatClock(task.due_time || '16:00')}${taskHasPets(task) ? ` · ${taskPetLabel(task)}` : ''}`}
+			title={`${taskHeadline(task, { showReservationDetails })} · due ${formatClock(task.due_time || '16:00')}${taskHasPets(task) ? ` · ${taskPetLabel(task, { showReservationDetails })}` : ''}`}
 		>
 			<span className="inline-flex items-center gap-0.5 max-w-full min-w-0">
-				{taskHasPets(task) && <TaskPetIndicator task={task} size={10} className="opacity-90" />}
-				<span className="truncate">{taskHeadline(task)}</span>
+				{taskHasPets(task) && <TaskPetIndicator task={task} size={10} className="opacity-90" showReservationDetails={showReservationDetails} />}
+				<span className="truncate">{taskHeadline(task, { showReservationDetails })}</span>
 			</span>
 		</button>
 	);
 }
 
-function DayOverflowModal({ dateLabel, tasks, onSelect, onClose }) {
+function DayOverflowModal({ dateLabel, tasks, onSelect, onClose, showReservationDetails }) {
 	if (!tasks?.length) return null;
 	return (
 		<>
@@ -62,6 +64,7 @@ function DayOverflowModal({ dateLabel, tasks, onSelect, onClose }) {
 						<TaskChip
 							key={task.id}
 							task={task}
+							showReservationDetails={showReservationDetails}
 							onSelect={(t) => {
 								onClose();
 								onSelect?.(t);
@@ -75,6 +78,8 @@ function DayOverflowModal({ dateLabel, tasks, onSelect, onClose }) {
 }
 
 export default function TaskCalendarView({ tasks, month, onMonthChange, onTaskSelect }) {
+	const { user, navPermissions } = useAuth();
+	const showReservationDetails = canViewReservationData(user, navPermissions);
 	const [overflowDay, setOverflowDay] = useState(null);
 	const days = useMemo(() => {
 		const monthStart = startOfMonth(month);
@@ -110,6 +115,7 @@ export default function TaskCalendarView({ tasks, month, onMonthChange, onTaskSe
 					tasks={overflowDay.tasks}
 					onSelect={onTaskSelect}
 					onClose={() => setOverflowDay(null)}
+					showReservationDetails={showReservationDetails}
 				/>
 			)}
 			<div className="card overflow-hidden min-w-[36rem]">
@@ -180,7 +186,12 @@ export default function TaskCalendarView({ tasks, month, onMonthChange, onTaskSe
 							</div>
 							<div className="space-y-1 flex-1 min-h-0">
 								{dayTasks.slice(0, MAX_CHIPS).map((task) => (
-									<TaskChip key={task.id} task={task} onSelect={onTaskSelect} />
+									<TaskChip
+										key={task.id}
+										task={task}
+										onSelect={onTaskSelect}
+										showReservationDetails={showReservationDetails}
+									/>
 								))}
 								{dayTasks.length > MAX_CHIPS && (
 									<button

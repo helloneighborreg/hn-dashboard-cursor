@@ -1434,7 +1434,34 @@
     },
     {
       "id": "7p1o",
-      "name": "AdditionalCharge - Photo Upload",
+      "name": "Additional Charge - Photo Upload",
+      "type": "FileUpload"
+    },
+    {
+      "id": "kMt1",
+      "name": "Maintenance",
+      "type": "MultipleChoice",
+      "options": [
+        {
+          "id": "kMtY",
+          "value": "Yes",
+          "label": "Yes"
+        },
+        {
+          "id": "kMtN",
+          "value": "No",
+          "label": "No"
+        }
+      ]
+    },
+    {
+      "id": "kMt2",
+      "name": "Maintenance Request Details",
+      "type": "LongAnswer"
+    },
+    {
+      "id": "kMt3",
+      "name": "Maintenance - Photo Upload",
       "type": "FileUpload"
     },
     {

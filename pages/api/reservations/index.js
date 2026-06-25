@@ -66,5 +66,5 @@ export default async function handler(req, res) {
       console.error('Reservations API error:', err.message);
       res.status(502).json({ error: err.message });
     }
-  }, { adminOnly: true });
+  });
 }

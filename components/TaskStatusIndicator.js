@@ -2,30 +2,34 @@ import { AlertCircle, Circle } from 'lucide-react';
 import clsx from 'clsx';
 import { getTaskStatusIndicator } from '../lib/constants';
 
-const DOT_CLASS = {
-	completed: 'bg-green-500',
-	assigned: 'bg-yellow-400',
+/** Shared text/dot colors per status kind (widgets, row indicators). */
+export const STATUS_KIND_COLORS = {
+	unassigned: { count: 'text-gray-600', icon: 'text-gray-600' },
+	assigned: { count: 'text-yellow-500', icon: 'bg-yellow-500' },
+	completed: { count: 'text-green-600', icon: 'bg-green-600' },
+	overdue: { count: 'text-red-600', icon: 'text-red-600' },
 };
 
 /** Icon for a status kind (used in rows and summary widgets). */
 export function StatusKindIcon({ kind, size = 18, className }) {
+	const colors = STATUS_KIND_COLORS[kind];
 	if (kind === 'overdue') {
 		return (
-			<span className={clsx('inline-flex text-red-600', className)} aria-hidden>
+			<span className={clsx('inline-flex', colors?.icon, className)} aria-hidden>
 				<AlertCircle size={size} strokeWidth={2.5} />
 			</span>
 		);
 	}
 	if (kind === 'unassigned') {
 		return (
-			<span className={clsx('inline-flex text-gray-400', className)} aria-hidden>
+			<span className={clsx('inline-flex', colors?.icon, className)} aria-hidden>
 				<Circle size={size} strokeWidth={2} />
 			</span>
 		);
 	}
 	return (
 		<span
-			className={clsx('inline-block rounded-full', DOT_CLASS[kind], className)}
+			className={clsx('inline-block rounded-full', colors?.icon, className)}
 			style={{ width: size * 0.78, height: size * 0.78 }}
 			aria-hidden
 		/>

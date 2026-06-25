@@ -60,6 +60,7 @@ const answers = {
 		files: [{ base64: PNG, contentType: 'image/png', filename: 'test.png', captureSource: 'camera' }],
 	},
 	'kmJc': { type: 'MultipleChoice', name: 'Additional Charge', value: 'No' },
+	'kMt1': { type: 'MultipleChoice', name: 'Maintenance', value: 'No' },
 	'43sB': { type: 'NumberInput', name: 'Base Clean Fee', value: 150 },
 	'3sV8': { type: 'NumberInput', name: 'Total Amount Due', value: 150 },
 };

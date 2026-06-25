@@ -25,7 +25,8 @@ Files under `supabase/migrations/` are **not** applied when you deploy the app. 
 | `20260605_task_hospitable_id.sql` | `hospitable_reservation_id` — match tasks when checkout date changes |
 | `20260524_bank_transactions.sql` | `bank_connection` + `bank_transactions` (Plaid import) |
 | `20260606_bank_transaction_categorization.sql` | `reviewed`, `hidden`, `notes` on bank transactions (Bookkeeping tab) |
-| `20260703_task_payment_schema.sql` | `task_type`, `payment_status` on `tasks`; migrates `under_review` → `completed` |
+| `20260624_task_timeline.sql` | `assigned_at`, `started_at`, `completed_at` on `tasks` (task detail timeline) |
+| `20260704_task_payment.sql` | `scheduled_by`, `paid_at`, `paid_by` on `tasks`; migrates `under_review` → `completed` |
 
 ## 3. API keys
 
@@ -122,7 +123,7 @@ Parameters sent from Tasks:
 When a cleaner submits the checklist, the app:
 
 - Saves answers and photos to `form_submissions` (Supabase + storage bucket)
-- Moves the linked task to **Completed** (`completed`) and sets payment status per assignee type
+- Moves the linked task to **Completed** (`completed`)
 - Sets `checklist_submission_url` to the in-app submission view
 - Emails admins that a checklist was submitted
 

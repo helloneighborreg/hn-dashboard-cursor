@@ -6,8 +6,7 @@ import ChecklistSectionExamples from './ChecklistSectionExamples';
 import {
 	CJC_TURN_CLEAN_FORM,
 	HEADER_QUESTION_IDS,
-	FOOTER_QUESTION_IDS,
-	HIDDEN_FOOTER_QUESTION_IDS,
+	ADDITIONAL_CHARGES_QUESTION_IDS,
 	buildChecklistRoomGroups,
 	getQuestion,
 	isRoomGroupComplete,
@@ -128,16 +127,14 @@ function RoomGroupAccordion({
 	);
 }
 
-function FooterFields({ values, errors, onFieldChange, readOnly }) {
-	const footerQuestions = CJC_TURN_CLEAN_FORM.questions.filter(
-		(q) => FOOTER_QUESTION_IDS.has(q.id) && !HIDDEN_FOOTER_QUESTION_IDS.has(q.id),
-	);
+function AdditionalChargesSection({ values, errors, onFieldChange, readOnly }) {
 	const showAdditional = values['kmJc'] === 'Yes';
+	const questions = CJC_TURN_CLEAN_FORM.questions.filter((q) => ADDITIONAL_CHARGES_QUESTION_IDS.has(q.id));
 
 	return (
 		<div className="card p-4 sm:p-5 space-y-4">
-			<h2 className="text-sm font-semibold text-dark">Other</h2>
-			{footerQuestions.map((q) => {
+			<h2 className="text-sm font-semibold text-dark">Additional Charges</h2>
+			{questions.map((q) => {
 				if (q.id === '7Mpe' || q.id === 'jxUf' || q.id === '7p1o') {
 					if (!showAdditional) return null;
 				}
@@ -152,6 +149,66 @@ function FooterFields({ values, errors, onFieldChange, readOnly }) {
 					/>
 				);
 			})}
+		</div>
+	);
+}
+
+function MaintenanceSection({ values, errors, onFieldChange, readOnly }) {
+	const showMaintenance = values['kMt1'] === 'Yes';
+	const maintenanceQuestion = getQuestion('kMt1');
+	const detailsQuestion = getQuestion('kMt2');
+	const photoQuestion = getQuestion('kMt3');
+
+	return (
+		<div className="card p-4 sm:p-5 space-y-4">
+			<h2 className="text-sm font-semibold text-dark">Maintenance</h2>
+			<ChecklistFormField
+				question={maintenanceQuestion}
+				value={values['kMt1']}
+				onChange={(next) => onFieldChange('kMt1', next)}
+				error={errors['kMt1']}
+				readOnly={readOnly}
+			/>
+			{showMaintenance && (
+				<div className="rounded-lg border border-border bg-gray-50/40 p-4 space-y-4">
+					<h3 className="text-sm font-medium text-dark">Maintenance Request Details</h3>
+					<ChecklistFormField
+						question={detailsQuestion}
+						value={values['kMt2']}
+						onChange={(next) => onFieldChange('kMt2', next)}
+						error={errors['kMt2']}
+						readOnly={readOnly}
+						hideLabel
+					/>
+					<ChecklistFormField
+						question={photoQuestion}
+						value={values['kMt3']}
+						onChange={(next) => onFieldChange('kMt3', next)}
+						error={errors['kMt3']}
+						readOnly={readOnly}
+						required={false}
+					/>
+				</div>
+			)}
+		</div>
+	);
+}
+
+function NotesSection({ values, errors, onFieldChange, readOnly }) {
+	const notesQuestion = getQuestion('aaYL');
+	if (!notesQuestion) return null;
+
+	return (
+		<div className="card p-4 sm:p-5 space-y-4">
+			<h2 className="text-sm font-semibold text-dark">Notes</h2>
+			<ChecklistFormField
+				question={notesQuestion}
+				value={values['aaYL']}
+				onChange={(next) => onFieldChange('aaYL', next)}
+				error={errors['aaYL']}
+				readOnly={readOnly}
+				hideLabel
+			/>
 		</div>
 	);
 }
@@ -289,7 +346,6 @@ export default function CjcTurnCleanChecklistForm({
 			<div className="card p-4 sm:p-5 space-y-4">
 				<div>
 					<h2 className="text-sm font-semibold text-dark">Reservation Details</h2>
-					<p className="text-xs text-muted mt-1">Prefilled from the task when opened from Tasks. Changes auto-save as you go.</p>
 				</div>
 				<HeaderFieldGrid
 					values={values}
@@ -317,7 +373,9 @@ export default function CjcTurnCleanChecklistForm({
 				))}
 			</div>
 
-			<FooterFields values={values} errors={errors} onFieldChange={onFieldChange} readOnly={locked} />
+			<AdditionalChargesSection values={values} errors={errors} onFieldChange={onFieldChange} readOnly={locked} />
+			<MaintenanceSection values={values} errors={errors} onFieldChange={onFieldChange} readOnly={locked} />
+			<NotesSection values={values} errors={errors} onFieldChange={onFieldChange} readOnly={locked} />
 
 			{saveMessage && (
 				<div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">

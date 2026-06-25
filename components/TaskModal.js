@@ -146,7 +146,7 @@ export default function TaskModal({ properties, onClose, onSaved }) {
             </div>
           </div>
           <div>
-            <label className="label">Description</label>
+            <label className="label">Guest</label>
             <textarea
               className="input resize-none"
               rows={2}

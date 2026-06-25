@@ -81,6 +81,8 @@ export default function ChecklistFormField({
 	onChange,
 	error,
 	readOnly = false,
+	required,
+	hideLabel = false,
 }) {
 	if (!question) return null;
 	const id = `field-${question.id}`;
@@ -117,7 +119,7 @@ export default function ChecklistFormField({
 				value={value}
 				onChange={onChange}
 				error={error}
-				required
+				required={required !== false}
 				readOnly={readOnly}
 			/>
 		);
@@ -126,7 +128,7 @@ export default function ChecklistFormField({
 	if (question.type === 'LongAnswer') {
 		return (
 			<div>
-				<label className="label" htmlFor={id}>{question.name}</label>
+				{!hideLabel && <label className="label" htmlFor={id}>{question.name}</label>}
 				<textarea
 					id={id}
 					rows={4}

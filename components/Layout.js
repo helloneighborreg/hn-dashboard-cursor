@@ -25,7 +25,6 @@ const NAV_ICONS = {
   '/tasks': CheckSquare,
   '/tasks/unassigned': UserX,
   '/tasks/assigned': UserCheck,
-  '/tasks/under-review': ClipboardList,
   '/tasks/overdue': AlertCircle,
   '/tasks/completed': CircleCheckBig,
   '/financials': DollarSign,

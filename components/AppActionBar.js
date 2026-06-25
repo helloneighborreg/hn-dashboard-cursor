@@ -88,7 +88,8 @@ export default function AppActionBar({ className }) {
 				)}
 			>
 				<p className="text-sm text-muted min-w-0">
-					Today is <span className="font-medium text-dark">{todayLabel}</span>
+					Hello, <span className="font-medium text-dark">{user?.name || 'there'}</span>! Today is{' '}
+					<span className="font-medium text-dark">{todayLabel}</span>.
 				</p>
 
 				<div className="flex flex-wrap items-center gap-2 ml-auto">

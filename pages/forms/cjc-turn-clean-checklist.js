@@ -206,7 +206,7 @@ export default function CjcTurnCleanChecklistPage({
 				<title>{CJC_TURN_CLEAN_FORM.name}</title>
 			</Head>
 			<div className="max-w-3xl mx-auto py-6 sm:py-8">
-				<div className="mb-6">
+				<div className="mb-6 text-center">
 					<h1 className="text-2xl font-semibold text-dark">{CJC_TURN_CLEAN_FORM.name}</h1>
 					{geolocationTarget && !isAdmin && (
 						<p className="text-sm text-muted mt-1">{CHECKLIST_LOCATION_REQUIRED_MESSAGE}</p>

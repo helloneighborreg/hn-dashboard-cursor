@@ -45,6 +45,12 @@ if (existing) {
 	}
 }
 
+const DEFAULT_USER_CONTACTS = {
+	brandi: {
+		email: process.env.BRANDI_EMAIL?.trim() || 'brandi@helloneighbor.com',
+	},
+};
+
 if (!Array.isArray(users) || !users.length) {
 	users = [
 		{
@@ -60,15 +66,27 @@ if (!Array.isArray(users) || !users.length) {
 			password: process.argv.includes('--brandi-password')
 				? process.argv[process.argv.indexOf('--brandi-password') + 1]
 				: process.env.BRANDI_PASSWORD || 'brandi',
-			email: 'brandi@helloneighbor.com',
+			email: DEFAULT_USER_CONTACTS.brandi.email,
 		},
 	];
+}
+
+for (const user of users) {
+	const defaults = DEFAULT_USER_CONTACTS[String(user.username || '').toLowerCase()];
+	if (!defaults) continue;
+	if (!user.email?.trim() && defaults.email) user.email = defaults.email;
 }
 
 if (process.argv.includes('--brandi-password')) {
 	const brandiPassword = process.argv[process.argv.indexOf('--brandi-password') + 1];
 	const brandi = users.find((u) => String(u.username).toLowerCase() === 'brandi');
 	if (brandi) brandi.password = brandiPassword;
+}
+
+for (const user of users) {
+	if (user.role === 'cleaner' && !user.email?.trim() && !user.phone?.trim()) {
+		console.warn(`Warning: ${user.name} has no email or phone — task notifications will not be sent.`);
+	}
 }
 
 console.log('Paste this into Cloudflare → Settings → Variables → DASHBOARD_USERS:\n');
