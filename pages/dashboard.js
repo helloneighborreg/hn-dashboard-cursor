@@ -200,7 +200,7 @@ export default function DashboardPage() {
 
         {data && !loading && (
           <>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8 w-full auto-rows-fr">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8 w-full auto-rows-fr">
               <StatCard label="Check-ins Today" value={data.stats.checkins_today} icon={LogIn} color="green" href={dashboardLinks?.checkinsToday} />
               <StatCard label="Checkouts Today" value={data.stats.checkouts_today} icon={LogOutIcon} color="green" href={dashboardLinks?.checkoutsToday} />
               <StatCard label="Tasks Due Today" value={data.stats.tasks_today} icon={CheckSquare} color="green" href={dashboardLinks?.tasksToday} />

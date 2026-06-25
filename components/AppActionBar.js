@@ -28,7 +28,9 @@ export default function AppActionBar({ className }) {
 	const [showExpenseModal, setShowExpenseModal] = useState(false);
 	const [search, setSearch] = useState('');
 	const [newMenuOpen, setNewMenuOpen] = useState(false);
-	const todayLabel = format(new Date(), 'EEEE, MMMM d, yyyy');
+	const today = new Date();
+	const todayLabel = format(today, 'EEEE, MMMM d, yyyy');
+	const todayShortLabel = format(today, 'EEE, MMM d');
 
 	async function ensureProperties() {
 		if (properties.length || propertiesLoading) return properties;
@@ -83,17 +85,19 @@ export default function AppActionBar({ className }) {
 			)}
 			<div
 				className={clsx(
-					'flex flex-wrap items-center justify-between gap-x-4 gap-y-2 py-2',
+					'flex flex-col gap-2 py-2 sm:flex-row sm:items-center sm:justify-between sm:gap-x-4',
 					className,
 				)}
 			>
-				<p className="text-sm text-muted min-w-0">
-					Today is <span className="font-medium text-dark">{todayLabel}</span>
+				<p className="text-xs text-muted min-w-0 sm:text-sm">
+					Today is{' '}
+					<span className="font-medium text-dark sm:hidden">{todayShortLabel}</span>
+					<span className="hidden font-medium text-dark sm:inline">{todayLabel}</span>
 				</p>
 
-				<div className="flex flex-wrap items-center gap-2 ml-auto">
+				<div className="flex w-full flex-wrap items-center justify-between gap-2 sm:ml-auto sm:w-auto sm:justify-end">
 					{canSearch && (
-						<form onSubmit={submitSearch} className="min-w-0 sm:min-w-[12rem] sm:max-w-xs">
+						<form onSubmit={submitSearch} className="min-w-0 flex-1 sm:flex-none sm:min-w-[12rem] sm:max-w-xs">
 							<PageSearchInput
 								value={search}
 								onChange={(e) => setSearch(e.target.value)}

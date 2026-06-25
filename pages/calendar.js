@@ -138,7 +138,7 @@ export default function CalendarPage() {
 
         <div className="flex flex-col gap-4 mb-5 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-dark">Calendar</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-dark">Calendar</h1>
           </div>
           <div className="flex flex-col gap-3 w-full lg:w-auto lg:items-end">
             <div className="flex items-center gap-2 flex-shrink-0 self-end">

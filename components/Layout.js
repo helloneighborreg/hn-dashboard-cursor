@@ -519,7 +519,7 @@ export default function Layout({ children, title }) {
         <main className="flex-1 flex flex-col min-w-0 min-h-0 overflow-y-auto">
           {user && (
             <div
-              className="sticky top-0 z-20 shrink-0 bg-white/95 backdrop-blur-sm border-b border-border px-4 lg:px-8"
+              className="z-20 shrink-0 bg-white/95 backdrop-blur-sm border-b border-border px-4 lg:sticky lg:top-0 lg:px-8"
               style={{ paddingTop: 'max(0.5rem, env(safe-area-inset-top))' }}
             >
               <AppActionBar />

@@ -53,7 +53,7 @@ export default function SuppliesInventoryPage() {
 			<Layout title="">
 				<div className="flex flex-col gap-4 mb-6 sm:flex-row sm:items-start sm:justify-between">
 					<div>
-						<h1 className="text-2xl font-bold text-dark">Inventory</h1>
+						<h1 className="text-xl sm:text-2xl font-bold text-dark">Inventory</h1>
 					</div>
 					<button
 						type="button"

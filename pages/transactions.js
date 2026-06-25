@@ -140,7 +140,7 @@ export default function TransactionsPage() {
 
 				<div className="flex flex-col gap-4 mb-6 sm:flex-row sm:items-start sm:justify-between">
 					<div>
-						<h1 className="text-2xl font-bold text-dark">Transactions</h1>
+						<h1 className="text-xl sm:text-2xl font-bold text-dark">Transactions</h1>
 						<p className="text-muted text-sm mt-0.5">
 							Bank activity, manual expenses, and Hospitable payouts in one place
 						</p>
