@@ -1,6 +1,6 @@
 import Head from 'next/head';
 import Link from 'next/link';
-import { Shield } from 'lucide-react';
+import { Shield, ClipboardList } from 'lucide-react';
 import Layout from '../../components/Layout';
 import { requireAuth } from '../../lib/auth';
 
@@ -10,6 +10,12 @@ const ACTIONS = [
 		label: 'Permissions',
 		description: 'Control which pages admins and non-admins can see.',
 		icon: Shield,
+	},
+	{
+		href: '/settings/checklists',
+		label: 'Checklists',
+		description: 'Open property turnover checklists.',
+		icon: ClipboardList,
 	},
 ];
 

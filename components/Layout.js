@@ -33,6 +33,7 @@ const NAV_ICONS = {
   '/billpay': Wallet,
   '/forms': ClipboardList,
   '/forms/cjc-turn-clean-checklist': ClipboardList,
+  '/settings/checklists': ClipboardList,
   '/supplies': Package,
   '/supplies/inventory': Warehouse,
   '/supplies/order': ShoppingCart,
@@ -351,7 +352,10 @@ export default function Layout({ children, title }) {
   }
 
   return (
-    <div className="h-screen overflow-hidden bg-bg flex">
+    <div
+      className="h-screen overflow-hidden bg-bg flex"
+      style={{ '--hn-sidebar-width': collapsed ? '4.5rem' : '16rem' }}
+    >
       {sidebarOpen && (
         <div
           className="fixed inset-0 z-20 bg-black/40 lg:hidden"
@@ -361,7 +365,7 @@ export default function Layout({ children, title }) {
 
       <aside
         className={clsx(
-          'z-30 w-64 flex-shrink-0 bg-dark flex flex-col transition-all duration-300 overflow-visible',
+          'z-30 w-64 flex-shrink-0 bg-dark flex flex-col min-h-0 transition-all duration-300 overflow-hidden',
           'max-lg:fixed max-lg:inset-y-0 max-lg:left-0',
           'lg:sticky lg:top-0 lg:h-screen lg:self-start lg:translate-x-0',
           collapsed && 'lg:w-[4.5rem]',
@@ -416,7 +420,7 @@ export default function Layout({ children, title }) {
 
         <nav
           className={clsx(
-            'flex-1 py-2 space-y-0.5',
+            'flex-1 min-h-0 py-2 space-y-0.5',
             // Expanded: scroll vertically, clip horizontally (avoids a coerced overflow-x:auto
             // scrollbar). Collapsed: keep overflow visible so icon tooltips can escape the rail.
             collapsed ? 'px-2 overflow-visible' : 'px-3 overflow-y-auto overflow-x-hidden',
@@ -465,7 +469,7 @@ export default function Layout({ children, title }) {
           })}
         </nav>
 
-        <div className={clsx('border-t border-white/10', collapsed ? 'p-2' : 'p-4')}>
+        <div className={clsx('border-t border-white/10 shrink-0', collapsed ? 'p-2' : 'p-4')}>
           {user && (
             <div
               className={clsx(
@@ -486,7 +490,7 @@ export default function Layout({ children, title }) {
               )}
             </div>
           )}
-          <NavTooltip label="Sign out" collapsed={collapsed}>
+          <NavTooltip label="Sign Out" collapsed={collapsed}>
             <button
               type="button"
               onClick={handleLogout}
@@ -496,7 +500,7 @@ export default function Layout({ children, title }) {
               )}
             >
               <LogOut size={collapsed ? 18 : 16} />
-              {!collapsed && 'Sign out'}
+              {!collapsed && 'Sign Out'}
             </button>
           </NavTooltip>
         </div>

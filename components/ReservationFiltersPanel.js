@@ -3,7 +3,7 @@ import DateInput from './DateInput';
 import FilterPanel, { FilterField } from './FilterPanel';
 import { getPropertyDisplayName } from '../lib/codes';
 
-const STATUSES = ['accepted', 'cancelled', 'expired', 'pending', 'inquiry'];
+const STATUSES = ['accepted', 'cancelled', 'expired'];
 
 function countActiveFilters(filters) {
 	let n = 0;

@@ -4,8 +4,8 @@ import {
 	getProperties,
 	getReservations,
 	getPropertyCalendar,
-	isActiveReservation,
 } from '../../../lib/hospitable';
+import { isConfirmedReservation } from '../../../lib/reservationDates';
 
 const CACHE_TTL_MS = 60_000;
 
@@ -26,7 +26,7 @@ async function buildCalendarData(start, end) {
 		include: 'guest',
 	});
 
-	const active = reservations.filter(isActiveReservation);
+	const active = reservations.filter(isConfirmedReservation);
 
 	const calResults = await Promise.allSettled(
 		properties.map(async (p) => {

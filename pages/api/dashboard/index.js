@@ -4,12 +4,12 @@ import {
 	getProperties,
 	getReservations,
 	buildPropertyMap,
-	isActiveReservation,
 	reservationCheckIn,
 	reservationCheckOut,
 	withReservationPropertyName,
 } from '../../../lib/hospitable';
 import {
+	isConfirmedReservation,
 	sortReservationsByCheckInAsc,
 	sortReservationsByCheckOutAsc,
 } from '../../../lib/reservationDates';
@@ -40,21 +40,52 @@ async function buildAdminDashboardData() {
 		include: 'guest',
 	});
 
-	const active = all.filter(isActiveReservation);
+	const accepted = all.filter(isConfirmedReservation);
 	const wp = (r) => withReservationPropertyName(r, propMap);
 	const ci = reservationCheckIn;
 	const co = reservationCheckOut;
 
+	const [
+		todayTaskRows,
+		completedTaskRows,
+		overdueTaskRows,
+		unassignedTaskRows,
+	] = await Promise.all([
+		getTasks({
+			due_date: todayStr,
+			exclude_completed: true,
+			sort_soonest: true,
+			limit: TASK_LIST_LIMIT,
+		}),
+		getTasks({ status: 'completed' }),
+		getTasks({ exclude_completed: true, overdue: true }),
+		getTasks({ unassigned: true, exclude_completed: true }),
+	]);
+
+	const [
+		todayEnriched,
+		completedEnriched,
+		overdueEnriched,
+		unassignedEnriched,
+	] = await Promise.all([
+		enrichTasks(filterHiddenPropertyRows(todayTaskRows)),
+		enrichTasks(filterHiddenPropertyRows(completedTaskRows)),
+		enrichTasks(filterHiddenPropertyRows(overdueTaskRows)),
+		enrichTasks(filterHiddenPropertyRows(unassignedTaskRows)),
+	]);
+
+	const tasksToday = sortTasksByDateAsc(todayEnriched.map(withChecklistUrl));
+
 	const occupied = sortReservationsByCheckOutAsc(
-		active.filter((r) => ci(r) <= todayStr && co(r) > todayStr).map(wp),
+		accepted.filter((r) => ci(r) <= todayStr && co(r) > todayStr).map(wp),
 	);
-	const checkInsToday = active.filter((r) => ci(r) === todayStr).map(wp);
-	const checkOutsToday = active.filter((r) => co(r) === todayStr).map(wp);
+	const checkInsToday = accepted.filter((r) => ci(r) === todayStr).map(wp);
+	const checkOutsToday = accepted.filter((r) => co(r) === todayStr).map(wp);
 	const upcomingCheckIns = sortReservationsByCheckInAsc(
-		active.filter((r) => ci(r) > todayStr && ci(r) <= in7days).map(wp),
+		accepted.filter((r) => ci(r) > todayStr && ci(r) <= in7days).map(wp),
 	);
 	const upcomingCheckOuts = sortReservationsByCheckOutAsc(
-		active.filter((r) => co(r) > todayStr && co(r) <= in7days).map(wp),
+		accepted.filter((r) => co(r) > todayStr && co(r) <= in7days).map(wp),
 	);
 
 	return {
@@ -66,12 +97,17 @@ async function buildAdminDashboardData() {
 		check_outs_today: checkOutsToday,
 		upcoming_check_ins: upcomingCheckIns,
 		upcoming_check_outs: upcomingCheckOuts,
+		tasks_today: tasksToday,
 		stats: {
 			occupied_count: occupied.length,
 			checkins_today: checkInsToday.length,
 			checkouts_today: checkOutsToday.length,
 			upcoming_checkins: upcomingCheckIns.length,
 			upcoming_checkouts: upcomingCheckOuts.length,
+			tasks_today: todayEnriched.length,
+			tasks_unassigned: unassignedEnriched.length,
+			tasks_completed: completedEnriched.length,
+			tasks_overdue: overdueEnriched.length,
 		},
 	};
 }

@@ -8,6 +8,7 @@ import {
 	withReservationPropertyName,
 } from '../../../lib/hospitable';
 import { filterHiddenPropertyRows, isHiddenPropertyId } from '../../../lib/hiddenProperties';
+import { isConfirmedReservation } from '../../../lib/reservationDates';
 
 /** Default window when no check-in filters: 2 years back, 1 year ahead. */
 function defaultReservationDateRange() {
@@ -57,6 +58,14 @@ export default async function handler(req, res) {
 
       if (platform) {
         enriched = enriched.filter((r) => r.platform === platform);
+      }
+
+      if (status) {
+        enriched = enriched.filter(
+          (r) => String(r.status || '').toLowerCase() === String(status).toLowerCase(),
+        );
+      } else {
+        enriched = enriched.filter(isConfirmedReservation);
       }
 
       enriched = filterHiddenPropertyRows(enriched);

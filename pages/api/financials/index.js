@@ -3,7 +3,7 @@ import { getProperties, getReservations, platformLabel, buildPropertyMap, withRe
 import { buildPropertyCodeToNameMap, formatPropertyNameForRow } from '../../../lib/codes';
 import { parseHostFinancials } from '../../../lib/hospitableFinancials';
 import { getExpenses, getOwnerStatementApprovalsForProperties } from '../../../lib/db';
-import { reservationActsAsCancelled } from '../../../lib/reservationDates';
+import { isConfirmedReservation } from '../../../lib/reservationDates';
 import { aggregateAmountsByReportCategory, getCategoryType } from '../../../lib/bookkeepingCategories';
 import {
 	attachOwnerStatementInclusion,
@@ -73,7 +73,7 @@ export default async function handler(req, res) {
       const totalManualExpenses = manualExpenseRows.reduce((s, e) => s + e.amount, 0);
 
       const resvData = filterHiddenPropertyRows(reservations
-        .filter((r) => !reservationActsAsCancelled(r))
+        .filter(isConfirmedReservation)
         .map((r) => {
           const row = withReservationPropertyName(r, propMap);
           const fin = parseHostFinancials(r.financials?.host);

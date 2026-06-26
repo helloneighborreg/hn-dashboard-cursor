@@ -9,18 +9,22 @@ import {
 	CheckSquare,
 	DollarSign,
 	ChevronDown,
+	RefreshCw,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { fetchJson } from '../lib/apiClient';
+import { formatSyncResultAlert } from '../lib/syncResultMessage';
 import TaskModal from './TaskModal';
 import ExpenseModal from './ExpenseModal';
 import PageSearchInput from './PageSearchInput';
 import { useAuth } from './AuthContext';
+import { useTaskCounts } from './TaskCountsContext';
 import { isPathVisibleForRole } from '../lib/navPermissions';
 
 export default function AppActionBar({ className }) {
 	const router = useRouter();
 	const { isAdmin, user, navPermissions } = useAuth();
+	const { refreshTaskCounts } = useTaskCounts();
 	const canSearch = isPathVisibleForRole('/search', user?.role, navPermissions);
 	const [properties, setProperties] = useState([]);
 	const [propertiesLoading, setPropertiesLoading] = useState(false);
@@ -28,6 +32,7 @@ export default function AppActionBar({ className }) {
 	const [showExpenseModal, setShowExpenseModal] = useState(false);
 	const [search, setSearch] = useState('');
 	const [newMenuOpen, setNewMenuOpen] = useState(false);
+	const [syncing, setSyncing] = useState(false);
 	const todayLabel = format(new Date(), 'EEEE, MMMM d, yyyy');
 
 	async function ensureProperties() {
@@ -64,6 +69,20 @@ export default function AppActionBar({ className }) {
 		router.push(`/search?q=${encodeURIComponent(q)}`);
 	}
 
+	async function syncTasks() {
+		setSyncing(true);
+		try {
+			const json = await fetchJson('/api/tasks/sync', { method: 'POST' });
+			if (json) alert(formatSyncResultAlert(json));
+			await refreshTaskCounts({});
+			window.dispatchEvent(new CustomEvent('hn:tasks-synced'));
+		} catch (err) {
+			alert('Sync failed: ' + err.message);
+		} finally {
+			setSyncing(false);
+		}
+	}
+
 	return (
 		<>
 			{showTaskModal && (
@@ -88,7 +107,7 @@ export default function AppActionBar({ className }) {
 				)}
 			>
 				<p className="text-sm text-muted min-w-0">
-					Hello, <span className="font-medium text-dark">{user?.name || 'there'}</span>! Today is{' '}
+					Hello, <span className="font-medium text-dark">{user?.name || 'there'}.</span> Today is{' '}
 					<span className="font-medium text-dark">{todayLabel}</span>.
 				</p>
 
@@ -102,6 +121,18 @@ export default function AppActionBar({ className }) {
 								className="w-full"
 							/>
 						</form>
+					)}
+
+					{isAdmin && (
+						<button
+							type="button"
+							onClick={syncTasks}
+							disabled={syncing}
+							className="btn-secondary text-xs gap-1.5 justify-center"
+						>
+							<RefreshCw size={14} className={syncing ? 'animate-spin' : ''} />
+							{syncing ? 'Syncing…' : 'Sync'}
+						</button>
 					)}
 
 					{isAdmin && (

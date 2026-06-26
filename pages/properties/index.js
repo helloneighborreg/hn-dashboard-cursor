@@ -2,17 +2,19 @@ import { useState, useEffect, useMemo } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import Image from 'next/image';
-import { MapPin, Bed, Bath, Users } from 'lucide-react';
+import { MapPin, Bed, Bath } from 'lucide-react';
 import Layout from '../../components/Layout';
 import SegmentedToggle from '../../components/SegmentedToggle';
 import { PageLoader, ErrorState, EmptyState } from '../../components/LoadingSpinner';
 import Badge from '../../components/Badge';
 import { fetchJson } from '../../lib/apiClient';
 import { requireAuth } from '../../lib/auth';
+import { getPropertyFullName } from '../../lib/codes';
 
 function PropertyCard({ property }) {
   const addr = property.address;
   const cityState = addr ? `${addr.city}, ${addr.state}` : '';
+  const unitName = getPropertyFullName(property) || 'Property';
 
   return (
     <Link href={`/properties/${property.id}`} className="card overflow-hidden group hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-150 block">
@@ -21,7 +23,7 @@ function PropertyCard({ property }) {
         {property.picture ? (
           <Image
             src={property.picture}
-            alt={property.public_name}
+            alt={unitName}
             fill
             sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 33vw"
             className="object-cover group-hover:scale-105 transition-transform duration-300"
@@ -38,8 +40,7 @@ function PropertyCard({ property }) {
 
       {/* Info */}
       <div className="p-4">
-        <p className="text-xs text-brand-500 font-medium mb-1 truncate">{property.name || property.public_name}</p>
-        <h3 className="font-semibold text-dark text-sm leading-snug mb-2 line-clamp-2">{property.public_name}</h3>
+        <h3 className="font-semibold text-dark text-base leading-snug mb-2 line-clamp-2">{unitName}</h3>
 
         {cityState && (
           <p className="flex items-center gap-1.5 text-xs text-muted mb-3">
@@ -51,7 +52,6 @@ function PropertyCard({ property }) {
         <div className="flex items-center gap-4 text-xs text-muted">
           <span className="flex items-center gap-1"><Bed size={12} /> {property.capacity?.bedrooms ?? '–'} bed</span>
           <span className="flex items-center gap-1"><Bath size={12} /> {property.capacity?.bathrooms ?? '–'} bathrooms</span>
-          <span className="flex items-center gap-1"><Users size={12} /> {property.capacity?.max ?? '–'} guests</span>
         </div>
       </div>
     </Link>
@@ -90,9 +90,11 @@ export default function PropertiesPage() {
   ], [activeCount, inactiveCount]);
 
   const filtered = useMemo(() => {
-    return properties.filter((p) =>
-      statusFilter === 'active' ? p.listed : !p.listed
-    );
+    return properties
+      .filter((p) => (statusFilter === 'active' ? p.listed : !p.listed))
+      .sort((a, b) =>
+        (getPropertyFullName(a) || '').localeCompare(getPropertyFullName(b) || '', undefined, { sensitivity: 'base' })
+      );
   }, [properties, statusFilter]);
 
   return (
@@ -116,12 +118,12 @@ export default function PropertiesPage() {
             title={
               statusFilter === 'active'
                 ? 'No active properties'
-                : 'No inactive properties'
+                : 'No Inactive Properties'
             }
             message={
               statusFilter === 'active'
                 ? 'Listed properties from Hospitable will appear here'
-                : 'Unlisted properties from Hospitable will appear here'
+                : undefined
             }
           />
         )}

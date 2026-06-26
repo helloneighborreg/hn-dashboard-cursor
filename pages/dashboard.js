@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import clsx from 'clsx';
@@ -11,7 +11,6 @@ import { taskHeadline, taskGuestSubtitle, formatClock, formatDateShort, reservat
 import { formatDateOrDash } from '../lib/dates';
 import { fetchJson } from '../lib/apiClient';
 import Layout from '../components/Layout';
-import PageActionButtons from '../components/PageActionButtons';
 import StatCard from '../components/StatCard';
 import Badge from '../components/Badge';
 import { PageLoader, ErrorState } from '../components/LoadingSpinner';
@@ -64,7 +63,7 @@ function ReservationList({ items, emptyMsg, subtitle = 'code', footer = 'nights'
   );
 }
 
-function TaskList({ items, emptyMsg = 'No tasks due today' }) {
+function TaskList({ items, emptyMsg = 'No tasks due today', showDue = true }) {
   if (!items?.length) return <p className="text-muted text-sm py-4 text-center">{emptyMsg}</p>;
   return (
     <ul className="divide-y divide-border">
@@ -76,9 +75,11 @@ function TaskList({ items, emptyMsg = 'No tasks due today' }) {
               <span className="truncate">{taskGuestSubtitle(t)}</span>
               <TaskPetIndicator task={t} size={12} />
             </p>
-            <p className="text-xs text-muted mt-0.5">
-              Due {formatDateShort(t.due_date)} · {formatClock(t.due_time || '16:00')}
-            </p>
+            {showDue && (
+              <p className="text-xs text-muted mt-0.5">
+                Due {formatDateShort(t.due_date)} · {formatClock(t.due_time || '16:00')}
+              </p>
+            )}
           </div>
           <Badge label={t.status === 'unassigned' ? 'Unassigned' : t.status} variant={t.status} />
         </li>
@@ -104,7 +105,7 @@ function DashboardPanel({ title, href, children, collapsible = false, defaultOpe
       href={href}
       className="text-xs text-brand-500 hover:text-brand-600 flex items-center gap-1 flex-shrink-0"
     >
-      View all <ArrowRight size={12} />
+      View All <ArrowRight size={12} />
     </Link>
   );
 
@@ -145,25 +146,9 @@ function DashboardPanel({ title, href, children, collapsible = false, defaultOpe
 export default function DashboardPage() {
   const { isAdmin } = useAuth();
   const [data, setData] = useState(null);
-  const [overdueCount, setOverdueCount] = useState(0);
-  const [completedCount, setCompletedCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selected, setSelected] = useState(null);
-
-  async function loadTaskCounts() {
-    if (!isAdmin) return;
-    try {
-      const params = new URLSearchParams({ counts_only: 'true', _: String(Date.now()) });
-      const json = await fetchJson('/api/tasks?' + params);
-      if (json?.counts) {
-        setOverdueCount(json.counts.overdue ?? 0);
-        setCompletedCount(json.counts.completed ?? 0);
-      }
-    } catch {
-      // Keep existing counts on failure.
-    }
-  }
 
   async function load() {
     setLoading(true);
@@ -171,7 +156,6 @@ export default function DashboardPage() {
     try {
       const dashJson = await fetchJson('/api/dashboard');
       if (dashJson) setData(dashJson.data);
-      if (isAdmin) await loadTaskCounts();
     } catch (err) {
       setError(err.message);
     } finally {
@@ -179,7 +163,18 @@ export default function DashboardPage() {
     }
   }
 
+  const loadRef = useRef(load);
+  loadRef.current = load;
+
   useEffect(() => { load(); }, [isAdmin]);
+
+  useEffect(() => {
+    function onTasksSynced() {
+      loadRef.current();
+    }
+    window.addEventListener('hn:tasks-synced', onTasksSynced);
+    return () => window.removeEventListener('hn:tasks-synced', onTasksSynced);
+  }, []);
 
   const isTaskDashboard = data?.view === 'tasks';
 
@@ -220,16 +215,8 @@ export default function DashboardPage() {
           />
         )}
 
-        <div className="flex flex-col gap-4 mb-6 sm:flex-row sm:items-start sm:justify-between">
-          <div className="min-w-0">
-            <h1 className="text-xl sm:text-2xl font-bold text-dark">Dashboard</h1>
-          </div>
-          <PageActionButtons
-            onRefresh={load}
-            onSynced={load}
-            showSync
-            refreshing={loading}
-          />
+        <div className="mb-6">
+          <h1 className="text-xl sm:text-2xl font-bold text-dark">Dashboard</h1>
         </div>
 
         {loading && <PageLoader message="Loading dashboard…" />}
@@ -245,7 +232,7 @@ export default function DashboardPage() {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <DashboardPanel title="Tasks Due Today" href={taskLinks.tasksToday}>
-                <TaskList items={data.tasks_today} />
+                <TaskList items={data.tasks_today} showDue={false} />
               </DashboardPanel>
 
               <DashboardPanel title="Completed Tasks" href={taskLinks.completed}>
@@ -262,10 +249,10 @@ export default function DashboardPage() {
         {data && !loading && !isTaskDashboard && (
           <>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8 w-full auto-rows-fr">
-              <StatCard label="Check-ins Today" value={data.stats.checkins_today} icon={LogIn} color="green" href={adminLinks?.checkinsToday} />
+              <StatCard label="Check-Ins Today" value={data.stats.checkins_today} icon={LogIn} color="green" href={adminLinks?.checkinsToday} />
               <StatCard label="Checkouts Today" value={data.stats.checkouts_today} icon={LogOutIcon} color="green" href={adminLinks?.checkoutsToday} />
               <StatCard label="Tasks Due Today" value={data.stats.tasks_today} icon={CheckSquare} color="green" href={adminLinks?.tasksToday} />
-              <StatCard label="Upcoming Check-ins" value={data.stats.upcoming_checkins} icon={CalendarDays} color="brand" href={adminLinks?.upcomingCheckins} />
+              <StatCard label="Upcoming Check-Ins" value={data.stats.upcoming_checkins} icon={CalendarDays} color="brand" href={adminLinks?.upcomingCheckins} />
               <StatCard label="Upcoming Checkouts" value={data.stats.upcoming_checkouts} icon={CalendarDays} color="brand" href={adminLinks?.upcomingCheckouts} />
               <StatCard
                 label="Unassigned Tasks"
@@ -276,14 +263,14 @@ export default function DashboardPage() {
               />
               <StatCard
                 label="Completed Tasks"
-                value={completedCount}
+                value={data.stats.tasks_completed ?? 0}
                 icon={CircleCheckBig}
                 color="green"
                 href={adminLinks?.completed}
               />
               <StatCard
                 label="Overdue Tasks"
-                value={overdueCount}
+                value={data.stats.tasks_overdue ?? 0}
                 icon={AlertCircle}
                 color="red"
                 href={adminLinks?.overdue}
@@ -302,10 +289,10 @@ export default function DashboardPage() {
               </DashboardPanel>
 
               <DashboardPanel title="Tasks Due Today" href={adminLinks?.tasksToday || '/tasks/assigned'} collapsible>
-                <TaskList items={data.tasks_today} />
+                <TaskList items={data.tasks_today} showDue={false} />
               </DashboardPanel>
 
-              <DashboardPanel title="Upcoming Check-ins (7 days)" href={adminLinks?.upcomingCheckins || '/reservations'} collapsible>
+              <DashboardPanel title="Upcoming Check-Ins (Next 7 Days)" href={adminLinks?.upcomingCheckins || '/reservations'} collapsible>
                 <ReservationList
                   items={data.upcoming_check_ins}
                   emptyMsg="No upcoming check-ins"
@@ -315,7 +302,7 @@ export default function DashboardPage() {
                 />
               </DashboardPanel>
 
-              <DashboardPanel title="Upcoming Checkouts (7 days)" href={adminLinks?.upcomingCheckouts || '/reservations'} collapsible>
+              <DashboardPanel title="Upcoming Checkouts (Next 7 Days)" href={adminLinks?.upcomingCheckouts || '/reservations'} collapsible>
                 <ReservationList
                   items={data.upcoming_check_outs}
                   emptyMsg="No upcoming checkouts"

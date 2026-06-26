@@ -316,6 +316,15 @@ export default function TasksPageView() {
 		router.query.today,
 	]);
 
+	useEffect(() => {
+		function onTasksSynced() {
+			loadTasks();
+			refreshCounts();
+		}
+		window.addEventListener('hn:tasks-synced', onTasksSynced);
+		return () => window.removeEventListener('hn:tasks-synced', onTasksSynced);
+	}, [loadTasks, refreshCounts]);
+
 	const handleAssigneeChanged = useCallback(({ assignee, notified, error: assigneeError }) => {
 		if (assigneeError) {
 			setFlash({ type: 'error', message: assigneeError });
@@ -401,8 +410,6 @@ export default function TasksPageView() {
 						/>
 						<PageActionButtons
 							onRefresh={loadTasks}
-							onSynced={loadTasks}
-							showSync={isAdmin}
 							refreshing={refreshing || loading}
 						/>
 					</div>
