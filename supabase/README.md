@@ -44,7 +44,7 @@ Never commit or expose the service role key in the browser. It is only used in N
 
 ## 4. Environment variables
 
-Add to `env.local` (or Vercel):
+Add to `env.local` (or Cloudflare Worker secrets):
 
 ```env
 SUPABASE_URL=https://xxxxx.supabase.co
@@ -134,6 +134,12 @@ Property → checklist mapping is in `lib/propertyChecklists.js` (CJC units only
 
 **Status dot colors:** red = overdue, orange = hold, yellow = assigned, green = completed.
 
-## 7. Deploy on Vercel
+## 7. Deploy
 
-Import the GitHub repo, add all env vars (dashboard password, Hospitable token, session secret, Supabase URL + service role), deploy.
+The app runs on **Cloudflare Workers** (OpenNext), not Vercel. See **`docs/CLOUDFLARE.md`** for build/deploy commands and the full env checklist.
+
+```bash
+npm run deploy:cloudflare
+```
+
+Always deploy with `--keep-vars` (included in that script) so dashboard secrets are not wiped.

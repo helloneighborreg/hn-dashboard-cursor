@@ -30,7 +30,7 @@ Set **`DASHBOARD_USERS`** (recommended) as a JSON array:
 ]
 ```
 
-In Vercel/local `.env`, put it on one line:
+In Cloudflare (Worker secret) or local `env.local`, put it on one line:
 
 ```bash
 DASHBOARD_USERS=[{"username":"josiah","name":"Josiah Burton","role":"admin","password":"...","email":"josiah@example.com"},{"username":"brandi","name":"Brandi Drieslein","role":"cleaner","password":"...","email":"brandi@example.com","phone":"+15551234567"}]
