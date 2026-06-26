@@ -106,7 +106,9 @@ Optional — rename query params if you change the form schema:
 CHECKLIST_URL_PARAM_MAP={"property":"Property","guest":"Guest","reservation_id":"ReservationID","checkout_date":"CheckOut","task_id":"TaskID","assignee":"assignee"}
 ```
 
-`FILLOUT_URL_PARAM_MAP` is still accepted as a legacy alias.
+`CHECKLIST_URL_PARAM_MAP` is still accepted as a legacy alias. `FILLOUT_URL_PARAM_MAP` is an older alias for the same setting.
+
+Fillout (`FILLOUT_*` env vars) is legacy — CJC properties use the in-app checklist above. Fillout is only needed for properties not mapped in `lib/propertyChecklists.js`.
 
 Parameters sent from Tasks:
 

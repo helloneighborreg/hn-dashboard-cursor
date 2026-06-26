@@ -42,6 +42,19 @@ const ENV_GROUPS = [
 		title: 'Optional — Plaid',
 		keys: ['PLAID_CLIENT_ID', 'PLAID_SECRET', 'PLAID_ENV'],
 	},
+	{
+		title: 'Optional — legacy Fillout (not used when in-app checklists cover all properties)',
+		keys: [
+			'FILLOUT_API_TOKEN',
+			'FILLOUT_WEBHOOK_SECRET',
+			'FILLOUT_CHECKLIST_BASE_URL',
+			'FILLOUT_CHECKLIST_FORMS',
+		],
+	},
+	{
+		title: 'Legacy — remove if unset (prefer DASHBOARD_USERS)',
+		keys: ['DASHBOARD_PASSWORD'],
+	},
 ];
 
 function isSet(key) {

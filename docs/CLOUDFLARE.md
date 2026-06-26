@@ -45,11 +45,19 @@ node scripts/print-dashboard-users.mjs
 | `HOSPITABLE_API_TOKEN` | Hospitable → Settings → API access |
 | `SUPABASE_URL` | Project URL from Supabase API settings |
 | `SUPABASE_SERVICE_ROLE_KEY` | service_role secret key |
-| `FILLOUT_CHECKLIST_FORMS` or `FILLOUT_CHECKLIST_BASE_URL` | Checklist form URLs |
-| `FILLOUT_WEBHOOK_SECRET` | Same value as Fillout webhook header |
 | `CRON_SECRET` | Random string for scheduled task sync (`/api/tasks/sync-cron`) |
 
-See `.env.local.example` for optional notification, Plaid, and Fillout backfill vars.
+### Optional — legacy Fillout
+
+Only needed if some properties still use external Fillout forms (not the in-app CJC checklist). If unset, skip these — CJC units use `/forms/cjc-turn-clean-checklist`.
+
+| Variable | Notes |
+|----------|--------|
+| `FILLOUT_CHECKLIST_FORMS` or `FILLOUT_CHECKLIST_BASE_URL` | External checklist URLs for unmapped properties |
+| `FILLOUT_WEBHOOK_SECRET` | Fillout webhook header secret |
+| `FILLOUT_API_TOKEN` | For one-time backfill: `npm run db:backfill-fillout` |
+
+See `.env.local.example` for optional notification, Plaid, and other vars.
 
 ### DASHBOARD_USERS in Cloudflare
 

@@ -1,5 +1,5 @@
 import { withAuth } from '../../../../lib/auth';
-import { getSupplyOrders, createSupplyOrder } from '../../../../lib/suppliesDb';
+import { getSupplyOrders, saveSupplyDraft, submitSupplyOrder } from '../../../../lib/suppliesDb';
 
 export default async function handler(req, res) {
 	await withAuth(req, res, async (session) => {
@@ -9,7 +9,7 @@ export default async function handler(req, res) {
 		if (req.method === 'POST') {
 			const { items, location, notes } = req.body;
 			if (!items?.length) return res.status(400).json({ error: 'items are required' });
-			const order = await createSupplyOrder({
+			const draft = await saveSupplyDraft({
 				items: items.map((item) => ({
 					product_id: item.product_id,
 					quantity: Math.max(1, parseInt(item.quantity, 10) || 1),
@@ -20,6 +20,8 @@ export default async function handler(req, res) {
 				notes: notes?.trim() || null,
 				created_by: session?.user?.name || session?.user?.username || null,
 			});
+			if (!draft) return res.status(400).json({ error: 'Order must include at least one item' });
+			const order = await submitSupplyOrder(draft.id);
 			return res.status(201).json({ data: order });
 		}
 		res.status(405).end();

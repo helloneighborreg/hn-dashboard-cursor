@@ -6,11 +6,7 @@ import { fetchJson } from '../lib/apiClient';
 import { todayIso } from '../lib/dates';
 import { useEscapeKey } from '../lib/useEscapeKey';
 import { useFocusTrap } from '../lib/useFocusTrap';
-import { BOOKKEEPING_EXPENSE_CATEGORIES } from '../lib/bookkeepingCategories';
 import { getPropertyDisplayName } from '../lib/codes';
-
-/** @deprecated Use BOOKKEEPING_EXPENSE_CATEGORIES from lib/bookkeepingCategories.js */
-export const EXPENSE_CATEGORIES = BOOKKEEPING_EXPENSE_CATEGORIES;
 
 export default function ExpenseModal({ properties, onClose, onSaved, title = 'Add Transaction' }) {
   const [form, setForm] = useState({

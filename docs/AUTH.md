@@ -36,13 +36,9 @@ In Cloudflare (Worker secret) or local `env.local`, put it on one line:
 DASHBOARD_USERS=[{"username":"josiah","name":"Josiah Burton","role":"admin","password":"...","email":"josiah@example.com"},{"username":"brandi","name":"Brandi Drieslein","role":"cleaner","password":"...","email":"brandi@example.com","phone":"+15551234567"}]
 ```
 
-For production, use bcrypt hashes instead of plain passwords (same format as `DASHBOARD_PASSWORD` — values starting with `$2` are verified with bcrypt).
+For production, use bcrypt hashes instead of plain passwords (values starting with `$2` are verified with bcrypt).
 
 Optional **`email`** and **`phone`** on each user are used when that person is selected as a task assignee. **Admin** users with an **`email`** also receive task-change and completion notifications (or set `TASK_CHANGE_NOTIFY_EMAIL` / `TASK_COMPLETION_NOTIFY_EMAIL` — see `supabase/README.md`).
-
-### Legacy single admin
-
-If only **`DASHBOARD_PASSWORD`** is set, one admin account is created (`username`: `admin`). Username on the login form is optional.
 
 Also required: **`SESSION_SECRET`** (32+ random characters).
 
