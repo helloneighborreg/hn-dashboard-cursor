@@ -5,6 +5,7 @@ import { addDays, format } from 'date-fns';
 import {
   LogIn, LogOut as LogOutIcon, CheckSquare,
   CalendarDays, ArrowRight, AlertCircle, CircleCheckBig,
+  ListChecks,
 } from 'lucide-react';
 import { taskHeadline, taskGuestSubtitle, formatClock, formatDateShort, reservationHeadline } from '../lib/taskDisplay';
 import { formatDateOrDash } from '../lib/dates';
@@ -17,6 +18,7 @@ import { PageLoader, ErrorState } from '../components/LoadingSpinner';
 import ReservationPanel, { reservationGuestName } from '../components/ReservationPanel';
 import TaskPetIndicator from '../components/TaskPetIndicator';
 import { requireAuth } from '../lib/auth';
+import { externalLinkProps } from '../lib/linkTarget';
 
 function reservationSubtitle(r, mode) {
   if (mode === 'guest-only') return reservationGuestName(r);
@@ -78,7 +80,19 @@ function TaskList({ items }) {
               Due {formatDateShort(t.due_date)} · {formatClock(t.due_time || '16:00')}
             </p>
           </div>
-          <Badge label={t.status === 'unassigned' ? 'Unassigned' : t.status} variant={t.status} />
+          <div className="flex flex-col items-end gap-2 flex-shrink-0">
+            <Badge label={t.status === 'unassigned' ? 'Unassigned' : t.status} variant={t.status} />
+            {t.checklist_url && (
+              <a
+                href={t.checklist_url}
+                className="inline-flex items-center gap-1.5 rounded border border-border px-2 py-1 text-xs font-medium text-brand-600 hover:bg-brand-50 hover:border-brand-200"
+                {...externalLinkProps(t.checklist_url)}
+              >
+                <ListChecks size={13} />
+                Open
+              </a>
+            )}
+          </div>
         </li>
       ))}
     </ul>

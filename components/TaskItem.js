@@ -8,6 +8,7 @@ import TaskStatusIndicator from './TaskStatusIndicator';
 import TaskCleanerStatus from './TaskCleanerStatus';
 import AdminCompleteButton from './AdminCompleteButton';
 import TaskPetIndicator from './TaskPetIndicator';
+import { externalLinkProps } from '../lib/linkTarget';
 
 export function useTaskActions(task, onUpdate, onAssigneeChanged) {
 	const [saving, setSaving] = useState(false);
@@ -38,18 +39,23 @@ export function useTaskActions(task, onUpdate, onAssigneeChanged) {
 	return { patch, saving };
 }
 
-function ChecklistLink({ url, label = 'Open checklist' }) {
+function ChecklistLink({ url, label = 'Open checklist', compact = true }) {
 	if (!url) return <span className="text-xs text-muted">—</span>;
 	return (
 		<a
 			href={url}
-			target="_blank"
-			rel="noopener noreferrer"
-			className="inline-flex items-center justify-center w-8 h-8 border border-border rounded text-muted hover:text-dark hover:bg-gray-50 transition-colors"
+			className={clsx(
+				'inline-flex items-center justify-center border border-border rounded transition-colors',
+				compact
+					? 'w-8 h-8 text-muted hover:text-dark hover:bg-gray-50'
+					: 'gap-1.5 px-3 py-2 text-xs font-medium text-brand-600 hover:bg-brand-50 hover:border-brand-200',
+			)}
 			title={label}
 			aria-label={label}
+			{...externalLinkProps(url)}
 		>
 			<ListChecks size={16} />
+			{!compact && <span>{label}</span>}
 		</a>
 	);
 }
@@ -59,11 +65,10 @@ function ChecklistPdfLink({ url }) {
 	return (
 		<a
 			href={url}
-			target="_blank"
-			rel="noopener noreferrer"
 			className="inline-flex items-center justify-center w-8 h-8 border border-border rounded text-muted hover:text-dark hover:bg-gray-50 transition-colors"
 			title="View PDF"
 			aria-label="View PDF"
+			{...externalLinkProps(url)}
 		>
 			<FileText size={16} />
 		</a>
@@ -179,7 +184,7 @@ export function TaskItem({ task, variant, onUpdate, onAssigneeChanged, onSelect,
 				</dl>
 
 				<div className="flex items-center gap-2 flex-wrap" onClick={stopOpen}>
-					<ChecklistLink url={checklistUrl} label={checklistLabel} />
+					<ChecklistLink url={checklistUrl} label={checklistLabel} compact={false} />
 					{!isCompletedTab && <ChecklistPdfLink url={task.checklist_pdf_url} />}
 				</div>
 
