@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { X, Home, CalendarDays, Clock, User, FileText, ExternalLink, Cat, UserCircle, Trash2 } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import Link from 'next/link';
+import { X, Home, CalendarDays, Clock, User, FileText, ExternalLink, Cat, UserCircle, Trash2, AlertTriangle } from 'lucide-react';
 import clsx from 'clsx';
 import { taskIsOverdue } from '../lib/constants';
 import {
@@ -22,6 +23,7 @@ import TaskPaidIndicator from './TaskPaidIndicator';
 import { useTaskActions } from './TaskItem';
 import { useAuth } from './AuthContext';
 import { canViewReservationData } from '../lib/roles';
+import { getTaskChecklistHref } from '../lib/checklistUrl';
 
 function DetailRow({ icon: Icon, label, value, mono, highlight, children }) {
 	const content = children ?? value;
@@ -56,6 +58,19 @@ export default function TaskDetailModal({ task, onClose, onUpdate, onDeleted, sh
 	const { patch, saving, remove, deleting } = useTaskActions(task, onUpdate, undefined, onDeleted);
 	const [confirmDelete, setConfirmDelete] = useState(false);
 	const [deleteError, setDeleteError] = useState('');
+	const openChecklistUrl = useMemo(
+		() => (task ? getTaskChecklistHref(task, { completed: false }) : null),
+		[task],
+	);
+	const completedChecklistUrl = useMemo(
+		() => (task ? getTaskChecklistHref(task, { completed: true }) : null),
+		[task],
+	);
+	const needsPhotoReview = task?.checklist_review_status === 'needs_review';
+
+	async function handleApprovePhotoReview() {
+		await patch({ checklist_review_status: 'approved' });
+	}
 
 	async function handleDelete() {
 		setDeleteError('');
@@ -122,6 +137,12 @@ export default function TaskDetailModal({ task, onClose, onUpdate, onDeleted, sh
 						{isOverdue && (
 							<span className="text-xs font-medium text-red-600 bg-red-50 px-2 py-0.5 rounded-full">
 								Overdue
+							</span>
+						)}
+						{showAssignee && needsPhotoReview && (
+							<span className="inline-flex items-center gap-1 text-xs font-medium text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full">
+								<AlertTriangle size={12} />
+								Photo review needed
 							</span>
 						)}
 					</div>
@@ -223,27 +244,58 @@ export default function TaskDetailModal({ task, onClose, onUpdate, onDeleted, sh
 						)
 					)}
 					{deleteError && <p className="text-red-600 text-sm">{deleteError}</p>}
-					{task.checklist_url && task.status !== 'completed' && (
-						<a
-							href={task.checklist_url}
-							target="_blank"
-							rel="noopener noreferrer"
-							className="flex items-center justify-center gap-2 w-full btn-primary text-sm"
-						>
-							<ExternalLink size={14} />
-							Open Checklist
-						</a>
+					{openChecklistUrl && task.status !== 'completed' && (
+						openChecklistUrl.startsWith('/') ? (
+							<Link
+								href={openChecklistUrl}
+								className="flex items-center justify-center gap-2 w-full btn-primary text-sm"
+							>
+								<ExternalLink size={14} />
+								Open Checklist
+							</Link>
+						) : (
+							<a
+								href={openChecklistUrl}
+								target="_blank"
+								rel="noopener noreferrer"
+								className="flex items-center justify-center gap-2 w-full btn-primary text-sm"
+							>
+								<ExternalLink size={14} />
+								Open Checklist
+							</a>
+						)
 					)}
-					{task.completed_checklist_url && (
-						<a
-							href={task.completed_checklist_url}
-							target="_blank"
-							rel="noopener noreferrer"
-							className="flex items-center justify-center gap-2 w-full btn-secondary text-sm"
+					{showAssignee && needsPhotoReview && (
+						<button
+							type="button"
+							onClick={handleApprovePhotoReview}
+							disabled={saving}
+							className="flex items-center justify-center gap-2 w-full btn-secondary text-sm text-amber-800 border-amber-200 bg-amber-50 hover:bg-amber-100"
 						>
-							<ExternalLink size={14} />
-							View Completed Checklist
-						</a>
+							<AlertTriangle size={14} />
+							{saving ? 'Saving…' : 'Mark photo review complete'}
+						</button>
+					)}
+					{completedChecklistUrl && task.status === 'completed' && (
+						completedChecklistUrl.startsWith('/') ? (
+							<Link
+								href={completedChecklistUrl}
+								className="flex items-center justify-center gap-2 w-full btn-secondary text-sm"
+							>
+								<ExternalLink size={14} />
+								View Completed Checklist
+							</Link>
+						) : (
+							<a
+								href={completedChecklistUrl}
+								target="_blank"
+								rel="noopener noreferrer"
+								className="flex items-center justify-center gap-2 w-full btn-secondary text-sm"
+							>
+								<ExternalLink size={14} />
+								View Completed Checklist
+							</a>
+						)
 					)}
 					{task.checklist_pdf_url && (
 						<a

@@ -23,6 +23,7 @@ function UtilityView({ form }) {
 					label="Base Cleaning Rate"
 					value={form.base_cleaning_rate ? fmt$(form.base_cleaning_rate) : ''}
 				/>
+				<PropertyFieldRow label="Checkout Code" value={form.checkout_code} />
 			</PropertyFieldGroup>
 
 			<PropertyFieldGroup title="Utilities" className="pt-2 border-t border-border/40">
@@ -121,6 +122,22 @@ export default function PropertyUtilityInfoSection({ propertyId, embedded = fals
 						onChange={(value) => setForm((f) => ({ ...f, base_cleaning_rate: value }))}
 					/>
 					<p className="text-xs text-muted mt-1">Used as the base clean fee on CJC turn clean checklists. Defaults to $0 when blank.</p>
+				</div>
+				<div>
+					<label className="label" htmlFor="checkout-code">Checkout Code</label>
+					<input
+						id="checkout-code"
+						type="text"
+						maxLength={6}
+						className="input font-mono uppercase tracking-widest"
+						value={form.checkout_code}
+						onChange={(e) => {
+							const raw = e.target.value.toUpperCase().replace(/[^0-9A-Z]/g, '').slice(0, 6);
+							setForm((f) => ({ ...f, checkout_code: raw }));
+						}}
+						placeholder="123ABC"
+					/>
+					<p className="text-xs text-muted mt-1">3 digits + 3 letters. Unique per property.</p>
 				</div>
 			</div>
 

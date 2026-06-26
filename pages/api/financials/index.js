@@ -9,6 +9,7 @@ import {
 	attachOwnerStatementInclusion,
 	mapApprovedManualExpenseInclusions,
 } from '../../../lib/ownerStatementReport';
+import { filterHiddenPropertyRows, isHiddenPropertyId } from '../../../lib/hiddenProperties';
 
 export default async function handler(req, res) {
   await withAuth(req, res, async () => {
@@ -16,6 +17,31 @@ export default async function handler(req, res) {
     const { property, date_from, date_to } = req.query;
 
     try {
+      if (property && isHiddenPropertyId(property)) {
+        return res.json({
+          data: {
+            summary: {
+              total_revenue: 0,
+              total_nights: 0,
+              total_reservations: 0,
+              total_expenses: 0,
+              net_income: 0,
+              occupancy_rate: 0,
+              adr: 0,
+              revpar: 0,
+              properties_count: 0,
+            },
+            monthly_chart: [],
+            by_property: [],
+            property_profitability: [],
+            by_platform: [],
+            expense_by_category: [],
+            reservations: [],
+            expenses: [],
+          },
+        });
+      }
+
       const properties = await getProperties();
       const propMap = buildPropertyMap(properties);
       const codeToNameMap = buildPropertyCodeToNameMap(properties);
@@ -35,7 +61,7 @@ export default async function handler(req, res) {
       if (date_to) expFilters.date_to = date_to;
       const statementApprovals = await getOwnerStatementApprovalsForProperties(ids);
       const manualExpenseInclusions = mapApprovedManualExpenseInclusions(statementApprovals);
-      const manualExpenses = (await getExpenses(expFilters)).map((e) =>
+      const manualExpenses = filterHiddenPropertyRows(await getExpenses(expFilters)).map((e) =>
         attachOwnerStatementInclusion(
           formatPropertyNameForRow(e, codeToNameMap, propMap),
           manualExpenseInclusions,
@@ -46,7 +72,7 @@ export default async function handler(req, res) {
       const totalManualIncome = manualIncome.reduce((s, e) => s + e.amount, 0);
       const totalManualExpenses = manualExpenseRows.reduce((s, e) => s + e.amount, 0);
 
-      const resvData = reservations
+      const resvData = filterHiddenPropertyRows(reservations
         .filter((r) => !reservationActsAsCancelled(r))
         .map((r) => {
           const row = withReservationPropertyName(r, propMap);
@@ -73,7 +99,7 @@ export default async function handler(req, res) {
             owner_payout: fin.revenue,
             month: (r.check_in || r.arrival_date || '').slice(0, 7),
           };
-        });
+        }));
 
       const totalRevenue = resvData.reduce((s, r) => s + r.revenue, 0) + totalManualIncome;
       const totalNights  = resvData.reduce((s, r) => s + (r.nights || 0), 0);

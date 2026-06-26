@@ -7,6 +7,7 @@ import { withChecklistUrl } from '../../../lib/checklistUrl';
 import { enrichTasks } from '../../../lib/taskEnrich';
 import { sanitizeTasksForViewer, sanitizeTaskForViewer } from '../../../lib/taskSanitize';
 import { notifyTaskAssigned } from '../../../lib/notify';
+import { filterHiddenPropertyRows, isHiddenPropertyId } from '../../../lib/hiddenProperties';
 import { v4 as uuidv4 } from 'uuid';
 
 function buildScopeFilters(query, session) {
@@ -71,11 +72,14 @@ export default async function handler(req, res) {
       if (req.method === 'GET') {
         res.setHeader('Cache-Control', 'no-store');
         const { today, counts_only } = req.query;
+        if (isHiddenPropertyId(req.query.property_id)) {
+          return res.json(counts_only === 'true' ? { counts: {} } : { data: [], counts: {} });
+        }
         const scopeFilters = buildScopeFilters(req.query, session);
         const listFilters = applyTabFilter(scopeFilters, req.query, session);
 
         const rows = today === 'true' ? await getTasksForToday() : await getTasks(listFilters);
-        const enriched = await enrichTasks(rows);
+        const enriched = await enrichTasks(filterHiddenPropertyRows(rows));
         const limitedView = hasLimitedTasksView(session.user);
         let data = limitedView
           ? enriched.filter((t) => t.assignee === session.user.name).map(withChecklistUrl)
@@ -92,7 +96,7 @@ export default async function handler(req, res) {
           const countRows = today === 'true'
             ? await getTasksForToday()
             : await getTasks(scopeFilters);
-          const countEnriched = await enrichTasks(countRows);
+          const countEnriched = await enrichTasks(filterHiddenPropertyRows(countRows));
           const scoped = limitedView
             ? countEnriched.filter((t) => t.assignee === session.user.name)
             : countEnriched;
@@ -102,7 +106,7 @@ export default async function handler(req, res) {
         const countRows = today === 'true'
           ? await getTasksForToday()
           : await getTasks(scopeFilters);
-        const countEnriched = await enrichTasks(countRows);
+        const countEnriched = await enrichTasks(filterHiddenPropertyRows(countRows));
         const scoped = limitedView
           ? countEnriched.filter((t) => t.assignee === session.user.name)
           : countEnriched;
@@ -120,6 +124,9 @@ export default async function handler(req, res) {
 
         if (!property_id || !due_date || !title?.trim())
           return res.status(400).json({ error: 'property_id, due_date, and title are required' });
+        if (isHiddenPropertyId(property_id)) {
+          return res.status(404).json({ error: 'Property not found' });
+        }
 
         const propCode = property_name || '';
         const task = await createTask({

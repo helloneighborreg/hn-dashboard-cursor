@@ -18,6 +18,7 @@ import { sortTasksByDateAsc, sortTasksByDateDesc } from '../../../lib/constants'
 import { enrichTasks } from '../../../lib/taskEnrich';
 import { withChecklistUrl } from '../../../lib/checklistUrl';
 import { sanitizeTasksForViewer } from '../../../lib/taskSanitize';
+import { filterHiddenPropertyRows } from '../../../lib/hiddenProperties';
 import { format, addDays } from 'date-fns';
 
 const CACHE_TTL_MS = 60_000;
@@ -104,9 +105,9 @@ async function buildUserTaskDashboardData(session, navPermissions) {
 	]);
 
 	const [todayEnriched, completedEnriched, overdueEnriched] = await Promise.all([
-		enrichTasks(todayRows),
-		enrichTasks(completedRows),
-		enrichTasks(overdueRows),
+		enrichTasks(filterHiddenPropertyRows(todayRows)),
+		enrichTasks(filterHiddenPropertyRows(completedRows)),
+		enrichTasks(filterHiddenPropertyRows(overdueRows)),
 	]);
 
 	const tasksToday = sortTasksByDateAsc(

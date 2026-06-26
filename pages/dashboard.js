@@ -1,10 +1,11 @@
 import { useState, useEffect, useMemo } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
+import clsx from 'clsx';
 import { addDays, format } from 'date-fns';
 import {
   LogIn, LogOut as LogOutIcon, CheckSquare,
-  CalendarDays, ArrowRight, AlertCircle, CircleCheckBig,
+  CalendarDays, ArrowRight, AlertCircle, CircleCheckBig, ChevronDown,
 } from 'lucide-react';
 import { taskHeadline, taskGuestSubtitle, formatClock, formatDateShort, reservationHeadline } from '../lib/taskDisplay';
 import { formatDateOrDash } from '../lib/dates';
@@ -95,19 +96,48 @@ function reservationQuery({ start, end, tab } = {}) {
   return q ? `/reservations?${q}` : '/reservations';
 }
 
-function DashboardPanel({ title, href, children }) {
+function DashboardPanel({ title, href, children, collapsible = false, defaultOpen = true }) {
+  const [open, setOpen] = useState(defaultOpen);
+
+  const viewAllLink = (
+    <Link
+      href={href}
+      className="text-xs text-brand-500 hover:text-brand-600 flex items-center gap-1 flex-shrink-0"
+    >
+      View all <ArrowRight size={12} />
+    </Link>
+  );
+
   return (
     <div className="card p-5">
-      <Link
-        href={href}
-        className="flex items-center justify-between mb-4 -mx-1 px-1 py-1 rounded-lg hover:bg-gray-50 transition-colors group"
-      >
-        <h2 className="font-semibold text-dark text-sm group-hover:text-brand-600">{title}</h2>
-        <span className="text-xs text-brand-500 group-hover:text-brand-600 flex items-center gap-1">
-          View all <ArrowRight size={12} />
-        </span>
-      </Link>
-      {children}
+      <div className={clsx('flex items-center justify-between gap-3', (open || !collapsible) && 'mb-4')}>
+        {collapsible ? (
+          <>
+            <button
+              type="button"
+              onClick={() => setOpen((prev) => !prev)}
+              className="flex items-center gap-2 min-w-0 -mx-1 px-1 py-1 rounded-lg hover:bg-gray-50 transition-colors text-left group"
+              aria-expanded={open}
+            >
+              <h2 className="font-semibold text-dark text-sm group-hover:text-brand-600">{title}</h2>
+              <ChevronDown
+                size={16}
+                className={clsx('text-muted flex-shrink-0 transition-transform', open && 'rotate-180')}
+              />
+            </button>
+            {viewAllLink}
+          </>
+        ) : (
+          <Link
+            href={href}
+            className="flex items-center justify-between w-full -mx-1 px-1 py-1 rounded-lg hover:bg-gray-50 transition-colors group"
+          >
+            <h2 className="font-semibold text-dark text-sm group-hover:text-brand-600">{title}</h2>
+            {viewAllLink}
+          </Link>
+        )}
+      </div>
+      {(!collapsible || open) && children}
     </div>
   );
 }
@@ -261,7 +291,7 @@ export default function DashboardPage() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <DashboardPanel title="Occupied Today" href={adminLinks?.occupied || '/reservations'}>
+              <DashboardPanel title="Occupied Today" href={adminLinks?.occupied || '/reservations'} collapsible>
                 <ReservationList
                   items={data.occupied}
                   emptyMsg="No units occupied today"
@@ -271,11 +301,11 @@ export default function DashboardPage() {
                 />
               </DashboardPanel>
 
-              <DashboardPanel title="Tasks Due Today" href={adminLinks?.tasksToday || '/tasks/assigned'}>
+              <DashboardPanel title="Tasks Due Today" href={adminLinks?.tasksToday || '/tasks/assigned'} collapsible>
                 <TaskList items={data.tasks_today} />
               </DashboardPanel>
 
-              <DashboardPanel title="Upcoming Check-ins (7 days)" href={adminLinks?.upcomingCheckins || '/reservations'}>
+              <DashboardPanel title="Upcoming Check-ins (7 days)" href={adminLinks?.upcomingCheckins || '/reservations'} collapsible>
                 <ReservationList
                   items={data.upcoming_check_ins}
                   emptyMsg="No upcoming check-ins"
@@ -285,7 +315,7 @@ export default function DashboardPage() {
                 />
               </DashboardPanel>
 
-              <DashboardPanel title="Upcoming Checkouts (7 days)" href={adminLinks?.upcomingCheckouts || '/reservations'}>
+              <DashboardPanel title="Upcoming Checkouts (7 days)" href={adminLinks?.upcomingCheckouts || '/reservations'} collapsible>
                 <ReservationList
                   items={data.upcoming_check_outs}
                   emptyMsg="No upcoming checkouts"

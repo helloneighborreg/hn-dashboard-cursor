@@ -2,6 +2,7 @@ import { withAuth } from '../../../lib/auth';
 import { getExpenses, createExpense } from '../../../lib/db';
 import { getProperties, buildPropertyMap } from '../../../lib/hospitable';
 import { buildPropertyCodeToNameMap, formatPropertyNameForRow } from '../../../lib/codes';
+import { filterHiddenPropertyRows, isHiddenPropertyId } from '../../../lib/hiddenProperties';
 import { v4 as uuidv4 } from 'uuid';
 
 async function enrichExpenses(rows) {
@@ -18,15 +19,21 @@ export default async function handler(req, res) {
       const { property_id, date_from, date_to, category } = req.query;
       const filters = {};
       if (property_id) filters.property_id = property_id;
+      if (property_id && isHiddenPropertyId(property_id)) {
+        return res.json({ data: [] });
+      }
       if (date_from)   filters.date_from = date_from;
       if (date_to)     filters.date_to = date_to;
       if (category)    filters.category = category;
-      return res.json({ data: await enrichExpenses(await getExpenses(filters)) });
+      return res.json({ data: await enrichExpenses(filterHiddenPropertyRows(await getExpenses(filters))) });
     }
     if (req.method === 'POST') {
       const { date, property_id, property_name, category, vendor, amount, notes, receipt_url } = req.body;
       if (!date || !property_id || !category || amount == null)
         return res.status(400).json({ error: 'date, property_id, category, and amount are required' });
+      if (isHiddenPropertyId(property_id)) {
+        return res.status(404).json({ error: 'Property not found' });
+      }
       const expense = await createExpense({
         id: uuidv4(), date, property_id, property_name: property_name || '',
         category, vendor: vendor || null, amount: parseFloat(amount),

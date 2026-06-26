@@ -163,6 +163,43 @@ for (const table of ['supply_products', 'supply_inventory', 'supply_orders', 'su
 	}
 }
 
+const { error: supplyOrderColErr } = await supabase
+	.from('supply_orders')
+	.select('delivered_at, paid_at, paid_by, expense_id')
+	.limit(0);
+
+if (supplyOrderColErr?.code === '42703' || /delivered_at|paid_at|paid_by|expense_id/i.test(supplyOrderColErr?.message || '')) {
+	console.error('✗ supply_orders missing delivery/payment columns (delivered_at, paid_at, paid_by, expense_id)');
+	console.error('  → Run supabase/migrations/20260712_supply_order_delivered_paid.sql in Supabase SQL Editor');
+	ok = false;
+} else if (supplyOrderColErr) {
+	console.error(`✗ supply_orders column check: ${supplyOrderColErr.message}`);
+	ok = false;
+} else {
+	console.log('✓ supply_orders delivery/payment columns exist');
+}
+
+console.log('\n— Guest checkout —');
+
+{
+	const { error } = await supabase.from('guest_checkouts').select('id').limit(1);
+	if (error?.code === 'PGRST205' || /Could not find the table/i.test(error?.message || '')) {
+		console.error('✗ Table "guest_checkouts" missing');
+		console.error('  → Run supabase/migrations/20260708_guest_checkouts.sql in Supabase SQL Editor');
+		ok = false;
+	} else if (error?.code === '42501' || /permission denied/i.test(error?.message || '')) {
+		console.error('✗ Table "guest_checkouts": permission denied for service_role');
+		console.error('  → Run supabase/migrations/20260710_guest_checkouts_permissions.sql in Supabase SQL Editor');
+		ok = false;
+	} else if (error) {
+		console.error(`✗ Table "guest_checkouts": ${error.message}`);
+		ok = false;
+	} else {
+		const { count } = await supabase.from('guest_checkouts').select('*', { count: 'exact', head: true });
+		console.log(`✓ Table "guest_checkouts" exists (${count ?? 0} rows)`);
+	}
+}
+
 console.log('\n— Billpay —');
 
 for (const table of ['billpay_invoices']) {

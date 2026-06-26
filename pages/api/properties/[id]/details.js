@@ -2,7 +2,10 @@ import { listDashboardCleaners, withAuth } from '../../../../lib/auth';
 import { isAdmin } from '../../../../lib/roles';
 import { getPropertyDetails, upsertPropertyDetails } from '../../../../lib/db';
 import { toIsoDate } from '../../../../lib/dates';
+import { getGuestCheckoutUrl, isValidCheckoutCode, normalizeCheckoutCode } from '../../../../lib/guestCheckout';
+import { ensurePropertyCheckoutCode } from '../../../../lib/guestCheckoutDb';
 import { getPropertyBackupImagePublicUrl } from '../../../../lib/propertyDetailsStorage';
+import { rejectHiddenProperty } from '../../../../lib/hiddenProperties';
 import {
 	diffRecordChanges,
 	inferDetailsSection,
@@ -58,14 +61,29 @@ function normalizeDetailsPatch(body = {}) {
 	if ('internet_provider' in body) patch.internet_provider = String(body.internet_provider ?? '').trim();
 	if ('internet_account_number' in body) patch.internet_account_number = String(body.internet_account_number ?? '').trim();
 	if ('primary_cleaner' in body) patch.primary_cleaner = String(body.primary_cleaner ?? '').trim();
+	if ('checkout_code' in body) {
+		const raw = String(body.checkout_code ?? '').trim().toUpperCase();
+		if (!raw) {
+			patch.checkout_code = '';
+		} else {
+			const normalized = normalizeCheckoutCode(raw);
+			if (!normalized || !isValidCheckoutCode(normalized)) {
+				throw new Error('Checkout code must be 3 digits + 3 letters (e.g. 123ABC).');
+			}
+			patch.checkout_code = normalized;
+		}
+	}
 	return patch;
 }
 
-function enrichDetails(row) {
-	if (!row) return { property_id: null };
+function enrichDetails(row, propertyId) {
+	if (!row) return { property_id: propertyId || null };
+	const checkout_code = row.checkout_code || null;
 	return {
 		...row,
 		backup_image_url: getPropertyBackupImagePublicUrl(row.backup_image_storage_path),
+		checkout_code,
+		checkout_url: checkout_code ? getGuestCheckoutUrl(checkout_code) : null,
 	};
 }
 
@@ -73,11 +91,22 @@ export default async function handler(req, res) {
 	await withAuth(req, res, async (session) => {
 		const { id: propertyId } = req.query;
 		if (!propertyId) return res.status(400).json({ error: 'Property id is required.' });
+		if (rejectHiddenProperty(propertyId, res)) return;
 
 		if (req.method === 'GET') {
-			const details = await getPropertyDetails(propertyId);
+			let details = await getPropertyDetails(propertyId);
+			if (isAdmin(session.user)) {
+				try {
+					const code = await ensurePropertyCheckoutCode(propertyId);
+					if (!details?.checkout_code) {
+						details = { ...(details || {}), property_id: propertyId, checkout_code: code };
+					}
+				} catch (err) {
+					console.error('Property checkout code ensure failed:', propertyId, err.message);
+				}
+			}
 			return res.json({
-				data: enrichDetails(details || { property_id: propertyId }),
+				data: enrichDetails(details || { property_id: propertyId }, propertyId),
 				cleaners: listDashboardCleaners(),
 			});
 		}
@@ -103,7 +132,7 @@ export default async function handler(req, res) {
 					changes,
 					user: session.user,
 				});
-				return res.json({ data: enrichDetails(details) });
+				return res.json({ data: enrichDetails(details, propertyId) });
 			} catch (err) {
 				return res.status(400).json({ error: err.message || 'Invalid property details.' });
 			}

@@ -18,7 +18,7 @@ function fmtDate(str) {
   return formatDateOrDash(str);
 }
 
-function DetailRow({ icon: Icon, label, value, mono }) {
+function DetailRow({ icon: Icon, label, value, mono, children }) {
   return (
     <div className="flex items-start gap-3">
       <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -26,9 +26,13 @@ function DetailRow({ icon: Icon, label, value, mono }) {
       </div>
       <div className="min-w-0">
         <p className="text-xs text-muted leading-none mb-0.5">{label}</p>
-        <p className={`text-sm text-dark leading-snug break-all ${mono ? 'font-mono text-xs bg-gray-100 px-1.5 py-0.5 rounded' : 'font-medium'}`}>
-          {value || '—'}
-        </p>
+        {children ? (
+          <div>{children}</div>
+        ) : (
+          <p className={`text-sm text-dark leading-snug break-all ${mono ? 'font-mono text-xs bg-gray-100 px-1.5 py-0.5 rounded' : 'font-medium'}`}>
+            {value || '—'}
+          </p>
+        )}
       </div>
     </div>
   );
@@ -37,12 +41,12 @@ function DetailRow({ icon: Icon, label, value, mono }) {
 export default function ReservationPanel({ resv, propName, onClose }) {
   useEscapeKey(onClose);
   const dialogRef = useFocusTrap();
-  const propertyLabel = propName || resv.property_name;
-  if (!resv) return null;
-  const ps = platformStyle(resv.platform);
+
   const name = reservationGuestName(resv);
-  const arrStr = (resv.arrival_date || resv.check_in || '').slice(0, 10);
-  const depStr = (resv.departure_date || resv.check_out || '').slice(0, 10);
+  const ps = platformStyle(resv.platform);
+  const propertyLabel = propName || resv.property_name || '—';
+  const arrStr = resv.check_in || resv.arrival_date;
+  const depStr = resv.check_out || resv.departure_date;
 
   return (
     <>
@@ -97,7 +101,7 @@ export default function ReservationPanel({ resv, propName, onClose }) {
             <DetailRow
               icon={Clock}
               label="Duration"
-              value={`${resv.nights || differenceInDays(parseISO(depStr), parseISO(arrStr))} nights`}
+              value={`${resv.nights || differenceInDays(parseISO(depStr || arrStr), parseISO(arrStr))} nights`}
             />
             <DetailRow
               icon={Users}

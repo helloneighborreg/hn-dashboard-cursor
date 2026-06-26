@@ -1,10 +1,12 @@
 import { withAuth } from '../../../../lib/auth';
 import { getPropertyOwnerStatementApprovals } from '../../../../lib/db';
+import { rejectHiddenProperty } from '../../../../lib/hiddenProperties';
 
 export default async function handler(req, res) {
 	await withAuth(req, res, async () => {
 		const { id: propertyId } = req.query;
 		if (!propertyId) return res.status(400).json({ error: 'Property id is required.' });
+		if (rejectHiddenProperty(propertyId, res)) return;
 
 		if (req.method !== 'GET') return res.status(405).end();
 

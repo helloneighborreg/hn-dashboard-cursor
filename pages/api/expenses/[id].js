@@ -6,6 +6,7 @@ import {
 	attachOwnerStatementInclusion,
 	mapApprovedManualExpenseInclusions,
 } from '../../../lib/ownerStatementReport';
+import { isHiddenPropertyId } from '../../../lib/hiddenProperties';
 
 async function enrichExpenses(rows) {
 	if (!rows?.length) return rows || [];
@@ -24,7 +25,7 @@ export default async function handler(req, res) {
     const { id } = req.query;
     if (req.method === 'GET') {
       const e = await getExpenseById(id);
-      if (!e) return res.status(404).json({ error: 'Not found' });
+      if (!e || isHiddenPropertyId(e.property_id)) return res.status(404).json({ error: 'Not found' });
       const [enriched] = await enrichExpenses([e]);
       return res.json({ data: enriched });
     }

@@ -1,5 +1,7 @@
-import { X, Minus, Plus, ShoppingCart, PackageCheck } from 'lucide-react';
-import { fmtSupplyPrice, lineTotal, orderTotal, SUPPLY_ORDER_STATUS } from '../../lib/supplies';
+import { X, Minus, Plus, ShoppingCart, PackageCheck, FileText, CircleCheckBig } from 'lucide-react';
+import { fmtSupplyPrice, lineTotal, orderTotal, pricedUnit, SUPPLY_ORDER_STATUS, supplyInvoicePdfUrl } from '../../lib/supplies';
+import { getPropertyDisplayName } from '../../lib/codes';
+import { formatDateOrDash } from '../../lib/dates';
 import { useEscapeKey } from '../../lib/useEscapeKey';
 import { useFocusTrap } from '../../lib/useFocusTrap';
 
@@ -14,15 +16,16 @@ function formatOrderDate(iso) {
 	});
 }
 
-function CartLine({ item, product, readOnly, onQtyChange, onRemove }) {
+function CartLine({ item, product, markupPercent, readOnly, onQtyChange, onRemove }) {
 	const title = product?.title || 'Unknown';
+	const unitPrice = pricedUnit(item.unit_price, markupPercent);
 	return (
 		<div className="flex items-center gap-3 py-3 border-b border-border last:border-0">
 			<div className="flex-1 min-w-0">
 				<p className="text-sm font-medium text-dark truncate">{title}</p>
 				<p className="text-xs text-muted mt-0.5">
-					{fmtSupplyPrice(item.unit_price)} each
-					{item.sales_tax_percent > 0 && ` · incl. ${item.sales_tax_percent}% tax`}
+					{fmtSupplyPrice(unitPrice)} each
+					{item.sales_tax_percent > 0 && ' · tax included'}
 				</p>
 			</div>
 			{readOnly ? (
@@ -49,7 +52,7 @@ function CartLine({ item, product, readOnly, onQtyChange, onRemove }) {
 				</div>
 			)}
 			<p className="text-sm font-medium text-dark w-16 text-right tabular-nums">
-				{fmtSupplyPrice(lineTotal(item.unit_price, item.sales_tax_percent, item.quantity))}
+				{fmtSupplyPrice(lineTotal(item.unit_price, item.sales_tax_percent, item.quantity, markupPercent))}
 			</p>
 			{!readOnly && (
 				<button
@@ -69,6 +72,11 @@ export default function SupplyCart({
 	open,
 	items,
 	productsById,
+	properties,
+	propertyId,
+	onPropertyChange,
+	markupPercent,
+	onMarkupChange,
 	activeOrder,
 	location,
 	locations,
@@ -80,15 +88,25 @@ export default function SupplyCart({
 	onClose,
 	onSubmit,
 	onDeliver,
+	onMarkPaid,
 	submitting,
 	delivering,
+	paying,
 }) {
 	useEscapeKey(onClose);
 	const dialogRef = useFocusTrap();
-	const total = orderTotal(items);
+	const total = orderTotal(items, markupPercent);
 	const isEmpty = !items.length;
 	const readOnly = activeOrder?.status === SUPPLY_ORDER_STATUS.SUBMITTED;
 	const isInvoice = readOnly;
+	const isPaid = Boolean(activeOrder?.paid_at);
+	const canViewInvoice = !isEmpty && Boolean(propertyId || activeOrder?.property_id);
+
+	function openInvoicePdf() {
+		const orderId = activeOrder?.id;
+		if (!orderId) return;
+		window.open(supplyInvoicePdfUrl(orderId), '_blank', 'noopener,noreferrer');
+	}
 
 	if (!open) return null;
 
@@ -130,9 +148,21 @@ export default function SupplyCart({
 								Submitted {formatOrderDate(activeOrder.submitted_at)}
 								{activeOrder.created_by ? ` · ${activeOrder.created_by}` : ''}
 							</p>
+							{activeOrder.property_name && (
+								<p className="text-amber-800 text-xs mt-0.5">
+									Bill to <span className="font-medium">{activeOrder.property_name}</span>
+								</p>
+							)}
 							<p className="text-amber-800 text-xs mt-0.5">
 								Deliver to <span className="font-medium">{location || 'Warehouse'}</span>
 							</p>
+							{isPaid && (
+								<p className="text-green-800 text-xs mt-2 inline-flex items-center gap-1">
+									<CircleCheckBig size={12} />
+									Paid {formatDateOrDash(activeOrder.paid_at)}
+									{activeOrder.paid_by ? ` · ${activeOrder.paid_by}` : ''}
+								</p>
+							)}
 						</div>
 					)}
 					{isEmpty ? (
@@ -141,6 +171,26 @@ export default function SupplyCart({
 						</p>
 					) : (
 						<>
+							<div className="mb-4">
+								<label className="label">Bill to property *</label>
+								{readOnly ? (
+									<p className="text-sm text-dark">{activeOrder?.property_name || '—'}</p>
+								) : (
+									<select
+										className="select"
+										value={propertyId || ''}
+										onChange={(e) => onPropertyChange(e.target.value)}
+										required
+									>
+										<option value="">Select a property…</option>
+										{(properties || []).map((p) => (
+											<option key={p.id} value={p.id}>
+												{getPropertyDisplayName(p) || p.name}
+											</option>
+										))}
+									</select>
+								)}
+							</div>
 							<div className="mb-4">
 								<label className="label">Delivery location</label>
 								{readOnly ? (
@@ -152,7 +202,7 @@ export default function SupplyCart({
 											list="supply-locations"
 											value={location}
 											onChange={(e) => onLocationChange(e.target.value)}
-											placeholder="Warehouse"
+											placeholder="Select property or enter location"
 										/>
 										<datalist id="supply-locations">
 											{(locations || []).map((loc) => (
@@ -162,6 +212,20 @@ export default function SupplyCart({
 									</>
 								)}
 							</div>
+							{!readOnly && (
+								<div className="mb-4">
+									<label className="label" htmlFor="supply-markup-percent">Markup %</label>
+									<input
+										id="supply-markup-percent"
+										type="number"
+										min={0}
+										step={0.1}
+										className="input w-28"
+										value={markupPercent}
+										onChange={(e) => onMarkupChange(e.target.value)}
+									/>
+								</div>
+							)}
 							<div className="mb-4">
 								<label className="label">Notes</label>
 								{readOnly ? (
@@ -180,6 +244,7 @@ export default function SupplyCart({
 									key={item.product_id}
 									item={item}
 									product={productsById[item.product_id]}
+									markupPercent={markupPercent}
 									readOnly={readOnly}
 									onQtyChange={onQtyChange}
 									onRemove={onRemove}
@@ -195,22 +260,44 @@ export default function SupplyCart({
 						<span className="text-lg font-bold text-dark">{fmtSupplyPrice(total)}</span>
 					</div>
 					{isInvoice ? (
-						<button
-							type="button"
-							onClick={onDeliver}
-							disabled={delivering}
-							className="btn-primary w-full py-2.5"
-						>
-							{delivering ? 'Marking delivered…' : 'Mark Delivered & Add to Inventory'}
-						</button>
+						<div className="space-y-2">
+							<button
+								type="button"
+								onClick={openInvoicePdf}
+								className="btn-secondary w-full py-2.5 gap-2"
+							>
+								<FileText size={16} />
+								View Invoice
+							</button>
+							{!isPaid && (
+								<button
+									type="button"
+									onClick={onMarkPaid}
+									disabled={paying}
+									className="btn-secondary w-full py-2.5 gap-2"
+								>
+									<CircleCheckBig size={16} />
+									{paying ? 'Recording payment…' : 'Mark Paid & Add Expense'}
+								</button>
+							)}
+							<button
+								type="button"
+								onClick={onDeliver}
+								disabled={delivering}
+								className="btn-primary w-full py-2.5"
+							>
+								{delivering ? 'Marking delivered…' : 'Mark Delivered'}
+							</button>
+						</div>
 					) : (
 						<button
 							type="button"
 							onClick={onSubmit}
-							disabled={isEmpty || submitting}
-							className="btn-primary w-full py-2.5"
+							disabled={isEmpty || submitting || !canViewInvoice}
+							className="btn-primary w-full py-2.5 gap-2"
 						>
-							{submitting ? 'Submitting…' : 'Submit Order'}
+							<FileText size={16} />
+							{submitting ? 'Generating invoice…' : 'View Invoice'}
 						</button>
 					)}
 				</div>

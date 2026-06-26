@@ -3,7 +3,10 @@ import { useCallback, useMemo, useState } from 'react';
 export function useColumnVisibility(columnKeys, { minVisible = 1 } = {}) {
 	const [hidden, setHidden] = useState(() => new Set());
 
-	const isVisible = useCallback((key) => !hidden.has(key), [hidden]);
+	const isVisible = useCallback(
+		(key) => columnKeys.includes(key) && !hidden.has(key),
+		[columnKeys, hidden],
+	);
 
 	const hide = useCallback(
 		(key) => {

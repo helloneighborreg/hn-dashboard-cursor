@@ -4,6 +4,7 @@ import { getPropertyOwner, upsertPropertyOwner } from '../../../../lib/db';
 import { toIsoDate } from '../../../../lib/dates';
 import { DEFAULT_MANAGEMENT_FEE_PERCENT } from '../../../../lib/ownerStatementReport';
 import { diffRecordChanges, logPropertyChange } from '../../../../lib/propertyChangeLog';
+import { rejectHiddenProperty } from '../../../../lib/hiddenProperties';
 
 function parseManagementFeePercent(value) {
 	if (value === '' || value == null) return DEFAULT_MANAGEMENT_FEE_PERCENT;
@@ -32,6 +33,7 @@ export default async function handler(req, res) {
 	await withAuth(req, res, async (session) => {
 		const { id: propertyId } = req.query;
 		if (!propertyId) return res.status(400).json({ error: 'Property id is required.' });
+		if (rejectHiddenProperty(propertyId, res)) return;
 
 		if (req.method === 'GET') {
 			const owner = await getPropertyOwner(propertyId);

@@ -58,11 +58,28 @@ export default function TaskTableHead({
 		</span>
 	);
 
+	if (!sortable) {
+		return (
+			<th
+				className={clsx(
+					'table-head table-head-sticky',
+					align === 'right' && 'text-right',
+					align === 'center' && 'text-center',
+					compact ? 'w-10 px-2' : undefined,
+					className,
+				)}
+			>
+				{compact ? <span className="sr-only">{label}</span> : labelEl}
+			</th>
+		);
+	}
+
 	return (
 		<th
 			className={clsx(
 				'table-head table-head-sticky p-0',
 				align === 'right' && 'text-right',
+				align === 'center' && 'text-center',
 				compact ? 'w-10' : undefined,
 				className,
 			)}
@@ -72,6 +89,7 @@ export default function TaskTableHead({
 					'flex items-center min-w-0 whitespace-nowrap',
 					compact ? 'justify-center gap-0.5 px-2 py-2.5' : 'gap-2 px-4 py-2.5',
 					align === 'right' && 'justify-end',
+					align === 'center' && 'justify-center',
 				)}
 			>
 				{labelEl}

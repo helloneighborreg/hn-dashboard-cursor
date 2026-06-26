@@ -7,6 +7,7 @@ import {
 	buildPropertyMap,
 	withReservationPropertyName,
 } from '../../../lib/hospitable';
+import { filterHiddenPropertyRows, isHiddenPropertyId } from '../../../lib/hiddenProperties';
 
 /** Default window when no check-in filters: 2 years back, 1 year ahead. */
 function defaultReservationDateRange() {
@@ -17,12 +18,16 @@ function defaultReservationDateRange() {
 }
 
 export default async function handler(req, res) {
-  await withAuth(req, res, async () => {
+  await withAuth(req, res, async (session) => {
     if (req.method !== 'GET') return res.status(405).end();
 
     const { property, status, start, end, platform } = req.query;
 
     try {
+      if (property && isHiddenPropertyId(property)) {
+        return res.json({ data: [], meta: { count: 0 } });
+      }
+
       const properties = await getProperties();
       const propertyMap = buildPropertyMap(properties);
 
@@ -53,6 +58,8 @@ export default async function handler(req, res) {
       if (platform) {
         enriched = enriched.filter((r) => r.platform === platform);
       }
+
+      enriched = filterHiddenPropertyRows(enriched);
 
       res.json({
         data: enriched,

@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import clsx from 'clsx';
-import { ChevronDown, ListChecks, FileText } from 'lucide-react';
+import { ChevronDown, ListChecks, FileText, AlertTriangle } from 'lucide-react';
 import { ASSIGNEES, statusFromAssignee, taskIsOverdue } from '../lib/constants';
 import { fetchJson } from '../lib/apiClient';
 import { taskHeadline, taskGuestSubtitle, formatDateShort, formatClock } from '../lib/taskDisplay';
@@ -14,6 +14,7 @@ import TaskPaidIndicator from './TaskPaidIndicator';
 import TaskPaidToggle from './TaskPaidToggle';
 import { useAuth } from './AuthContext';
 import { canViewReservationData } from '../lib/roles';
+import { getTaskChecklistHref } from '../lib/checklistUrl';
 
 export function useTaskActions(task, onUpdate, onAssigneeChanged, onDeleted) {
 	const [saving, setSaving] = useState(false);
@@ -58,18 +59,22 @@ export function useTaskActions(task, onUpdate, onAssigneeChanged, onDeleted) {
 	return { patch, saving, remove, deleting };
 }
 
+const CHECKLIST_LINK_CLASS =
+	'inline-flex shrink-0 items-center justify-center w-8 h-8 border border-brand-200 rounded text-brand-700 bg-brand-50 hover:text-brand-800 hover:bg-brand-100 transition-colors';
+
 function ChecklistLink({ url, label = 'Open checklist' }) {
-	if (!url) return <span className="text-xs text-muted">—</span>;
+	if (!url) return null;
+	const isInternal = url.startsWith('/');
 	return (
 		<a
 			href={url}
-			target="_blank"
-			rel="noopener noreferrer"
-			className="inline-flex items-center justify-center w-8 h-8 border border-border rounded text-muted hover:text-dark hover:bg-gray-50 transition-colors"
+			{...(!isInternal ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+			className={CHECKLIST_LINK_CLASS}
 			title={label}
 			aria-label={label}
+			onClick={(e) => e.stopPropagation()}
 		>
-			<ListChecks size={16} />
+			<ListChecks size={16} strokeWidth={2.25} />
 		</a>
 	);
 }
@@ -157,9 +162,10 @@ export function TaskItem({ task, variant, onUpdate, onAssigneeChanged, onSelect,
 		<AdminCompleteButton onConfirm={markComplete} disabled={saving} size={isCard ? 'md' : 'sm'} />
 	);
 
-	const checklistUrl = isCompletedTab
-		? (task.completed_checklist_url || task.checklist_submission_url || task.checklist_url)
-		: task.checklist_url;
+	const checklistUrl = useMemo(
+		() => getTaskChecklistHref(task, { completed: isCompletedTab }),
+		[task, isCompletedTab],
+	);
 	const checklistLabel = isCompletedTab ? 'View submitted checklist' : 'Open checklist';
 
 	const openTask = onSelect ? () => onSelect(task) : undefined;
@@ -187,6 +193,15 @@ export function TaskItem({ task, variant, onUpdate, onAssigneeChanged, onSelect,
 								{taskHeadline(task, displayOptions)}
 							</p>
 							<TaskTypeBadge type={task.type} />
+							{showAdmin && task.checklist_review_status === 'needs_review' && (
+								<span
+									className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide text-amber-800 bg-amber-50"
+									title="Checklist photos need manual review"
+								>
+									<AlertTriangle size={10} />
+									Review
+								</span>
+							)}
 						</div>
 						{(showReservationDetails || taskHasPets(task)) && (
 							<p className="text-xs text-muted mt-1 flex items-center gap-1.5">
@@ -197,6 +212,7 @@ export function TaskItem({ task, variant, onUpdate, onAssigneeChanged, onSelect,
 							</p>
 						)}
 					</div>
+					<ChecklistLink url={checklistUrl} label={checklistLabel} />
 				</div>
 
 				<dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
@@ -245,7 +261,6 @@ export function TaskItem({ task, variant, onUpdate, onAssigneeChanged, onSelect,
 				</dl>
 
 				<div className="flex items-center gap-2 flex-wrap" onClick={stopOpen}>
-					<ChecklistLink url={checklistUrl} label={checklistLabel} />
 					{!isCompletedTab && <ChecklistPdfLink url={task.checklist_pdf_url} />}
 				</div>
 
@@ -282,13 +297,22 @@ export function TaskItem({ task, variant, onUpdate, onAssigneeChanged, onSelect,
 				</td>
 			)}
 			{showCol('task') && (
-				<td className="table-cell whitespace-normal min-w-[11rem] max-w-[16rem]">
+				<td className="table-cell whitespace-normal min-w-[11rem] max-w-[18rem]">
 					<div className="min-w-0 space-y-1">
 						<div className="flex flex-col gap-1 sm:flex-row sm:flex-wrap sm:items-center sm:gap-2">
 							<p className="text-sm font-semibold font-mono tracking-wide text-dark break-words leading-snug">
 								{taskHeadline(task, displayOptions)}
 							</p>
 							<TaskTypeBadge type={task.type} />
+							{showAdmin && task.checklist_review_status === 'needs_review' && (
+								<span
+									className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide text-amber-800 bg-amber-50"
+									title="Checklist photos need manual review"
+								>
+									<AlertTriangle size={10} />
+									Review
+								</span>
+							)}
 						</div>
 						{(showReservationDetails || taskHasPets(task)) && (
 							<p className="text-xs text-muted flex items-center gap-1.5">
@@ -322,7 +346,7 @@ export function TaskItem({ task, variant, onUpdate, onAssigneeChanged, onSelect,
 					)}
 				</td>
 			)}
-			{showCol('assignee') && (assigneeReadOnly || !readOnly) && (
+			{showCol('assignee') && (
 				<td className="table-cell align-top" onClick={stopOpen}>
 					{assigneeReadOnly
 						? <span className="text-sm text-dark">{task.assignee || '—'}</span>
@@ -341,16 +365,16 @@ export function TaskItem({ task, variant, onUpdate, onAssigneeChanged, onSelect,
 				</td>
 			)}
 			{showCol('checklist') && (
-				<td className="table-cell" onClick={stopOpen}>
+				<td className="table-cell w-12 text-center" onClick={stopOpen}>
 					<ChecklistLink url={checklistUrl} label={checklistLabel} />
 				</td>
 			)}
 			{showCol('pdf') && (
-				<td className="table-cell" onClick={stopOpen}>
+				<td className="table-cell w-12 text-center" onClick={stopOpen}>
 					<ChecklistPdfLink url={task.checklist_pdf_url} />
 				</td>
 			)}
-			{showCol('admin') && showAdmin && (
+			{showCol('admin') && (
 				<td className="table-cell" onClick={stopOpen}>{adminControl}</td>
 			)}
 		</tr>

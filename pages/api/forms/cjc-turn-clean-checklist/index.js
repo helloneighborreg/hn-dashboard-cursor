@@ -1,6 +1,7 @@
 import { withAuth, isAdmin } from '../../../../lib/auth';
 import { validateChecklistGeofence } from '../../../../lib/geofence';
 import { applyChecklistSubmissionToTask, markTaskChecklistStarted } from '../../../../lib/checklistTaskUpdate';
+import { queueChecklistPhotoReview } from '../../../../lib/forms/checklistPhotoReview';
 import { uploadChecklistFile } from '../../../../lib/forms/checklistFormStorage';
 import {
 	buildSubmissionViewUrl,
@@ -279,6 +280,7 @@ export default async function handler(req, res) {
 					} catch (err) {
 						console.error('Checklist task link failed:', err.message);
 					}
+					queueChecklistPhotoReview(record.id);
 				} else {
 					const draftTaskId = record.task_id || resolvedTaskId;
 					if (draftTaskId) {

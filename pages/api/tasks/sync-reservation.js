@@ -8,6 +8,8 @@ import {
 } from '../../../lib/hospitable';
 import { getReservationCode } from '../../../lib/codes';
 import { syncTasksFromReservations } from '../../../lib/syncReservationTasks';
+import { isHiddenPropertyId } from '../../../lib/hiddenProperties';
+import { reservationPropertyId } from '../../../lib/hospitable';
 
 /**
  * Force-sync one reservation by code (e.g. HM29W9SFTR).
@@ -46,6 +48,9 @@ export default async function handler(req, res) {
 			}
 
 			if (!match?.id) {
+				return res.status(404).json({ error: `Reservation ${code} not found in Hospitable` });
+			}
+			if (isHiddenPropertyId(reservationPropertyId(match))) {
 				return res.status(404).json({ error: `Reservation ${code} not found in Hospitable` });
 			}
 

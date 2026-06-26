@@ -1,21 +1,17 @@
 import { useState, useEffect, useMemo } from 'react';
 import Head from 'next/head';
-import { Plus, RefreshCw, ChevronRight } from 'lucide-react';
+import { Plus, RefreshCw, ChevronRight, Pencil, FolderOpen } from 'lucide-react';
 import Layout from '../../components/Layout';
 import PageSearchInput from '../../components/PageSearchInput';
 import SupplyInventoryItemModal from '../../components/supplies/SupplyInventoryItemModal';
 import SupplyLocationModal, { countNestedLocations } from '../../components/supplies/SupplyLocationModal';
-import SupplyInventoryLocationSection, {
-	filterLocationTree,
-	locationTreeHasVisibleNodes,
-} from '../../components/supplies/SupplyInventoryLocationSection';
+import SupplyInventoryTable from '../../components/supplies/SupplyInventoryTable';
 import { PageLoader, ErrorState, EmptyState } from '../../components/LoadingSpinner';
 import { fetchJson } from '../../lib/apiClient';
 import { requireAuth } from '../../lib/auth';
 import {
 	DEFAULT_INVENTORY_LOCATION,
-	buildLocationTree,
-	getLocationLeafName,
+	getDirectChildLocations,
 	getInventoryContainerPath,
 	isLocationDescendant,
 	joinLocationPath,
@@ -24,6 +20,10 @@ import {
 	sortLocationPaths,
 } from '../../lib/supplies';
 import { useAuth } from '../../components/AuthContext';
+
+function countItemsAtOrBelow(location, items) {
+	return items.filter((item) => isLocationDescendant(item.location, location)).length;
+}
 
 export default function SuppliesInventoryPage() {
 	const { isAdmin } = useAuth();
@@ -68,6 +68,8 @@ export default function SuppliesInventoryPage() {
 		return sortLocationPaths(all);
 	}, [items, emptyLocations, defaultLocationOverride]);
 
+	const searchActive = search.trim().length > 0;
+
 	const filtered = useMemo(() => {
 		const q = search.trim().toLowerCase();
 		return items.filter((item) => {
@@ -80,34 +82,26 @@ export default function SuppliesInventoryPage() {
 		});
 	}, [items, search, locationFilter]);
 
+	const childLocations = useMemo(() => {
+		if (searchActive) return [];
+		return getDirectChildLocations(locationFilter, locations);
+	}, [locations, locationFilter, searchActive]);
+
+	const currentItems = useMemo(() => {
+		if (searchActive) return filtered;
+		return filtered.filter((item) => item.location === locationFilter);
+	}, [filtered, locationFilter, searchActive]);
+
 	const itemsByLocation = useMemo(() => {
 		const grouped = {};
 		for (const loc of locations) {
-			grouped[loc] = filtered.filter((item) => item.location === loc);
+			grouped[loc] = items.filter((item) => item.location === loc);
 		}
 		return grouped;
-	}, [locations, filtered]);
-
-	const locationTree = useMemo(() => buildLocationTree(locations), [locations]);
-
-	const visibleTree = useMemo(() => {
-		const scoped = filterLocationTree(locationTree, locationFilter || null);
-		if (locationFilter) return scoped;
-		return scoped.filter((node) => {
-			const hasDirectItems = (itemsByLocation[node.path] || []).length > 0;
-			const isEmptyTracked = emptyLocations.includes(node.path);
-			const hasVisibleChild = locationTreeHasVisibleNodes(node.children, itemsByLocation, emptyLocations, search);
-			return hasDirectItems || isEmptyTracked || hasVisibleChild
-				|| (!search.trim() && node.path === (defaultLocationOverride || DEFAULT_INVENTORY_LOCATION));
-		});
-	}, [locationTree, locationFilter, itemsByLocation, emptyLocations, search, defaultLocationOverride]);
+	}, [items, locations]);
 
 	function openAddLocation() {
-		setLocationModal({ mode: 'add' });
-	}
-
-	function openAddSubLocation(parentLocation) {
-		setLocationModal({ mode: 'add', parentLocation });
+		setLocationModal({ mode: 'add', parentLocation: locationFilter || null });
 	}
 
 	function openEditLocation(location) {
@@ -130,12 +124,10 @@ export default function SuppliesInventoryPage() {
 	}
 
 	function openLocationPath(path) {
-		if (!path) {
-			setLocationFilter('');
-			return;
+		setLocationFilter(path || '');
+		if (path && !locations.includes(path)) {
+			setEmptyLocations((prev) => (prev.includes(path) ? prev : [...prev, path]));
 		}
-		setEmptyLocations((prev) => (prev.includes(path) ? prev : [...prev, path]));
-		setLocationFilter(path);
 	}
 
 	function handleLocationSaved(result) {
@@ -162,14 +154,9 @@ export default function SuppliesInventoryPage() {
 		setEmptyLocations((prev) => prev.filter((loc) => (
 			loc !== location && !isLocationDescendant(loc, location)
 		)));
-		load();
-	}
-
-	function handleItemSaved() {
-		load();
-	}
-
-	function handleItemDeleted() {
+		if (locationFilter && isLocationDescendant(locationFilter, location)) {
+			setLocationFilter('');
+		}
 		load();
 	}
 
@@ -182,15 +169,18 @@ export default function SuppliesInventoryPage() {
 		? countNestedLocations(modalLocation, existingLocations)
 		: 0;
 
+	const showEmpty = !loading && !error
+		&& childLocations.length === 0
+		&& currentItems.length === 0
+		&& !searchActive;
+
 	return (
 		<>
 			<Head><title>Inventory — Supplies — Hello Neighbor</title></Head>
 			<Layout title="">
-				<div className="flex flex-col gap-4 mb-6 sm:flex-row sm:items-start sm:justify-between">
-					<div>
-						<h1 className="text-2xl font-bold text-dark">Inventory</h1>
-					</div>
-					<div className="flex flex-wrap gap-2 self-start">
+				<div className="flex flex-col gap-4 mb-5 sm:flex-row sm:items-center sm:justify-between">
+					<h1 className="text-2xl font-bold text-dark">Inventory</h1>
+					<div className="flex flex-wrap gap-2">
 						{isAdmin && (
 							<button
 								type="button"
@@ -198,7 +188,7 @@ export default function SuppliesInventoryPage() {
 								className="btn-primary text-xs gap-1.5"
 							>
 								<Plus size={14} />
-								Add Location
+								{locationFilter ? 'Add Sub-location' : 'Add Location'}
 							</button>
 						)}
 						<button
@@ -213,43 +203,24 @@ export default function SuppliesInventoryPage() {
 					</div>
 				</div>
 
-				<div className="flex flex-col sm:flex-row gap-3 mb-6">
+				<div className="mb-4">
 					<PageSearchInput
 						value={search}
 						onChange={(e) => setSearch(e.target.value)}
 						placeholder="Search inventory…"
-						className="flex-1 w-full sm:w-auto"
 					/>
-					{locations.length > 0 && (
-						<select
-							className="input sm:w-56"
-							value={locationFilter}
-							onChange={(e) => setLocationFilter(e.target.value)}
-						>
-							<option value="">All locations</option>
-							{locations.map((loc) => {
-								const depth = parseLocationPath(loc).length - 1;
-								const prefix = depth > 0 ? `${'— '.repeat(depth)}` : '';
-								return (
-									<option key={loc} value={loc}>
-										{prefix}{getLocationLeafName(loc)}
-									</option>
-								);
-							})}
-						</select>
-					)}
 				</div>
 
-				{locationFilter && (
+				{!searchActive && (
 					<nav aria-label="Location breadcrumb" className="flex flex-wrap items-center gap-1 text-sm text-muted mb-4">
 						<button
 							type="button"
 							onClick={() => openLocationPath('')}
-							className="text-brand-600 hover:text-brand-700 font-medium"
+							className={`font-medium ${locationFilter ? 'text-brand-600 hover:text-brand-700' : 'text-dark'}`}
 						>
 							All locations
 						</button>
-						{parseLocationPath(locationFilter).map((segment, index, parts) => {
+						{locationFilter && parseLocationPath(locationFilter).map((segment, index, parts) => {
 							const resolvedPath = parts.slice(0, index + 1).reduce(
 								(acc, part, i) => (i === 0 ? part : joinLocationPath(acc, part)),
 								'',
@@ -275,32 +246,91 @@ export default function SuppliesInventoryPage() {
 					</nav>
 				)}
 
+				{isAdmin && locationFilter && !searchActive && (
+					<div className="flex flex-wrap items-center gap-3 mb-4 text-sm">
+						<button
+							type="button"
+							onClick={() => openEditLocation(locationFilter)}
+							className="inline-flex items-center gap-1 text-muted hover:text-brand-600"
+						>
+							<Pencil size={14} />
+							Edit location
+						</button>
+						<button
+							type="button"
+							onClick={() => openAddItem(locationFilter)}
+							className="inline-flex items-center gap-1 text-brand-600 hover:text-brand-700 font-medium"
+						>
+							<Plus size={14} />
+							Add item
+						</button>
+					</div>
+				)}
+
 				{loading && <PageLoader message="Loading inventory…" />}
 				{error && <ErrorState message={error} retry={load} />}
-				{!loading && !error && visibleTree.length === 0 && (
-					<EmptyState
-						title="No inventory yet"
-						message={isAdmin ? 'Add a location to start tracking stock.' : undefined}
+
+				{!loading && !error && searchActive && (
+					currentItems.length === 0 ? (
+						<EmptyState title="No matches" message="Try a different search term." />
+					) : (
+						<SupplyInventoryTable
+							items={currentItems}
+							isAdmin={isAdmin}
+							onEditItem={openEditItem}
+							onOpenContainer={openContainer}
+							showLocation
+						/>
+					)
+				)}
+
+				{!loading && !error && !searchActive && childLocations.length > 0 && (
+					<div className="card overflow-hidden mb-4">
+						<ul className="divide-y divide-border">
+							{childLocations.map((loc) => {
+								const name = parseLocationPath(loc).at(-1);
+								const count = countItemsAtOrBelow(loc, items);
+								return (
+									<li key={loc}>
+										<button
+											type="button"
+											onClick={() => openLocationPath(loc)}
+											className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 transition-colors"
+										>
+											<FolderOpen size={18} className="text-brand-500 flex-shrink-0" />
+											<span className="flex-1 font-medium text-dark truncate">{name}</span>
+											{count > 0 && (
+												<span className="text-xs text-muted tabular-nums">
+													{count} item{count === 1 ? '' : 's'}
+												</span>
+											)}
+											<ChevronRight size={16} className="text-muted flex-shrink-0" />
+										</button>
+									</li>
+								);
+							})}
+						</ul>
+					</div>
+				)}
+
+				{!loading && !error && !searchActive && currentItems.length > 0 && (
+					<SupplyInventoryTable
+						items={currentItems}
+						isAdmin={isAdmin}
+						onEditItem={openEditItem}
+						onOpenContainer={openContainer}
 					/>
 				)}
-				{!loading && !error && visibleTree.length > 0 && (
-					<div className="space-y-8">
-						{visibleTree.map((node) => (
-							<SupplyInventoryLocationSection
-								key={node.path}
-								node={node}
-								itemsByLocation={itemsByLocation}
-								emptyLocations={emptyLocations}
-								isAdmin={isAdmin}
-								search={search}
-								onEditLocation={openEditLocation}
-								onAddSubLocation={openAddSubLocation}
-								onAddItem={openAddItem}
-								onEditItem={openEditItem}
-								onOpenContainer={openContainer}
-							/>
-						))}
-					</div>
+
+				{showEmpty && (
+					<EmptyState
+						title={locationFilter ? 'Nothing here yet' : 'No inventory yet'}
+						message={
+							isAdmin
+								? (locationFilter ? 'Add items or sub-locations to this location.' : 'Add a location to start tracking stock.')
+								: undefined
+						}
+					/>
 				)}
 
 				{itemModal && (
@@ -314,8 +344,8 @@ export default function SuppliesInventoryPage() {
 								: []
 						}
 						onClose={() => setItemModal(null)}
-						onSaved={handleItemSaved}
-						onDeleted={handleItemDeleted}
+						onSaved={() => { setItemModal(null); load(); }}
+						onDeleted={() => { setItemModal(null); load(); }}
 					/>
 				)}
 

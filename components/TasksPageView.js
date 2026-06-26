@@ -96,12 +96,16 @@ export default function TasksPageView() {
 	const readOnly = limitedView;
 	const tableColumns = useMemo(() => taskTableColumns(isAdmin, isCompleted), [isAdmin, isCompleted]);
 	const { isVisible: isAdminColumnVisible, hide: hideColumn, show: showColumn, hiddenColumns } = useColumnVisibility(tableColumns);
+	const showAdminColumn = isAdmin && !isCompleted;
 	const isColumnVisible = useCallback(
 		(key) => {
+			if (!tableColumns.includes(key)) return false;
+			if (key === 'status') return true;
 			if (key === 'assignee' && readOnly && !isCompleted) return false;
-			return isAdmin ? isAdminColumnVisible(key) : tableColumns.includes(key);
+			if (key === 'admin' && !showAdminColumn) return false;
+			return isAdmin ? isAdminColumnVisible(key) : true;
 		},
-		[isAdmin, isAdminColumnVisible, tableColumns, readOnly, isCompleted],
+		[isAdmin, isAdminColumnVisible, tableColumns, readOnly, isCompleted, showAdminColumn],
 	);
 	const { counts: statusCounts, setTaskCounts, refreshTaskCounts: refreshGlobalTaskCounts } = useTaskCounts();
 	const [tasks, setTasks] = useState([]);
@@ -550,6 +554,8 @@ export default function TasksPageView() {
 															onHide={isAdmin && key !== 'status' ? () => hideColumn(key) : undefined}
 															compact={key === 'status'}
 															sortable={key !== 'status' && SORTABLE_COLUMNS.has(key)}
+															align={key === 'pdf' || key === 'checklist' ? 'center' : 'left'}
+															className={key === 'pdf' || key === 'checklist' ? 'w-12' : undefined}
 														/>
 													) : null,
 												)}

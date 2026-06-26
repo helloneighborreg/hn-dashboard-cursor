@@ -1,6 +1,7 @@
 import { withAuth } from '../../../../../lib/auth';
 import { isAdmin } from '../../../../../lib/roles';
 import { uploadPropertyBackupImage } from '../../../../../lib/propertyDetailsStorage';
+import { rejectHiddenProperty } from '../../../../../lib/hiddenProperties';
 
 export const config = {
 	api: {
@@ -24,6 +25,7 @@ export default async function handler(req, res) {
 		if (!propertyId) {
 			return res.status(400).json({ error: 'Property id is required.' });
 		}
+		if (rejectHiddenProperty(propertyId, res)) return;
 		if (!base64 || !contentType) {
 			return res.status(400).json({ error: 'base64 and contentType are required' });
 		}

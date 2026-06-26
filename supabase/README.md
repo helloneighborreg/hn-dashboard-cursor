@@ -27,6 +27,7 @@ Files under `supabase/migrations/` are **not** applied when you deploy the app. 
 | `20260606_bank_transaction_categorization.sql` | `reviewed`, `hidden`, `notes` on bank transactions (Bookkeeping tab) |
 | `20260624_task_timeline.sql` | `assigned_at`, `started_at`, `completed_at` on `tasks` (task detail timeline) |
 | `20260704_task_payment.sql` | `scheduled_by`, `paid_at`, `paid_by` on `tasks`; migrates `under_review` → `completed` |
+| `20260705_billpay_invoices.sql` | `billpay_invoices` — cleaning invoices queued when tasks are marked paid |
 
 ## 3. API keys
 

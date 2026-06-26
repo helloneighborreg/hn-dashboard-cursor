@@ -13,7 +13,8 @@
     "db:check": "node scripts/check-supabase.mjs",
     "db:import": "node scripts/import-db-json.mjs",
     "db:backfill-fillout": "node scripts/backfill-fillout-tasks.mjs",
-    "optimize-logos": "node scripts/optimize-logos.mjs"
+    "optimize-logos": "node scripts/optimize-logos.mjs",
+    "review:checklists": "node scripts/review-checklist-photos.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.106.1",

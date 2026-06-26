@@ -1,6 +1,7 @@
 import { withAuth } from '../../../../lib/auth';
 import { getBankTransactions } from '../../../../lib/db';
 import { isUncategorized } from '../../../../lib/bookkeepingCategories';
+import { filterHiddenPropertyRows } from '../../../../lib/hiddenProperties';
 
 function summarizeTransactions(rows) {
 	const visible = rows.filter((tx) => !tx.hidden);
@@ -41,7 +42,7 @@ export default async function handler(req, res) {
 		} = req.query;
 
 		try {
-			const data = await getBankTransactions({
+			const data = filterHiddenPropertyRows(await getBankTransactions({
 				date_from,
 				date_to,
 				account_id,
@@ -50,7 +51,7 @@ export default async function handler(req, res) {
 				uncategorized: uncategorized === 'true' ? true : undefined,
 				reviewed,
 				hidden: hidden === 'true' ? 'true' : hidden === 'false' ? 'false' : undefined,
-			});
+			}));
 			res.json({ data, summary: summarizeTransactions(data) });
 		} catch (err) {
 			console.error('Bank transactions error:', err.message);
