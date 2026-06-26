@@ -12,6 +12,7 @@ import { taskHasPets, taskPetLabel } from '../lib/reservationPets';
 import { fetchJson } from '../lib/apiClient';
 import { useEscapeKey } from '../lib/useEscapeKey';
 import { useFocusTrap } from '../lib/useFocusTrap';
+import { externalLinkProps } from '../lib/linkTarget';
 import TaskStatusIndicator from './TaskStatusIndicator';
 import TaskCleanerStatus from './TaskCleanerStatus';
 import TaskPetIndicator from './TaskPetIndicator';
@@ -159,9 +160,8 @@ export default function TaskDetailModal({ task, onClose, showAssignee = false, s
 					{task.checklist_url && !['completed', 'under_review'].includes(task.status) && (
 						<a
 							href={task.checklist_url}
-							target="_blank"
-							rel="noopener noreferrer"
 							className="flex items-center justify-center gap-2 w-full btn-primary text-sm"
+							{...externalLinkProps(task.checklist_url)}
 						>
 							<ExternalLink size={14} />
 							Open Checklist
@@ -170,9 +170,8 @@ export default function TaskDetailModal({ task, onClose, showAssignee = false, s
 					{task.completed_checklist_url && (
 						<a
 							href={task.completed_checklist_url}
-							target="_blank"
-							rel="noopener noreferrer"
 							className="flex items-center justify-center gap-2 w-full btn-secondary text-sm"
+							{...externalLinkProps(task.completed_checklist_url)}
 						>
 							<ExternalLink size={14} />
 							View Completed Checklist
@@ -181,9 +180,8 @@ export default function TaskDetailModal({ task, onClose, showAssignee = false, s
 					{task.checklist_pdf_url && (
 						<a
 							href={task.checklist_pdf_url}
-							target="_blank"
-							rel="noopener noreferrer"
 							className="flex items-center justify-center gap-2 w-full btn-secondary text-sm"
+							{...externalLinkProps(task.checklist_pdf_url)}
 						>
 							<ExternalLink size={14} />
 							View PDF
