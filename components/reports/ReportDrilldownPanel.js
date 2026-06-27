@@ -616,7 +616,7 @@ export default function ReportDrilldownPanel({
 			<div
 				className={clsx(
 					'fixed inset-0 bg-black/30 backdrop-blur-[1px]',
-					stacked ? 'z-[60]' : 'z-40',
+					stacked ? 'z-[120]' : 'z-40',
 				)}
 				onClick={onClose}
 			/>
@@ -628,7 +628,7 @@ export default function ReportDrilldownPanel({
 				aria-label={title}
 				className={clsx(
 					'fixed inset-y-0 right-0 w-full bg-white shadow-2xl flex flex-col overflow-hidden focus:outline-none',
-					stacked ? 'z-[60]' : 'z-50',
+					stacked ? 'z-[130]' : 'z-50',
 					variant === 'owner-statement' ? 'max-w-md' : 'max-w-3xl',
 				)}
 			>

@@ -27,6 +27,7 @@ import { HiddenColumnsBar } from './financials/ToggleableTableHead';
 import TaskTableHead from './TaskTableHead';
 import { useTableSort } from './financials/useTableSort';
 import { sortByKey } from '../lib/tableSort';
+import { taskArchiveCutoffIso } from '../lib/taskArchive';
 
 const TASK_COLUMN_LABELS = {
 	status: 'Status',
@@ -182,6 +183,13 @@ export default function TasksPageView() {
 			else if (isUnassigned) params.set('unassigned', 'true');
 			else params.set('assigned', 'true');
 		}
+		const cutoff = taskArchiveCutoffIso();
+		const needsArchived = Boolean(
+			search.trim()
+			|| (applied.date_from && applied.date_from < cutoff)
+			|| (applied.date_to && applied.date_to < cutoff),
+		);
+		if (needsArchived) params.set('include_archived', 'true');
 		return params;
 	}, [
 		filters,
@@ -198,6 +206,7 @@ export default function TasksPageView() {
 		isOverdue,
 		isCalendar,
 		monthKey,
+		search,
 	]);
 
 	const refreshCounts = useCallback(async () => {
@@ -314,6 +323,7 @@ export default function TasksPageView() {
 		router.query.date_from,
 		router.query.date_to,
 		router.query.today,
+		search,
 	]);
 
 	useEffect(() => {

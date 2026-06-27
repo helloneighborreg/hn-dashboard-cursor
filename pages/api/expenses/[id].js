@@ -6,7 +6,18 @@ import {
 	attachOwnerStatementInclusion,
 	mapApprovedManualExpenseInclusions,
 } from '../../../lib/ownerStatementReport';
+import { OWNER_STATEMENT_ITEM_LOCKED_ERROR, isOwnerStatementCashItemLocked } from '../../../lib/ownerStatementLock';
 import { isHiddenPropertyId } from '../../../lib/hiddenProperties';
+
+async function assertExpenseEditable(expense) {
+	if (!expense?.property_id || !expense?.id) return;
+	const locked = await isOwnerStatementCashItemLocked(expense.property_id, expense.id, 'manual');
+	if (locked) {
+		const err = new Error(OWNER_STATEMENT_ITEM_LOCKED_ERROR);
+		err.status = 403;
+		throw err;
+	}
+}
 
 async function enrichExpenses(rows) {
 	if (!rows?.length) return rows || [];
@@ -30,12 +41,25 @@ export default async function handler(req, res) {
       return res.json({ data: enriched });
     }
     if (req.method === 'PATCH') {
-      if (!(await getExpenseById(id))) return res.status(404).json({ error: 'Not found' });
+      const existing = await getExpenseById(id);
+      if (!existing) return res.status(404).json({ error: 'Not found' });
+      try {
+        await assertExpenseEditable(existing);
+      } catch (err) {
+        return res.status(err.status || 403).json({ error: err.message });
+      }
       const updated = await updateExpense(id, req.body);
       const [enriched] = await enrichExpenses([updated]);
       return res.json({ data: enriched });
     }
     if (req.method === 'DELETE') {
+      const existing = await getExpenseById(id);
+      if (!existing) return res.status(404).json({ error: 'Not found' });
+      try {
+        await assertExpenseEditable(existing);
+      } catch (err) {
+        return res.status(err.status || 403).json({ error: err.message });
+      }
       await deleteExpense(id);
       return res.status(204).end();
     }

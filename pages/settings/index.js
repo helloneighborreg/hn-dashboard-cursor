@@ -1,6 +1,7 @@
 import Head from 'next/head';
 import Link from 'next/link';
 import { Shield, ClipboardList } from 'lucide-react';
+import AnnouncementBroadcast from '../../components/AnnouncementBroadcast';
 import Layout from '../../components/Layout';
 import PwaNotificationSettings from '../../components/PwaNotificationSettings';
 import { requireAuth } from '../../lib/auth';
@@ -48,7 +49,8 @@ export default function SettingsPage() {
 					})}
 				</div>
 
-				<div className="mt-6 max-w-2xl">
+				<div className="mt-6 max-w-2xl space-y-4">
+					<AnnouncementBroadcast />
 					<PwaNotificationSettings />
 				</div>
 			</Layout>

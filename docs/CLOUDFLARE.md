@@ -45,7 +45,7 @@ node scripts/print-dashboard-users.mjs
 | `HOSPITABLE_API_TOKEN` | Hospitable → Settings → API access |
 | `SUPABASE_URL` | Project URL from Supabase API settings |
 | `SUPABASE_SERVICE_ROLE_KEY` | service_role secret key |
-| `CRON_SECRET` | Random string for scheduled task sync (`/api/tasks/sync-cron`) |
+| `CRON_SECRET` | Random string for scheduled crons (`/api/tasks/sync-cron`, `/api/tasks/overdue-notify-cron`) |
 
 ### Optional — web push (PWA)
 
@@ -111,21 +111,31 @@ For one booking, use **sync-reservation** (`POST /api/tasks/sync-reservation?cod
 
 ### Automatic sync (Cron)
 
-Turnover tasks sync from Hospitable **every 30 minutes** via a Cloudflare Cron Trigger (`worker.js` → `POST /api/tasks/sync-cron`).
+Two Cloudflare Cron Triggers run via `worker.js`:
+
+| Schedule | Route | Purpose |
+|----------|-------|---------|
+| Every 30 min | `POST /api/tasks/sync-cron` | Sync turnover tasks from Hospitable |
+| Every 15 min | `POST /api/tasks/overdue-notify-cron` | Notify assignee + admins when a task is past due |
 
 1. Set **`CRON_SECRET`** in Cloudflare (Settings → Variables and Secrets) — any long random string.
 2. Deploy with `npm run deploy:cloudflare` (uses custom `worker.js` entry in `wrangler.jsonc`).
 
-Manual sync from the Tasks page still works. The cron job uses the same logic with `skipNotify: true` (no booking-change emails/texts on bulk sync).
+Manual sync from the Tasks page still works. The sync cron uses the same logic with `skipNotify: true` (no booking-change emails/texts on bulk sync).
+
+Overdue notifications require the `overdue_notified_at` column — run `supabase/migrations/20260715_task_overdue_notified.sql`.
 
 Test locally after `npm run preview:cloudflare`:
 
 ```bash
 curl -X POST http://localhost:8787/api/tasks/sync-cron \
   -H "Authorization: Bearer YOUR_CRON_SECRET"
+
+curl -X POST http://localhost:8787/api/tasks/overdue-notify-cron \
+  -H "Authorization: Bearer YOUR_CRON_SECRET"
 ```
 
-Trigger the scheduled handler:
+Trigger the scheduled handler (runs the default sync cron when testing):
 
 ```bash
 curl "http://localhost:8787/cdn-cgi/handler/scheduled"

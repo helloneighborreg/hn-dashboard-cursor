@@ -200,6 +200,61 @@ console.log('\n— Guest checkout —');
 	}
 }
 
+console.log('\n— Tasks —');
+
+const { error: overdueColErr } = await supabase
+	.from('tasks')
+	.select('overdue_notified_at')
+	.limit(0);
+
+if (overdueColErr?.code === '42703' || /overdue_notified_at/i.test(overdueColErr?.message || '')) {
+	console.error('✗ tasks missing overdue_notified_at column');
+	console.error('  → Run supabase/migrations/20260715_task_overdue_notified.sql in SQL Editor');
+	ok = false;
+} else if (overdueColErr) {
+	console.error(`✗ tasks column check: ${overdueColErr.message}`);
+	ok = false;
+} else {
+	console.log('✓ tasks overdue_notified_at column exists');
+}
+
+const { error: archivedColErr } = await supabase
+	.from('tasks')
+	.select('archived_at')
+	.limit(0);
+
+if (archivedColErr?.code === '42703' || /archived_at/i.test(archivedColErr?.message || '')) {
+	console.error('✗ tasks missing archived_at column');
+	console.error('  → Run supabase/migrations/20260627_task_archived.sql in SQL Editor');
+	ok = false;
+} else if (archivedColErr) {
+	console.error(`✗ tasks column check: ${archivedColErr.message}`);
+	ok = false;
+} else {
+	console.log('✓ tasks archived_at column exists');
+}
+
+console.log('\n— Push notifications —');
+
+{
+	const { error } = await supabase.from('push_subscriptions').select('id').limit(1);
+	if (error?.code === 'PGRST205' || /Could not find the table/i.test(error?.message || '')) {
+		console.error('✗ Table "push_subscriptions" missing');
+		console.error('  → Run supabase/migrations/20260714_push_subscriptions.sql in Supabase SQL Editor');
+		ok = false;
+	} else if (error?.code === '42501' || /permission denied/i.test(error?.message || '')) {
+		console.error('✗ Table "push_subscriptions": permission denied for service_role');
+		console.error('  → Re-run supabase/migrations/20260714_push_subscriptions.sql in Supabase SQL Editor');
+		ok = false;
+	} else if (error) {
+		console.error(`✗ Table "push_subscriptions": ${error.message}`);
+		ok = false;
+	} else {
+		const { count } = await supabase.from('push_subscriptions').select('*', { count: 'exact', head: true });
+		console.log(`✓ Table "push_subscriptions" exists (${count ?? 0} rows)`);
+	}
+}
+
 console.log('\n— Billpay —');
 
 for (const table of ['billpay_invoices']) {

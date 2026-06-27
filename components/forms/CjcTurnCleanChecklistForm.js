@@ -85,7 +85,7 @@ function RoomGroupAccordion({
 	readOnly,
 	sectionExamples = {},
 }) {
-	const complete = isRoomGroupComplete(group, errors);
+	const complete = isRoomGroupComplete(group, values);
 
 	return (
 		<div className="card overflow-hidden">

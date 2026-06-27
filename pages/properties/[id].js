@@ -202,26 +202,6 @@ export default function PropertyDetailPage() {
                 <Badge label={rules.events_allowed ? 'Allowed' : 'Not allowed'} variant={rules.events_allowed ? 'accepted' : 'cancelled'} className="self-start sm:self-auto" />
               </div>
             </div>
-            <div className="space-y-2 text-sm pt-4 border-t border-border/60">
-              <div className="flex flex-col gap-0.5 sm:flex-row sm:justify-between">
-                <span className="text-muted">Type</span>
-                <span className="capitalize font-medium sm:text-right">{property.property_type?.replace(/_/g, ' ')}</span>
-              </div>
-              <div className="flex flex-col gap-0.5 sm:flex-row sm:justify-between">
-                <span className="text-muted">Room type</span>
-                <span className="font-medium sm:text-right">{property.room_type}</span>
-              </div>
-              <div className="flex flex-col gap-0.5 sm:flex-row sm:justify-between">
-                <span className="text-muted">Currency</span>
-                <span className="font-medium sm:text-right">{property.currency}</span>
-              </div>
-              {property.timezone && (
-                <div className="flex flex-col gap-0.5 sm:flex-row sm:justify-between">
-                  <span className="text-muted">Timezone</span>
-                  <span className="font-medium sm:text-right">UTC{property.timezone}</span>
-                </div>
-              )}
-            </div>
             <PropertyDetailsExtrasSection propertyId={property.id} />
           </div>
         ),

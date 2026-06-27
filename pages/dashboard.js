@@ -26,13 +26,21 @@ function reservationSubtitle(r, mode) {
 }
 
 function reservationFooter(r, mode) {
-  if (mode === 'checkout') {
+  if (mode === 'checkout' || mode === 'checkout-labeled') {
     const d = r.check_out || r.departure_date;
-    return formatDateOrDash(d);
+    const formatted = formatDateOrDash(d);
+    if (mode === 'checkout-labeled' && formatted !== '—') {
+      return `Check-Out: ${formatted}`;
+    }
+    return formatted;
   }
-  if (mode === 'checkin') {
+  if (mode === 'checkin' || mode === 'checkin-labeled') {
     const d = r.check_in || r.arrival_date;
-    return formatDateOrDash(d);
+    const formatted = formatDateOrDash(d);
+    if (mode === 'checkin-labeled' && formatted !== '—') {
+      return `Check-In: ${formatted}`;
+    }
+    return formatted;
   }
   return `${r.nights} night${r.nights !== 1 ? 's' : ''}`;
 }
@@ -63,29 +71,83 @@ function ReservationList({ items, emptyMsg, subtitle = 'code', footer = 'nights'
   );
 }
 
-function TaskList({ items, emptyMsg = 'No tasks due today', showDue = true }) {
+function TaskList({ items, emptyMsg = 'No tasks due today', showDue = true, dueBelowStatus = false, onSelect }) {
   if (!items?.length) return <p className="text-muted text-sm py-4 text-center">{emptyMsg}</p>;
   return (
     <ul className="divide-y divide-border">
-      {items.map((t) => (
-        <li key={t.id} className="py-3 flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-sm font-semibold font-mono text-dark tracking-wide truncate">{taskHeadline(t)}</p>
-            <p className="text-xs text-muted mt-0.5 flex items-center gap-1.5">
-              <span className="truncate">{taskGuestSubtitle(t)}</span>
-              <TaskPetIndicator task={t} size={12} />
-            </p>
-            {showDue && (
-              <p className="text-xs text-muted mt-0.5">
-                Due {formatDateShort(t.due_date)} · {formatClock(t.due_time || '16:00')}
+      {items.map((t) => {
+        const row = (
+          <>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold font-mono text-dark tracking-wide truncate">{taskHeadline(t)}</p>
+              <p className="text-xs text-muted mt-0.5 flex items-center gap-1.5">
+                <span className="truncate">{taskGuestSubtitle(t)}</span>
+                <TaskPetIndicator task={t} size={12} />
               </p>
-            )}
-          </div>
-          <Badge label={t.status === 'unassigned' ? 'Unassigned' : t.status} variant={t.status} />
-        </li>
-      ))}
+              {showDue && (
+                <p className="text-xs text-muted mt-0.5">
+                  Due {formatDateShort(t.due_date)} · {formatClock(t.due_time || '16:00')}
+                </p>
+              )}
+            </div>
+            <div className="text-right flex-shrink-0">
+              <Badge label={t.status === 'unassigned' ? 'Unassigned' : t.status} variant={t.status} />
+              {dueBelowStatus && (
+                <p className="text-xs text-muted mt-1">{formatDateOrDash(t.checkout_date || t.due_date)}</p>
+              )}
+            </div>
+          </>
+        );
+
+        if (!onSelect) {
+          return (
+            <li key={t.id} className="py-3 flex items-start justify-between gap-3">
+              {row}
+            </li>
+          );
+        }
+
+        return (
+          <li key={t.id}>
+            <button
+              type="button"
+              onClick={() => onSelect(t)}
+              className="w-full py-3 flex items-start justify-between gap-3 text-left hover:bg-gray-50 transition-colors rounded-lg px-1 -mx-1 cursor-pointer"
+            >
+              {row}
+            </button>
+          </li>
+        );
+      })}
     </ul>
   );
+}
+
+function buildReservationLookup(data) {
+  const byCode = new Map();
+  const byId = new Map();
+  const lists = [
+    data?.occupied,
+    data?.check_ins_today,
+    data?.check_outs_today,
+    data?.upcoming_check_ins,
+    data?.upcoming_check_outs,
+  ];
+  for (const list of lists) {
+    for (const r of list || []) {
+      if (r?.code) byCode.set(String(r.code).toUpperCase(), r);
+      if (r?.id) byId.set(String(r.id), r);
+    }
+  }
+  return { byCode, byId };
+}
+
+function reservationForTask(task, lookup) {
+  const code = String(task?.reservation_id || '').trim().toUpperCase();
+  if (code && lookup.byCode.has(code)) return lookup.byCode.get(code);
+  const hid = String(task?.hospitable_reservation_id || '').trim();
+  if (hid && lookup.byId.has(hid)) return lookup.byId.get(hid);
+  return null;
 }
 
 function reservationQuery({ start, end, tab } = {}) {
@@ -203,11 +265,28 @@ export default function DashboardPage() {
     overdue: '/tasks/overdue',
   }), []);
 
+  const reservationLookup = useMemo(
+    () => (data?.view === 'full' ? buildReservationLookup(data) : null),
+    [data],
+  );
+
+  function openReservationForTask(task) {
+    const match = reservationLookup && reservationForTask(task, reservationLookup);
+    if (match) {
+      setSelected(match);
+      return;
+    }
+    const code = String(task?.reservation_id || '').trim();
+    if (code) {
+      window.location.href = `/reservations?code=${encodeURIComponent(code)}`;
+    }
+  }
+
   return (
     <>
       <Head><title>Dashboard — Hello Neighbor</title></Head>
       <Layout title="">
-        {!isTaskDashboard && selected && (
+        {selected && (
           <ReservationPanel
             resv={selected}
             propName={selected.property_name}
@@ -232,7 +311,7 @@ export default function DashboardPage() {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <DashboardPanel title="Tasks Due Today" href={taskLinks.tasksToday}>
-                <TaskList items={data.tasks_today} showDue={false} />
+                <TaskList items={data.tasks_today} showDue={false} dueBelowStatus />
               </DashboardPanel>
 
               <DashboardPanel title="Completed Tasks" href={taskLinks.completed}>
@@ -283,13 +362,18 @@ export default function DashboardPage() {
                   items={data.occupied}
                   emptyMsg="No units occupied today"
                   subtitle="guest-only"
-                  footer="checkout"
+                  footer="checkout-labeled"
                   onSelect={setSelected}
                 />
               </DashboardPanel>
 
               <DashboardPanel title="Tasks Due Today" href={adminLinks?.tasksToday || '/tasks/assigned'} collapsible>
-                <TaskList items={data.tasks_today} showDue={false} />
+                <TaskList
+                  items={data.tasks_today}
+                  showDue={false}
+                  dueBelowStatus
+                  onSelect={openReservationForTask}
+                />
               </DashboardPanel>
 
               <DashboardPanel title="Upcoming Check-Ins (Next 7 Days)" href={adminLinks?.upcomingCheckins || '/reservations'} collapsible>
@@ -297,7 +381,7 @@ export default function DashboardPage() {
                   items={data.upcoming_check_ins}
                   emptyMsg="No upcoming check-ins"
                   subtitle="guest-only"
-                  footer="checkin"
+                  footer="checkin-labeled"
                   onSelect={setSelected}
                 />
               </DashboardPanel>
@@ -307,7 +391,7 @@ export default function DashboardPage() {
                   items={data.upcoming_check_outs}
                   emptyMsg="No upcoming checkouts"
                   subtitle="guest-only"
-                  footer="checkout"
+                  footer="checkout-labeled"
                   onSelect={setSelected}
                 />
               </DashboardPanel>

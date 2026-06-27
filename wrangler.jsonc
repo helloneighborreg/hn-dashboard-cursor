@@ -4,8 +4,8 @@
 	"name": "hn-dashboard-cursor",
 	"main": "worker.js",
 	"triggers": {
-		// Sync turnover tasks from Hospitable every 30 minutes (UTC).
-		"crons": ["*/30 * * * *"]
+		// Reservation sync every 30 minutes; overdue notifications every 15 minutes (UTC).
+		"crons": ["*/30 * * * *", "*/15 * * * *"]
 	},
 	"compatibility_date": "2025-04-01",
 	"compatibility_flags": [

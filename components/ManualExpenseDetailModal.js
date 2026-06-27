@@ -57,6 +57,7 @@ export default function ManualExpenseDetailModal({ expense, properties = [], onC
 
 	if (!expense) return null;
 
+	const isLocked = Boolean(expense.owner_statement_inclusion?.included);
 	const propertyName = expense.property_name
 		|| (expense.property_id && getPropertyDisplayName(properties.find((p) => p.id === expense.property_id)))
 		|| expense.property_id
@@ -136,7 +137,7 @@ export default function ManualExpenseDetailModal({ expense, properties = [], onC
 						</p>
 					</div>
 					<div className="flex items-center gap-1 flex-shrink-0">
-						{!editing && (
+						{!editing && !isLocked && (
 							<button
 								type="button"
 								onClick={() => setEditing(true)}
@@ -254,7 +255,7 @@ export default function ManualExpenseDetailModal({ expense, properties = [], onC
 					)}
 				</div>
 
-				{(editing || onDeleted) && (
+				{(editing || (onDeleted && !isLocked)) && (
 					<div className="shrink-0 border-t border-border px-5 py-4 space-y-3">
 						{editing && (
 							<div className="flex gap-3">
@@ -271,7 +272,7 @@ export default function ManualExpenseDetailModal({ expense, properties = [], onC
 								</button>
 							</div>
 						)}
-						{!editing && onDeleted && (
+						{!editing && onDeleted && !isLocked && (
 							confirmDelete ? (
 								<div className="space-y-2">
 									<p className="text-sm text-amber-800">Delete this transaction? This cannot be undone.</p>

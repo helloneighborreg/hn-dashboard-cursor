@@ -1,9 +1,13 @@
+import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   X, User, Home, CalendarDays, Clock, Users, Tag, ExternalLink,
 } from 'lucide-react';
 import { differenceInDays, parseISO } from 'date-fns';
 import { formatDateOrDash } from '../lib/dates';
 import { platformStyle } from '../lib/platformStyles';
+import { parseReservationCheckin, parseReservationCheckout } from '../lib/taskFromReservation';
+import { formatClock } from '../lib/taskDisplay';
 import { useEscapeKey } from '../lib/useEscapeKey';
 import { useFocusTrap } from '../lib/useFocusTrap';
 
@@ -16,6 +20,13 @@ export function reservationGuestName(resv) {
 
 function fmtDate(str) {
   return formatDateOrDash(str);
+}
+
+function dateAtTime(dateIso, timeHhMm) {
+  const date = fmtDate(dateIso);
+  if (date === '—') return '—';
+  const time = formatClock(timeHhMm).replace(' ', '');
+  return `${date} at ${time}`;
 }
 
 function DetailRow({ icon: Icon, label, value, mono, children }) {
@@ -39,19 +50,35 @@ function DetailRow({ icon: Icon, label, value, mono, children }) {
 }
 
 export default function ReservationPanel({ resv, propName, onClose }) {
+  const [mounted, setMounted] = useState(false);
   useEscapeKey(onClose);
   const dialogRef = useFocusTrap();
+
+  useEffect(() => setMounted(true), []);
+
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prev; };
+  }, []);
 
   const name = reservationGuestName(resv);
   const ps = platformStyle(resv.platform);
   const propertyLabel = propName || resv.property_name || '—';
   const arrStr = resv.check_in || resv.arrival_date;
   const depStr = resv.check_out || resv.departure_date;
+  const { checkinDate, checkinTime } = parseReservationCheckin(resv);
+  const { checkoutDate, startTime: checkoutTime } = parseReservationCheckout(resv);
+  const reservationsHref = resv.code
+    ? `/reservations?code=${encodeURIComponent(resv.code)}`
+    : '/reservations';
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <>
       <div
-        className="fixed inset-0 z-40 bg-black/30 backdrop-blur-[1px]"
+        className="fixed inset-0 z-[100] bg-black/30 backdrop-blur-[1px]"
         onClick={onClose}
       />
       <div
@@ -60,7 +87,7 @@ export default function ReservationPanel({ resv, propName, onClose }) {
         role="dialog"
         aria-modal="true"
         aria-label={`Reservation: ${name}`}
-        className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-sm bg-white shadow-2xl flex flex-col overflow-hidden focus:outline-none"
+        className="fixed right-0 top-0 bottom-0 z-[110] w-full max-w-sm bg-white shadow-2xl flex flex-col overflow-hidden focus:outline-none"
       >
         <div className="flex items-center justify-between px-5 py-4 border-b border-border">
           <div className="flex items-center gap-3">
@@ -96,8 +123,8 @@ export default function ReservationPanel({ resv, propName, onClose }) {
 
           <div className="space-y-3">
             <DetailRow icon={Home} label="Property" value={propertyLabel} />
-            <DetailRow icon={CalendarDays} label="Check-in" value={fmtDate(arrStr)} />
-            <DetailRow icon={CalendarDays} label="Check-out" value={fmtDate(depStr)} />
+            <DetailRow icon={CalendarDays} label="Check-In" value={dateAtTime(checkinDate, checkinTime)} />
+            <DetailRow icon={CalendarDays} label="Check-Out" value={dateAtTime(checkoutDate, checkoutTime)} />
             <DetailRow
               icon={Clock}
               label="Duration"
@@ -123,7 +150,7 @@ export default function ReservationPanel({ resv, propName, onClose }) {
 
         <div className="p-4 border-t border-border space-y-2">
           <a
-            href="/reservations"
+            href={reservationsHref}
             className="flex items-center justify-center gap-2 w-full btn-primary text-sm"
           >
             View in Reservations
@@ -141,6 +168,7 @@ export default function ReservationPanel({ resv, propName, onClose }) {
           )}
         </div>
       </div>
-    </>
+    </>,
+    document.body,
   );
 }

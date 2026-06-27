@@ -17,7 +17,8 @@ import {
 	saveOwnerStatementNotes,
 	setOwnerStatementInclusion,
 } from '../../lib/ownerStatementClient';
-import { buildDraftOwnerStatements } from '../../lib/ownerStatementDraft';
+import { buildBlankDraftOwnerStatements, buildDraftOwnerStatements } from '../../lib/ownerStatementDraft';
+import { resolvePropertyIds } from '../../lib/propertyGroups';
 import { buildOwnerStatementPdfBase64 } from '../../lib/reportPdf';
 import { formatStatementMonthLabel } from '../../lib/ownerStatementReport';
 import { useAdminPasswordGate } from '../../lib/useAdminPasswordGate';
@@ -122,7 +123,7 @@ function InclusionStatusButton({
 }
 
 
-function OwnerStatementsView({ data, onRefresh, statementStatus = 'all' }) {
+function OwnerStatementsView({ data, onRefresh, statementStatus = 'all', filters = {}, properties = [] }) {
 	const [drilldown, setDrilldown] = useState(null);
 	const [togglingId, setTogglingId] = useState(null);
 	const [savingNotesId, setSavingNotesId] = useState(null);
@@ -141,7 +142,7 @@ function OwnerStatementsView({ data, onRefresh, statementStatus = 'all' }) {
 	} = useAdminPasswordGate();
 
 	const reservations = useMemo(() => {
-		const rows = data.reservations || [];
+		const rows = (data.reservations || []).filter((row) => !row.statement_locked);
 		if (statementStatus === 'complete') {
 			return rows.filter((row) => row.included_on_statement);
 		}
@@ -151,7 +152,7 @@ function OwnerStatementsView({ data, onRefresh, statementStatus = 'all' }) {
 		return rows;
 	}, [data.reservations, statementStatus]);
 
-	const allReservations = data.reservations || [];
+	const allReservations = (data.reservations || []).filter((row) => !row.statement_locked);
 	const reservationCount = allReservations.length;
 	const completeCount = data.summary?.complete_count
 		?? allReservations.filter((row) => row.included_on_statement).length;
@@ -159,6 +160,11 @@ function OwnerStatementsView({ data, onRefresh, statementStatus = 'all' }) {
 		?? (reservationCount - completeCount);
 
 	const canGenerate = selectedIds.size > 0;
+	const blankPropertyIds = useMemo(() => {
+		const ids = resolvePropertyIds(properties, filters);
+		return ids?.length === 1 ? ids : [];
+	}, [properties, filters]);
+	const canGenerateBlank = blankPropertyIds.length === 1;
 
 	function toggleSelected(id, checked) {
 		setSelectedIds((prev) => {
@@ -172,6 +178,14 @@ function OwnerStatementsView({ data, onRefresh, statementStatus = 'all' }) {
 	function handleGenerate() {
 		if (!canGenerate) return;
 		const statements = buildDraftOwnerStatements(data, [...selectedIds]);
+		if (!statements.length) return;
+		setPreviewStatements(statements);
+		setPreviewError('');
+	}
+
+	function handleGenerateBlank() {
+		if (!canGenerateBlank) return;
+		const statements = buildBlankDraftOwnerStatements(data, blankPropertyIds);
 		if (!statements.length) return;
 		setPreviewStatements(statements);
 		setPreviewError('');
@@ -222,7 +236,8 @@ function OwnerStatementsView({ data, onRefresh, statementStatus = 'all' }) {
 	}
 
 	function isReservationLocked(row) {
-		return Boolean(row?.included_on_statement) && !unlockedReservationIds.has(row.id);
+		return Boolean(row?.statement_locked)
+			|| (Boolean(row?.included_on_statement) && !unlockedReservationIds.has(row.id));
 	}
 
 	function unlockReservation(rowId) {
@@ -371,8 +386,9 @@ function OwnerStatementsView({ data, onRefresh, statementStatus = 'all' }) {
 											<input
 												type="checkbox"
 												checked={selectedIds.has(row.id)}
+												disabled={row.statement_locked}
 												onChange={(e) => toggleSelected(row.id, e.target.checked)}
-												className="rounded text-brand-500"
+												className="rounded text-brand-500 disabled:opacity-40"
 												aria-label={`Select ${row.code || 'reservation'}`}
 											/>
 										</td>
@@ -399,16 +415,30 @@ function OwnerStatementsView({ data, onRefresh, statementStatus = 'all' }) {
 					<p className="text-sm text-muted">
 						{selectedIds.size > 0
 							? `${selectedIds.size} reservation${selectedIds.size === 1 ? '' : 's'} selected`
-							: 'Select reservations to generate an owner statement.'}
+							: canGenerateBlank
+								? 'Select reservations, or generate a blank statement with manual entries only.'
+								: 'Select reservations to generate an owner statement, or choose one property for a blank statement.'}
 					</p>
-					<button
-						type="button"
-						onClick={handleGenerate}
-						disabled={!canGenerate}
-						className="btn-primary text-sm self-start sm:self-auto disabled:opacity-50"
-					>
-						Add to Statement
-					</button>
+					<div className="flex flex-wrap gap-2 self-start sm:self-auto">
+						{canGenerateBlank && (
+							<button
+								type="button"
+								onClick={handleGenerateBlank}
+								className="btn-secondary text-sm"
+								title="Generate a statement with no reservations — add manual transactions in the preview"
+							>
+								Blank Statement
+							</button>
+						)}
+						<button
+							type="button"
+							onClick={handleGenerate}
+							disabled={!canGenerate}
+							className="btn-primary text-sm disabled:opacity-50"
+						>
+							Add to Statement
+						</button>
+					</div>
 				</div>
 			</div>
 			<ReportDrilldownPanel
@@ -583,6 +613,8 @@ export default function ReportOutput({ data, onRefresh, properties = [], filters
 					data={data}
 					onRefresh={onRefresh}
 					statementStatus={filters.statement_status || 'all'}
+					filters={filters}
+					properties={properties}
 				/>
 			);
 		case 'net-cash-flow':

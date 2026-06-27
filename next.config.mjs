@@ -22,6 +22,7 @@ const CSP = [
   "font-src 'self'",
   "style-src 'self' 'unsafe-inline'",
   "script-src 'self' 'unsafe-inline' https://cdn.plaid.com",
+  "worker-src 'self'",
   "connect-src 'self' https://*.plaid.com",
   "frame-src https://cdn.plaid.com https://*.plaid.com",
 ].join('; ');
@@ -52,7 +53,23 @@ const nextConfig = {
     ],
   },
   async headers() {
-    return [{ source: '/:path*', headers: SECURITY_HEADERS }];
+    return [
+      { source: '/:path*', headers: SECURITY_HEADERS },
+      {
+        source: '/sw.js',
+        headers: [
+          { key: 'Cache-Control', value: 'no-cache, no-store, must-revalidate' },
+          { key: 'Service-Worker-Allowed', value: '/' },
+        ],
+      },
+      {
+        source: '/manifest.webmanifest',
+        headers: [
+          { key: 'Content-Type', value: 'application/manifest+json' },
+          { key: 'Cache-Control', value: 'public, max-age=86400' },
+        ],
+      },
+    ];
   },
 };
 

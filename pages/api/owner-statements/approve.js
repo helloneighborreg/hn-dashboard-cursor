@@ -1,5 +1,9 @@
 import { withAuth } from '../../../lib/auth';
-import { saveOwnerStatementApprovals } from '../../../lib/db';
+import { getOwnerStatementApprovalsForProperties, saveOwnerStatementApprovals } from '../../../lib/db';
+import {
+	buildStatementLockMaps,
+	isStatementCashItemLocked,
+} from '../../../lib/ownerStatementReport';
 
 export default async function handler(req, res) {
 	await withAuth(req, res, async () => {
@@ -24,6 +28,35 @@ export default async function handler(req, res) {
 		}
 
 		try {
+			const propertyIds = [...new Set(statements.map((s) => s.property_id).filter(Boolean))];
+			const existingApprovals = await getOwnerStatementApprovalsForProperties(propertyIds);
+			const { reservationLocks, cashLocks } = buildStatementLockMaps({ approvals: existingApprovals });
+
+			for (const statement of statements) {
+				const property_id = statement.property_id;
+				for (const row of statement.reservations || []) {
+					if (reservationLocks.has(`${property_id}:${row.id}`)) {
+						return res.status(409).json({
+							error: `Reservation ${row.code || row.id} is already on an approved owner statement.`,
+						});
+					}
+				}
+				for (const tx of statement.transactions || []) {
+					if (isStatementCashItemLocked({ ...tx, property_id }, cashLocks)) {
+						return res.status(409).json({
+							error: 'One or more transactions are already on an approved owner statement.',
+						});
+					}
+				}
+				for (const adj of statement.adjustments || []) {
+					if (isStatementCashItemLocked({ ...adj, property_id, kind: 'adjustment' }, cashLocks)) {
+						return res.status(409).json({
+							error: 'One or more adjustments are already on an approved owner statement.',
+						});
+					}
+				}
+			}
+
 			const data = await saveOwnerStatementApprovals(statements, {
 				date_from,
 				date_to,

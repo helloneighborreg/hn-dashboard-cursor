@@ -14,6 +14,7 @@ import {
 	deleteBankTransaction,
 	updateBankTransaction,
 } from '../../../../lib/db';
+import { assertCanEditOwnerStatementCashItem } from '../../../../lib/ownerStatementLock';
 
 export default async function handler(req, res) {
 	await withAuth(req, res, async () => {
@@ -31,10 +32,18 @@ export default async function handler(req, res) {
 				category, property_id, reviewed, hidden, notes,
 				matched_reservation_id, matched_payout_amount,
 				reservation_splits,
+				admin_password,
 			} = req.body || {};
 			try {
 				const tx = await getBankTransactionById(id);
 				if (!tx) return res.status(404).json({ error: 'Transaction not found' });
+
+				await assertCanEditOwnerStatementCashItem({
+					property_id: tx.property_id,
+					item_id: tx.id,
+					item_source: 'bank',
+					admin_password,
+				});
 
 				let payoutAmountToStore = matched_payout_amount;
 				let splitsToStore = reservation_splits;
@@ -97,13 +106,23 @@ export default async function handler(req, res) {
 				return res.json({ data });
 			} catch (err) {
 				console.error('Update bank transaction error:', err.message);
-				return res.status(502).json({ error: err.message });
+				return res.status(err.status || 502).json({ error: err.message });
 			}
 		}
 
 		if (req.method === 'DELETE') {
 			const tx = await getBankTransactionById(id);
 			if (!tx) return res.status(404).json({ error: 'Transaction not found' });
+			try {
+				await assertCanEditOwnerStatementCashItem({
+					property_id: tx.property_id,
+					item_id: tx.id,
+					item_source: 'bank',
+					admin_password: req.body?.admin_password,
+				});
+			} catch (err) {
+				return res.status(err.status || 403).json({ error: err.message });
+			}
 			await deleteBankTransaction(id);
 			return res.status(204).end();
 		}

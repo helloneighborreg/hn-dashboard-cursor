@@ -1,5 +1,6 @@
 import { withAuth } from '../../../lib/auth';
 import { setOwnerStatementCashInclusion } from '../../../lib/db';
+import { assertCanEditOwnerStatementCashItem } from '../../../lib/ownerStatementLock';
 import { statementMonthFromDate } from '../../../lib/ownerStatementReport';
 
 export default async function handler(req, res) {
@@ -13,6 +14,7 @@ export default async function handler(req, res) {
 			statement_month,
 			date,
 			included,
+			admin_password,
 		} = req.body || {};
 
 		if (!property_id || !item_id || !item_source) {
@@ -25,6 +27,15 @@ export default async function handler(req, res) {
 		}
 
 		try {
+			if (included === false) {
+				await assertCanEditOwnerStatementCashItem({
+					property_id: String(property_id).trim(),
+					item_id: String(item_id).trim(),
+					item_source: String(item_source).trim(),
+					admin_password,
+				});
+			}
+
 			const data = await setOwnerStatementCashInclusion({
 				property_id: String(property_id).trim(),
 				item_id: String(item_id).trim(),
@@ -43,7 +54,7 @@ export default async function handler(req, res) {
 			});
 		} catch (err) {
 			console.error('Owner statement cash inclusion error:', err.message);
-			res.status(502).json({ error: err.message });
+			res.status(err.status || 502).json({ error: err.message });
 		}
 	}, { adminOnly: true });
 }

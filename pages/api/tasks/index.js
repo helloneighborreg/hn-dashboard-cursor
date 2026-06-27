@@ -77,6 +77,9 @@ export default async function handler(req, res) {
         }
         const scopeFilters = buildScopeFilters(req.query, session);
         const listFilters = applyTabFilter(scopeFilters, req.query, session);
+        if (req.query.include_archived === 'true') {
+          listFilters.include_archived = true;
+        }
 
         const rows = today === 'true' ? await getTasksForToday() : await getTasks(listFilters);
         const enriched = await enrichTasks(filterHiddenPropertyRows(rows));

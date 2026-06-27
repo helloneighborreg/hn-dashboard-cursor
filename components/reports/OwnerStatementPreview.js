@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import clsx from 'clsx';
 import Image from 'next/image';
 import { ChevronDown, ChevronRight, X } from 'lucide-react';
@@ -46,7 +47,7 @@ function CollapsibleSection({ title, open, onToggle, children }) {
 	);
 }
 
-function StatementReservationsTable({ reservations, totals, onReservationClick }) {
+function StatementReservationsTable({ reservations, totals, onReservationClick, readOnly = false }) {
 	const { sortKey, sortDir, toggleSort } = useTableSort('booking_net_revenue', 'desc');
 	const numericKeys = useMemo(
 		() => new Set([
@@ -80,7 +81,8 @@ function StatementReservationsTable({ reservations, totals, onReservationClick }
 	);
 
 	if (!reservations?.length) {
-		return <p className="text-sm text-muted py-4">No reservations selected.</p>;
+		if (readOnly) return null;
+		return <p className="text-sm text-muted py-2">No reservations selected.</p>;
 	}
 
 	return (
@@ -134,7 +136,7 @@ function StatementReservationsTable({ reservations, totals, onReservationClick }
 	);
 }
 
-function StatementSummary({ totals, ownerName }) {
+function StatementSummary({ totals, ownerName, compact = false }) {
 	const adjustmentsTotal = statementAdjustmentsTotal(totals);
 	const dueToHnItems = [
 		['Management Fee', totals?.reservation_commissions_to_manager],
@@ -144,36 +146,50 @@ function StatementSummary({ totals, ownerName }) {
 	const dueToOwnerLabel = ownerName ? `Due to ${ownerName}` : 'Due to Owner';
 
 	return (
-		<div className="mt-6 space-y-2 max-w-md ml-auto">
+		<div className={clsx(
+			'space-y-1.5',
+			compact ? 'w-full' : 'mt-6 space-y-2 max-w-md ml-auto',
+		)}>
 			<div className="flex items-baseline justify-between gap-4 text-sm">
 				<span className="text-muted">Net Booking Revenue</span>
 				<span className="tabular-nums font-medium text-dark">{fmtReport$(totals?.total_net_revenue)}</span>
 			</div>
-			<div className="pt-2 space-y-2">
-				<p className="text-xs font-semibold uppercase tracking-wide text-muted">
-					{OWNER_STATEMENT_HN_TOTAL_LABEL}
-				</p>
+			<div className={clsx('space-y-1.5', !compact && 'pt-2 space-y-2')}>
 				{dueToHnItems.map(([label, amount]) => (
-					<div key={label} className="flex items-baseline justify-between gap-4 text-sm pl-3">
+					<div key={label} className="flex items-baseline justify-between gap-4 text-sm">
 						<span className="text-muted">{label}</span>
 						<span className="tabular-nums font-medium text-dark">{fmtReport$(amount)}</span>
 					</div>
 				))}
 			</div>
-			<div className="flex items-baseline justify-between gap-4 bg-dark text-white rounded-md px-4 py-3 mt-3">
-				<span className="font-semibold">{dueToOwnerLabel}</span>
-				<span className="tabular-nums text-lg font-bold">{fmtReport$(totals?.total_due_to_owner)}</span>
+			<div className={clsx(
+				'flex items-baseline justify-between gap-4 bg-dark text-white rounded-md px-3',
+				compact ? 'py-2 mt-2' : 'px-4 py-3 mt-4',
+			)}>
+				<span className="font-semibold text-sm">{OWNER_STATEMENT_HN_TOTAL_LABEL}</span>
+				<span className={clsx('tabular-nums font-bold', compact ? 'text-base' : 'text-lg')}>
+					{fmtReport$(totals?.total_due_to_hn_global)}
+				</span>
+			</div>
+			<div className={clsx(
+				'flex items-baseline justify-between gap-4 bg-dark text-white rounded-md px-3',
+				compact ? 'py-2 mt-1.5' : 'px-4 py-3 mt-3',
+			)}>
+				<span className="font-semibold text-sm">{dueToOwnerLabel}</span>
+				<span className={clsx('tabular-nums font-bold', compact ? 'text-base' : 'text-lg')}>
+					{fmtReport$(totals?.total_due_to_owner)}
+				</span>
 			</div>
 		</div>
 	);
 }
 
-function AddressBlock({ line1, line2, className }) {
+function AddressBlock({ line1, line2, className, compact = false }) {
 	if (!line1 && !line2) return null;
 	return (
 		<div className={className}>
-			{line1 && <p className="text-sm text-muted">{line1}</p>}
-			{line2 && <p className="text-sm text-muted">{line2}</p>}
+			{line1 && <p className={compact ? 'text-xs text-muted' : 'text-sm text-muted'}>{line1}</p>}
+			{line2 && <p className={compact ? 'text-xs text-muted' : 'text-sm text-muted'}>{line2}</p>}
 		</div>
 	);
 }
@@ -187,6 +203,7 @@ function StatementPage({
 	selection,
 	onToggleAdditionalItem,
 	onReservationClick,
+	readOnly = false,
 }) {
 	const [transactionsOpen, setTransactionsOpen] = useState(true);
 	const propertyAddress = resolveAddressLines(
@@ -199,25 +216,124 @@ function StatementPage({
 		statement.recipient?.address_line2,
 		statement.recipient?.address,
 	);
-	const hasAdditionalItems = (availableTransactions?.length || 0) + (availableAdjustments?.length || 0) > 0;
+	const hasAdditionalItems =
+		(availableTransactions || []).some((row) => !selection?.transactionIds?.has(row.id))
+		|| (availableAdjustments || []).some((row) => !selection?.adjustmentIds?.has(row.id));
 	const addedItems = [
 		...(statement.transactions || []).map((row) => ({ ...row, kind: 'transaction' })),
 		...(statement.adjustments || []).map((row) => ({ ...row, kind: 'adjustment' })),
 	];
 	const hasAddedItems = addedItems.length > 0;
+	const hasReservations = (statement.reservations || []).length > 0;
+	const hasNotes = Boolean(statement.notes?.trim());
+
+	if (readOnly) {
+		return (
+			<section className="space-y-3">
+				<div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_auto] gap-4 pb-3 border-b border-border">
+					<div className="min-w-0">
+						<p className="text-[10px] font-bold uppercase tracking-wide text-muted">Property</p>
+						<p className="text-sm font-semibold text-dark mt-0.5">{statement.property_name}</p>
+						<AddressBlock
+							line1={propertyAddress.line1}
+							line2={propertyAddress.line2}
+							className="mt-0.5"
+							compact
+						/>
+					</div>
+					<div className="min-w-0 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-3">
+						<div>
+							<p className="text-[10px] font-semibold uppercase tracking-wide text-muted mb-0.5">To</p>
+							<p className="text-sm font-medium text-dark">{statement.recipient?.name || '—'}</p>
+							<AddressBlock
+								line1={ownerAddress.line1}
+								line2={ownerAddress.line2}
+								className="mt-0.5"
+								compact
+							/>
+						</div>
+						<div>
+							<p className="text-[10px] font-semibold uppercase tracking-wide text-muted mb-0.5">Reporting Period</p>
+							<p className="text-sm font-medium text-dark">{statement.statement_period || '—'}</p>
+						</div>
+					</div>
+					<div className="shrink-0 text-right lg:pl-2">
+						<Image
+							src="/logo.png"
+							alt="Hello Neighbor Real Estate Group"
+							width={200}
+							height={32}
+							className="h-10 w-auto ml-auto"
+							priority
+						/>
+						<div className="mt-1.5">
+							<p className="text-xs font-medium text-dark">{OWNER_STATEMENT_MANAGER}</p>
+							<AddressBlock
+								line1={OWNER_STATEMENT_MANAGER_ADDRESS.line1}
+								line2={OWNER_STATEMENT_MANAGER_ADDRESS.line2}
+								className="mt-0.5"
+								compact
+							/>
+						</div>
+					</div>
+				</div>
+
+				<div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_280px] gap-4 items-start">
+					<div className="space-y-3 min-w-0">
+						{hasReservations && (
+							<StatementReservationsTable
+								reservations={statement.reservations}
+								totals={statement.totals}
+								onReservationClick={onReservationClick}
+								readOnly
+							/>
+						)}
+
+						{hasAddedItems && (
+							<div>
+								<h4 className="text-xs font-semibold uppercase tracking-wide text-muted mb-1.5">
+									Additional Transactions &amp; Expenses
+								</h4>
+								<OwnerStatementAddedItems
+									items={addedItems}
+									readOnly
+									compact
+								/>
+							</div>
+						)}
+					</div>
+
+					<div className="space-y-3 lg:sticky lg:top-0">
+						<StatementSummary
+							totals={statement.totals}
+							ownerName={statement.recipient?.name}
+							compact
+						/>
+						<div className="rounded-lg border border-border bg-gray-50/60 px-3 py-2.5 space-y-2">
+							<div>
+								<p className="text-[10px] font-semibold uppercase tracking-wide text-muted mb-0.5">Notes</p>
+								<p className="text-xs text-muted leading-relaxed">{OWNER_STATEMENT_MANAGEMENT_FEE_NOTE}</p>
+							</div>
+							{hasNotes && (
+								<div className="pt-2 border-t border-border/70">
+									<p className="text-[10px] font-semibold uppercase tracking-wide text-muted mb-0.5">
+										Additional Notes
+									</p>
+									<p className="text-xs text-dark whitespace-pre-wrap leading-relaxed">{statement.notes.trim()}</p>
+								</div>
+							)}
+						</div>
+					</div>
+				</div>
+			</section>
+		);
+	}
 
 	return (
 		<section className="space-y-4">
 			<div className="flex items-start justify-between gap-6">
 				<div className="min-w-0 flex-1">
-					<p className="text-xs font-semibold uppercase tracking-wide text-muted">Owner Statement</p>
-					<input
-						type="text"
-						value={statement.statement_period || ''}
-						onChange={(e) => onPeriodChange(e.target.value)}
-						className="mt-1 w-full max-w-lg text-xl font-bold text-dark bg-transparent border-b border-border focus:border-brand-400 focus:outline-none py-0.5"
-						aria-label="Statement period"
-					/>
+					<p className="text-xs font-bold uppercase tracking-wide text-muted">Owner Statement</p>
 					<p className="text-base font-semibold text-dark mt-3">{statement.property_name}</p>
 					<AddressBlock
 						line1={propertyAddress.line1}
@@ -245,14 +361,26 @@ function StatementPage({
 				</div>
 			</div>
 
-			<div className="pt-4 border-t border-border max-w-sm">
-				<p className="text-xs font-semibold uppercase tracking-wide text-muted mb-1">To</p>
-				<p className="text-sm font-medium text-dark">{statement.recipient?.name || '—'}</p>
-				<AddressBlock
-					line1={ownerAddress.line1}
-					line2={ownerAddress.line2}
-					className="mt-1"
-				/>
+			<div className="pt-4 border-t border-border max-w-sm space-y-6">
+				<div>
+					<p className="text-xs font-semibold uppercase tracking-wide text-muted mb-1">To</p>
+					<p className="text-sm font-medium text-dark">{statement.recipient?.name || '—'}</p>
+					<AddressBlock
+						line1={ownerAddress.line1}
+						line2={ownerAddress.line2}
+						className="mt-1"
+					/>
+				</div>
+				<div>
+					<p className="text-xs font-semibold uppercase tracking-wide text-muted mb-1">Reporting Period</p>
+					<input
+						type="text"
+						value={statement.statement_period || ''}
+						onChange={(e) => onPeriodChange(e.target.value)}
+						className="w-full text-sm font-medium text-dark bg-transparent border-b border-border focus:border-brand-400 focus:outline-none py-0.5"
+						aria-label="Statement period"
+					/>
+				</div>
 			</div>
 
 			<StatementReservationsTable
@@ -261,11 +389,9 @@ function StatementPage({
 				onReservationClick={onReservationClick}
 			/>
 
-			<p className="text-sm text-muted">{OWNER_STATEMENT_MANAGEMENT_FEE_NOTE}</p>
-
 			{hasAddedItems && (
 				<div>
-					<h4 className="text-sm font-semibold text-dark mb-2">Added Transactions &amp; Expenses</h4>
+					<h4 className="text-sm font-semibold text-dark mb-2">Additional Transactions &amp; Expenses</h4>
 					<OwnerStatementAddedItems
 						items={addedItems}
 						onRemove={(row) => onToggleAdditionalItem(row, false)}
@@ -294,8 +420,13 @@ function StatementPage({
 			/>
 
 			<div>
+				<p className="text-xs font-semibold uppercase tracking-wide text-muted mb-1">Notes</p>
+				<p className="text-sm text-muted">{OWNER_STATEMENT_MANAGEMENT_FEE_NOTE}</p>
+			</div>
+
+			<div>
 				<label className="text-xs font-semibold uppercase tracking-wide text-muted mb-1 block">
-					Notes
+					Additional Notes
 				</label>
 				<textarea
 					value={statement.notes || ''}
@@ -313,18 +444,40 @@ export default function OwnerStatementPreview({
 	statements,
 	onApprove,
 	onDiscard,
+	onVoid,
 	approving = false,
+	voiding = false,
 	error = '',
+	mode = 'draft',
+	approvalMeta = null,
 }) {
+	const readOnly = mode === 'approved';
 	useEscapeKey(onDiscard);
 	const dialogRef = useFocusTrap(Boolean(statements?.length));
+	const [mounted, setMounted] = useState(false);
 	const [drafts, setDrafts] = useState([]);
 	const [itemSelections, setItemSelections] = useState({});
 	const [drilldown, setDrilldown] = useState(null);
 	const sourceRef = useRef({});
 
+	useEffect(() => setMounted(true), []);
+
+	useEffect(() => {
+		if (!statements?.length) return undefined;
+		const prev = document.body.style.overflow;
+		document.body.style.overflow = 'hidden';
+		return () => { document.body.style.overflow = prev; };
+	}, [statements?.length]);
+
 	useEffect(() => {
 		if (statements?.length) {
+			if (readOnly) {
+				sourceRef.current = {};
+				setItemSelections({});
+				setDrafts(statements);
+				return;
+			}
+
 			sourceRef.current = Object.fromEntries(statements.map((statement) => [
 				statement.property_id,
 				{
@@ -347,9 +500,11 @@ export default function OwnerStatementPreview({
 			setItemSelections({});
 			setDrafts([]);
 		}
-	}, [statements]);
+	}, [statements, readOnly]);
 
-	if (!drafts.length) return null;
+	if (!statements?.length || !mounted) return null;
+
+	const displayDrafts = drafts.length ? drafts : statements;
 
 	function updateStatement(propertyId, patch) {
 		setDrafts((prev) => prev.map((statement) => (
@@ -383,10 +538,10 @@ export default function OwnerStatementPreview({
 		});
 	}
 
-	return (
+	return createPortal(
 		<>
 			<div
-				className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[1px]"
+				className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-[1px]"
 				onClick={onDiscard}
 			/>
 			<div
@@ -395,31 +550,76 @@ export default function OwnerStatementPreview({
 				role="dialog"
 				aria-modal="true"
 				aria-label="Owner statement preview"
-				className="fixed inset-4 sm:inset-8 md:inset-12 z-50 bg-white rounded-xl shadow-2xl flex flex-col overflow-hidden focus:outline-none"
+				className={clsx(
+					'fixed z-[110] bg-white rounded-xl shadow-2xl flex flex-col overflow-hidden focus:outline-none min-h-0',
+					readOnly
+						? 'inset-3 sm:inset-4 md:inset-6 lg:inset-8'
+						: 'inset-4 sm:inset-8 md:inset-12',
+				)}
 			>
-				<div className="flex items-start justify-between gap-3 px-5 py-4 border-b border-border shrink-0">
-					<div>
-						<h2 className="text-lg font-bold text-dark">Owner Statement Preview</h2>
-						<p className="text-sm text-muted mt-0.5">
-							{drafts.length} propert{drafts.length === 1 ? 'y' : 'ies'} ·{' '}
-							{drafts.reduce((n, s) => n + (s.reservations?.length || 0), 0)} reservation
-							{drafts.reduce((n, s) => n + (s.reservations?.length || 0), 0) === 1 ? '' : 's'}
-						</p>
+				<div className={clsx(
+					'flex items-start justify-between gap-3 border-b border-border shrink-0',
+					readOnly ? 'px-4 py-3' : 'px-5 py-4',
+				)}>
+					<div className="min-w-0 flex-1">
+						<div className="flex flex-wrap items-center gap-2">
+							<h2 className="text-base sm:text-lg font-bold text-dark">
+								{readOnly ? 'Owner Statement' : 'Owner Statement Preview'}
+							</h2>
+							{readOnly && (
+								<span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-900">
+									Generated
+									{approvalMeta?.approved_at
+										? ` ${formatDateOrDash(approvalMeta.approved_at?.slice?.(0, 10) || approvalMeta.approved_at)}`
+										: ''}
+									{' · '}Locked
+								</span>
+							)}
+						</div>
+						{readOnly ? (
+							<p className="text-xs text-muted mt-1">
+								Void this statement to unlock reservations and transactions for editing.
+							</p>
+						) : (
+							<p className="text-sm text-muted mt-0.5">
+								{displayDrafts.length} propert{displayDrafts.length === 1 ? 'y' : 'ies'} ·{' '}
+								{displayDrafts.reduce((n, s) => n + (s.reservations?.length || 0), 0)} reservation
+								{displayDrafts.reduce((n, s) => n + (s.reservations?.length || 0), 0) === 1 ? '' : 's'}
+							</p>
+						)}
 						{error && <p className="text-xs text-red-600 mt-1">{error}</p>}
 					</div>
-					<button
-						type="button"
-						onClick={onDiscard}
-						className="p-2 rounded-lg text-muted hover:text-dark hover:bg-gray-100"
-						aria-label="Close preview"
-					>
-						<X size={18} />
-					</button>
+					<div className="flex items-center gap-1.5 shrink-0">
+						{readOnly && approvalMeta?.has_pdf && approvalMeta?.id && (
+							<a
+								href={`/api/owner-statements/${approvalMeta.id}/pdf`}
+								target="_blank"
+								rel="noopener noreferrer"
+								className="hidden sm:inline-flex text-xs px-3 py-1.5 rounded-md border font-medium transition-colors border-brand-200 bg-brand-50 text-brand-700 hover:bg-brand-100"
+							>
+								View PDF
+							</a>
+						)}
+						<button
+							type="button"
+							onClick={onDiscard}
+							className="p-2 rounded-lg text-muted hover:text-dark hover:bg-gray-100"
+							aria-label="Close preview"
+						>
+							<X size={18} />
+						</button>
+					</div>
 				</div>
 
-				<div className="flex-1 overflow-y-auto px-5 py-5 space-y-10">
-					{drafts.map((statement) => {
-						const source = sourceRef.current[statement.property_id] || {};
+				<div className={clsx(
+					'flex-1 min-h-0 overflow-y-auto overscroll-contain',
+					readOnly ? 'px-4 py-3' : 'px-5 py-5 space-y-10',
+				)}>
+					{displayDrafts.map((statement) => {
+						const source = sourceRef.current[statement.property_id] || {
+							transactions: statement.available_transactions || statement.transactions || [],
+							adjustments: statement.available_adjustments || statement.adjustments || [],
+						};
 						return (
 							<StatementPage
 								key={statement.property_id}
@@ -428,39 +628,94 @@ export default function OwnerStatementPreview({
 								availableAdjustments={source.adjustments}
 								onPeriodChange={(value) => updateStatement(statement.property_id, { statement_period: value })}
 								onNotesChange={(value) => updateStatement(statement.property_id, { notes: value })}
-								selection={itemSelections[statement.property_id]}
+								selection={itemSelections[statement.property_id] || {
+									transactionIds: new Set(),
+									adjustmentIds: new Set(),
+								}}
 								onToggleAdditionalItem={(row, included) => toggleAdditionalItem(statement.property_id, row, included)}
 								onReservationClick={openReservation}
+								readOnly={readOnly}
 							/>
 						);
 					})}
 				</div>
 
-				<div className="shrink-0 border-t border-border px-5 py-4 flex flex-col-reverse sm:flex-row sm:justify-end gap-2 bg-white">
-					<button
-						type="button"
-						onClick={onDiscard}
-						disabled={approving}
-						className={clsx(
-							'text-sm px-4 py-2 rounded-md border font-medium transition-colors',
-							'border-red-200 bg-red-50 text-red-700 hover:bg-red-100',
-							approving && 'opacity-50',
-						)}
-					>
-						Discard
-					</button>
-					<button
-						type="button"
-						onClick={() => onApprove?.(drafts)}
-						disabled={approving}
-						className={clsx(
-							'text-sm px-4 py-2 rounded-md border font-medium transition-colors',
-							'border-green-200 bg-green-600 text-white hover:bg-green-700',
-							approving && 'opacity-50',
-						)}
-					>
-						{approving ? 'Approving…' : 'Approve'}
-					</button>
+				<div className={clsx(
+					'shrink-0 border-t border-border flex gap-2 bg-white',
+					readOnly
+						? 'px-4 py-2.5 flex-row items-center justify-between'
+						: 'px-5 py-4 flex-col-reverse sm:flex-row sm:justify-end',
+				)}>
+					{readOnly ? (
+						<>
+							<p className="text-xs text-muted hidden sm:block">
+								Reservations and transactions on this statement are locked.
+							</p>
+							<div className="flex items-center gap-2 ml-auto">
+								<button
+									type="button"
+									onClick={onDiscard}
+									disabled={voiding}
+									className={clsx(
+										'text-xs sm:text-sm px-3 py-1.5 rounded-md border font-medium transition-colors',
+										'border-border bg-white text-dark hover:bg-gray-50',
+										voiding && 'opacity-50',
+									)}
+								>
+									Close
+								</button>
+								{approvalMeta?.has_pdf && approvalMeta?.id && (
+									<a
+										href={`/api/owner-statements/${approvalMeta.id}/pdf`}
+										target="_blank"
+										rel="noopener noreferrer"
+										className="sm:hidden text-xs px-3 py-1.5 rounded-md border font-medium transition-colors border-brand-200 bg-brand-50 text-brand-700 hover:bg-brand-100 text-center"
+									>
+										View PDF
+									</a>
+								)}
+								<button
+									type="button"
+									onClick={onVoid}
+									disabled={voiding}
+									className={clsx(
+										'text-xs sm:text-sm px-3 py-1.5 rounded-md border font-medium transition-colors',
+										'border-red-200 bg-red-50 text-red-700 hover:bg-red-100',
+										voiding && 'opacity-50',
+									)}
+								>
+									{voiding ? 'Voiding…' : 'Void statement'}
+								</button>
+							</div>
+						</>
+					) : (
+						<>
+							<button
+								type="button"
+								onClick={onDiscard}
+								disabled={approving}
+								className={clsx(
+									'text-sm px-4 py-2 rounded-md border font-medium transition-colors',
+									'border-red-200 bg-red-50 text-red-700 hover:bg-red-100',
+									approving && 'opacity-50',
+								)}
+							>
+								Discard
+							</button>
+							<button
+								type="button"
+								onClick={() => onApprove?.(drafts.length ? drafts : displayDrafts)}
+								disabled={approving}
+								className={clsx(
+									'text-sm px-4 py-2 rounded-md border font-medium transition-colors',
+									'border-green-200 bg-green-600 text-white hover:bg-green-700',
+									approving && 'opacity-50',
+								)}
+							>
+								{approving ? 'Approving…' : 'Approve'}
+							</button>
+						</>
+					)}
 				</div>
 			</div>
 			<ReportDrilldownPanel
@@ -471,6 +726,7 @@ export default function OwnerStatementPreview({
 				stacked
 				onClose={() => setDrilldown(null)}
 			/>
-		</>
+		</>,
+		document.body,
 	);
 }

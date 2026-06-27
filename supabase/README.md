@@ -28,6 +28,8 @@ Files under `supabase/migrations/` are **not** applied when you deploy the app. 
 | `20260624_task_timeline.sql` | `assigned_at`, `started_at`, `completed_at` on `tasks` (task detail timeline) |
 | `20260704_task_payment.sql` | `scheduled_by`, `paid_at`, `paid_by` on `tasks`; migrates `under_review` → `completed` |
 | `20260705_billpay_invoices.sql` | `billpay_invoices` — cleaning invoices queued when tasks are marked paid |
+| `20260715_task_overdue_notified.sql` | `overdue_notified_at` on `tasks` — one overdue email/push per task |
+| `20260627_task_archived.sql` | `archived_at` on `tasks` — hide tasks older than 30 days from dashboard/lists |
 
 ## 3. API keys
 
@@ -85,6 +87,8 @@ If these are not set, assignment still works; notifications are skipped with a s
 When a task is marked **completed** (admin button) or a cleaner **submits the in-app checklist**, the app emails configured recipients with a link to the checklist.
 
 When a linked **booking changes** (checkout/due dates, guest, pets, etc.), one email goes to **all recipients on the same To: line** — the assignee (if any) plus admin emails. Unassigned tasks email admins only. SMS (optional) still goes to the assignee’s phone only.
+
+When an **assigned task is not completed by its due date and time**, the app emails the assignee and admins (same To: line), texts the assignee (if configured), and sends web push to both. A separate cron runs every 15 minutes (`/api/tasks/overdue-notify-cron`); each task is notified at most once until the due schedule or assignee changes.
 
 ```env
 # Who receives completion and task-change emails (comma-separated).

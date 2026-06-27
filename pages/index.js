@@ -3,6 +3,7 @@ import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { Eye, EyeOff, Lock } from 'lucide-react';
 import { BrandLogo } from '../components/Logo';
+import PwaInstallButton from '../components/PwaInstallButton';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -128,6 +129,8 @@ export default function LoginPage() {
               >
                 {loading ? 'Signing in…' : 'Sign in'}
               </button>
+
+              <PwaInstallButton className="mt-1" />
             </form>
           </div>
 

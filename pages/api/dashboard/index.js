@@ -13,13 +13,14 @@ import {
 	sortReservationsByCheckInAsc,
 	sortReservationsByCheckOutAsc,
 } from '../../../lib/reservationDates';
-import { getTasks } from '../../../lib/db';
+import { getTasks, getTasksForToday } from '../../../lib/db';
 import { sortTasksByDateAsc, sortTasksByDateDesc } from '../../../lib/constants';
 import { enrichTasks } from '../../../lib/taskEnrich';
 import { withChecklistUrl } from '../../../lib/checklistUrl';
 import { sanitizeTasksForViewer } from '../../../lib/taskSanitize';
 import { filterHiddenPropertyRows } from '../../../lib/hiddenProperties';
-import { format, addDays } from 'date-fns';
+import { todayIso } from '../../../lib/dates';
+import { addDays, format } from 'date-fns';
 
 const CACHE_TTL_MS = 60_000;
 const TASK_LIST_LIMIT = 50;
@@ -29,9 +30,10 @@ async function buildAdminDashboardData() {
 	const propMap = buildPropertyMap(properties);
 	const ids = properties.map((p) => p.id);
 
-	const todayStr = format(new Date(), 'yyyy-MM-dd');
-	const in7days = format(addDays(new Date(), 7), 'yyyy-MM-dd');
-	const fetchFrom = format(addDays(new Date(), -90), 'yyyy-MM-dd');
+	const todayStr = todayIso();
+	const todayDate = new Date(`${todayStr}T12:00:00`);
+	const in7days = format(addDays(todayDate, 7), 'yyyy-MM-dd');
+	const fetchFrom = format(addDays(todayDate, -90), 'yyyy-MM-dd');
 
 	const { data: all } = await getReservations(ids, {
 		perPage: 200,
@@ -51,12 +53,7 @@ async function buildAdminDashboardData() {
 		overdueTaskRows,
 		unassignedTaskRows,
 	] = await Promise.all([
-		getTasks({
-			due_date: todayStr,
-			exclude_completed: true,
-			sort_soonest: true,
-			limit: TASK_LIST_LIMIT,
-		}),
+		getTasksForToday(),
 		getTasks({ status: 'completed' }),
 		getTasks({ exclude_completed: true, overdue: true }),
 		getTasks({ unassigned: true, exclude_completed: true }),
@@ -74,7 +71,8 @@ async function buildAdminDashboardData() {
 		enrichTasks(filterHiddenPropertyRows(unassignedTaskRows)),
 	]);
 
-	const tasksToday = sortTasksByDateAsc(todayEnriched.map(withChecklistUrl));
+	const tasksToday = sortTasksByDateAsc(todayEnriched.map(withChecklistUrl))
+		.slice(0, TASK_LIST_LIMIT);
 
 	const occupied = sortReservationsByCheckOutAsc(
 		accepted.filter((r) => ci(r) <= todayStr && co(r) > todayStr).map(wp),
@@ -114,7 +112,7 @@ async function buildAdminDashboardData() {
 
 async function buildUserTaskDashboardData(session, navPermissions) {
 	const assignee = session.user?.name;
-	const todayStr = format(new Date(), 'yyyy-MM-dd');
+	const todayStr = todayIso();
 
 	const [todayRows, completedRows, overdueRows] = await Promise.all([
 		getTasks({
