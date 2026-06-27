@@ -261,7 +261,6 @@ export default function DashboardPage() {
 
   const taskLinks = useMemo(() => ({
     tasksToday: '/tasks/assigned?today=true',
-    completed: '/tasks/completed',
     overdue: '/tasks/overdue',
   }), []);
 
@@ -303,19 +302,14 @@ export default function DashboardPage() {
 
         {data && !loading && isTaskDashboard && (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-6 sm:mb-8 w-full auto-rows-fr">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-6 sm:mb-8 w-full auto-rows-fr">
               <StatCard label="Tasks Due Today" value={data.stats.tasks_today} icon={CheckSquare} color="green" href={taskLinks.tasksToday} />
-              <StatCard label="Completed Tasks" value={data.stats.tasks_completed} icon={CircleCheckBig} color="green" href={taskLinks.completed} />
               <StatCard label="Overdue Tasks" value={data.stats.tasks_overdue} icon={AlertCircle} color="red" href={taskLinks.overdue} />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <DashboardPanel title="Tasks Due Today" href={taskLinks.tasksToday}>
                 <TaskList items={data.tasks_today} showDue={false} dueBelowStatus />
-              </DashboardPanel>
-
-              <DashboardPanel title="Completed Tasks" href={taskLinks.completed}>
-                <TaskList items={data.tasks_completed} emptyMsg="No completed tasks" />
               </DashboardPanel>
 
               <DashboardPanel title="Overdue Tasks" href={taskLinks.overdue}>

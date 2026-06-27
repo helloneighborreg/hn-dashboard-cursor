@@ -7,6 +7,14 @@ npm run build:cloudflare    # build only
 npm run deploy:cloudflare   # build + deploy (keeps dashboard env vars)
 ```
 
+### Custom domains
+
+Production is served at **`team.stayhn.com`** (no `www`). `wrangler.jsonc` also registers **`www.team.stayhn.com`** so deploy can provision DNS for guest-facing links that use `www`.
+
+If `www.team.stayhn.com` does not resolve after deploy, in Cloudflare DNS add a **CNAME** `www` → `team.stayhn.com` (proxied), or a **Redirect Rule**: `www.team.stayhn.com/*` → `https://team.stayhn.com/$1`.
+
+Optional env **`GUEST_CHECKOUT_BASE_URL`** (Cloudflare Variables) should be `https://team.stayhn.com` — not `www` — so property checkout links match the live host.
+
 If you connect GitHub in **Workers Builds**, set the deploy command to:
 
 ```bash

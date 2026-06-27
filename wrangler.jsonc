@@ -16,10 +16,15 @@
 		{
 			"pattern": "team.stayhn.com",
 			"custom_domain": true
+		},
+		{
+			"pattern": "www.team.stayhn.com",
+			"custom_domain": true
 		}
 	],
 	// Non-secret config only — keep tokens/passwords in Cloudflare dashboard (Settings → Variables and Secrets).
 	"vars": {
+		"GUEST_CHECKOUT_BASE_URL": "https://team.stayhn.com",
 		"VAPID_PUBLIC_KEY": "BAp9nQGvQixw58DWVpaO9syZQmCLwMCcINy3sfc4DDvKMBWn2Sh9Mz8bEVpYhymHYWeqYxrb1Jhmtzk4Y1Nc0Io",
 		"VAPID_SUBJECT": "mailto:hello@hnreg.com"
 	},

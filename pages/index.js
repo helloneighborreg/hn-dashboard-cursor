@@ -1,61 +1,39 @@
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/router';
 import Head from 'next/head';
 import { Eye, EyeOff, Lock } from 'lucide-react';
 import { BrandLogo } from '../components/Logo';
 import PwaInstallButton from '../components/PwaInstallButton';
+import { getRememberedUsername } from '../lib/auth';
 
-export default function LoginPage() {
-  const router = useRouter();
-  const [username, setUsername] = useState('');
+export default function LoginPage({ rememberedUsername, loginError }) {
+  const [username, setUsername] = useState(rememberedUsername || '');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(true);
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState(loginError || '');
 
-  // Prefill username for convenience (never store password).
-  // Uses localStorage since this is explicitly opt-in via "Remember me".
+  // Prefer server-set cookie; fall back to legacy localStorage for existing devices.
   useEffect(() => {
+    if (rememberedUsername) {
+      setUsername(rememberedUsername);
+      return;
+    }
     try {
       const saved = window.localStorage.getItem('hn_remembered_username');
       if (saved) setUsername(saved);
     } catch {
       // ignore
     }
-  }, []);
+  }, [rememberedUsername]);
 
-  async function handleSubmit(e) {
-    e.preventDefault();
+  useEffect(() => {
+    if (loginError) setError(loginError);
+  }, [loginError]);
+
+  function handleSubmit() {
     setError('');
     setLoading(true);
-    try {
-      const trimmedUsername = username.trim();
-      if (!trimmedUsername) {
-        setError('Username is required.');
-        return;
-      }
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: trimmedUsername, password, rememberMe }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) { setError(data.error || 'Invalid username or password'); return; }
-      if (typeof window !== 'undefined') {
-        try {
-          if (rememberMe) window.localStorage.setItem('hn_remembered_username', trimmedUsername);
-          else window.localStorage.removeItem('hn_remembered_username');
-        } catch {
-          // ignore
-        }
-      }
-      router.push(data.redirect || '/dashboard');
-    } catch {
-      setError('Cannot reach the server. Run npm run dev and open the URL shown in the terminal (e.g. http://localhost:3000).');
-    } finally {
-      setLoading(false);
-    }
   }
 
   return (
@@ -71,11 +49,19 @@ export default function LoginPage() {
 
           {/* Card */}
           <div className="bg-white rounded-2xl shadow-2xl p-8">
-            <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Native form POST keeps session cookies reliable on mobile Safari / iOS PWA. */}
+            <form
+              method="POST"
+              action="/api/auth/login"
+              onSubmit={handleSubmit}
+              className="space-y-4"
+            >
+              <input type="hidden" name="rememberMe" value={rememberMe ? '1' : '0'} />
               <div>
                 <label className="label">Username</label>
                 <input
                   type="text"
+                  name="username"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   className="input"
@@ -90,6 +76,7 @@ export default function LoginPage() {
                   <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
                   <input
                     type={showPass ? 'text' : 'password'}
+                    name="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="input pl-9 pr-10"
@@ -141,4 +128,16 @@ export default function LoginPage() {
       </div>
     </>
   );
+}
+
+export async function getServerSideProps({ req, query }) {
+  const rememberedUsername = getRememberedUsername(req);
+  const loginError = typeof query.login_error === 'string' ? query.login_error : '';
+
+  return {
+    props: {
+      rememberedUsername,
+      loginError,
+    },
+  };
 }

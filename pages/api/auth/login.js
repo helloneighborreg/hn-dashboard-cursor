@@ -1,4 +1,11 @@
-import { getSession, authenticateUser, getAuthConfigStatus, applyRememberMe } from '../../../lib/auth';
+import {
+	getSession,
+	authenticateUser,
+	getAuthConfigStatus,
+	applyRememberMe,
+	setRememberedUsernameCookie,
+	clearRememberedUsernameCookie,
+} from '../../../lib/auth';
 import { homePathForRole } from '../../../lib/roles';
 import { getNavPermissions } from '../../../lib/navPermissionsDb';
 import { getClientIp, rateLimit } from '../../../lib/rateLimit';
@@ -95,6 +102,13 @@ export default async function handler(req, res) {
 			applyRememberMe(session);
 		}
 		await session.save();
+
+		const trimmedUsername = String(username || '').trim();
+		if (rememberMe && trimmedUsername) {
+			setRememberedUsernameCookie(res, trimmedUsername);
+		} else {
+			clearRememberedUsernameCookie(res);
+		}
 
 		const navPermissions = await getNavPermissions();
 		const redirect = homePathForRole(user.role, navPermissions);
