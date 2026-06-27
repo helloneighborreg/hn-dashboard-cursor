@@ -47,6 +47,16 @@ node scripts/print-dashboard-users.mjs
 | `SUPABASE_SERVICE_ROLE_KEY` | service_role secret key |
 | `CRON_SECRET` | Random string for scheduled task sync (`/api/tasks/sync-cron`) |
 
+### Optional — web push (PWA)
+
+| Variable | Notes |
+|----------|--------|
+| `VAPID_PUBLIC_KEY` | In `wrangler.jsonc` `vars` (non-secret) |
+| `VAPID_PRIVATE_KEY` | Cloudflare **Secret** only — never commit |
+| `VAPID_SUBJECT` | In `wrangler.jsonc` `vars`, e.g. `mailto:hello@hnreg.com` |
+
+Generate keys: `node scripts/generate-vapid-keys.mjs`
+
 ### Optional — legacy Fillout
 
 Only needed if some properties still use external Fillout forms (not the in-app CJC checklist). If unset, skip these — CJC units use `/forms/cjc-turn-clean-checklist`.

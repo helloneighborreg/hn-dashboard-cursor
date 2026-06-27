@@ -2,6 +2,7 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { Shield, ClipboardList } from 'lucide-react';
 import Layout from '../../components/Layout';
+import PwaNotificationSettings from '../../components/PwaNotificationSettings';
 import { requireAuth } from '../../lib/auth';
 
 const ACTIONS = [
@@ -45,6 +46,10 @@ export default function SettingsPage() {
 							</Link>
 						);
 					})}
+				</div>
+
+				<div className="mt-6 max-w-2xl">
+					<PwaNotificationSettings />
 				</div>
 			</Layout>
 		</>
