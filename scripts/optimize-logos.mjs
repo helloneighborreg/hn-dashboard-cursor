@@ -37,9 +37,39 @@ async function writeLogoWidth(input, output, width) {
 	console.log(`${output.replace(PUBLIC + '/', '')}: ${width}x${height}, ${bytes} bytes`);
 }
 
+async function writeMaskableIcon(input, output, size) {
+	const iconSize = Math.round(size * 0.62);
+	const offset = Math.round((size - iconSize) / 2);
+	const icon = await sharp(input)
+		.resize(iconSize, iconSize, {
+			fit: 'contain',
+			background: { r: 0, g: 0, b: 0, alpha: 0 },
+		})
+		.png()
+		.toBuffer();
+	const tmp = `${output}.tmp`;
+	await sharp({
+		create: {
+			width: size,
+			height: size,
+			channels: 4,
+			background: { r: 26, g: 47, b: 58, alpha: 1 },
+		},
+	})
+		.composite([{ input: icon, top: offset, left: offset }])
+		.png({ compressionLevel: 9, palette: true })
+		.toFile(tmp);
+	await sharp(tmp).toFile(output);
+	unlinkSync(tmp);
+	const bytes = statSync(output).size;
+	console.log(`${output.replace(PUBLIC + '/', '')}: ${size}x${size} maskable, ${bytes} bytes`);
+}
+
 async function main() {
 	await writePng(SRC_ICON, join(PUBLIC, 'logo-icon-32.png'), 32, 32);
 	await writePng(SRC_ICON, join(PUBLIC, 'logo-icon-192.png'), 192, 192);
+	await writeMaskableIcon(SRC_ICON, join(PUBLIC, 'logo-icon-192-maskable.png'), 192);
+	await writePng(SRC_ICON, join(PUBLIC, 'logo-icon-512.png'), 512, 512);
 	await writeLogoWidth(SRC_LOGO, join(PUBLIC, 'logo.png'), 560);
 	await writePng(SRC_ICON, join(PUBLIC, 'logo-pdf-icon.png'), 64, 64);
 	await writeLogoWidth(SRC_LOGO, join(PUBLIC, 'logo-pdf.png'), 400);

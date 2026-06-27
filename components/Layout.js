@@ -12,6 +12,7 @@ import { useAuth } from './AuthContext';
 import { useTaskCounts } from './TaskCountsContext';
 import { BrandLogo } from './Logo';
 import AppActionBar from './AppActionBar';
+import PwaNotificationSettings from './PwaNotificationSettings';
 import { homePathForRole, navItemsForRole, roleLabel } from '../lib/roles';
 import { fetchJson } from '../lib/apiClient';
 
@@ -490,6 +491,7 @@ export default function Layout({ children, title }) {
               )}
             </div>
           )}
+          <PwaNotificationSettings compact collapsed={collapsed} className={collapsed ? 'mb-2' : 'mb-3'} />
           <NavTooltip label="Sign Out" collapsed={collapsed}>
             <button
               type="button"

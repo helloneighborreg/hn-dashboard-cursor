@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google';
 import '../styles/globals.css';
 import { AuthProvider } from '../components/AuthContext';
 import { TaskCountsProvider } from '../components/TaskCountsContext';
+import PwaUpdateToast from '../components/PwaUpdateToast';
 
 const inter = Inter({
 	subsets: ['latin'],
@@ -21,11 +22,14 @@ export default function App({ Component, pageProps }) {
 					<link rel="icon" href="/logo-icon-192.png" type="image/png" sizes="192x192" />
 					<link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" />
 					<link rel="manifest" href="/manifest.webmanifest" />
+					<meta name="apple-mobile-web-app-capable" content="yes" />
+					<meta name="apple-mobile-web-app-status-bar-style" content="default" />
 					<meta name="apple-mobile-web-app-title" content="Hello Neighbor" />
 					<meta name="application-name" content="Hello Neighbor" />
 					<meta name="theme-color" content="#5B9AB8" />
 				</Head>
 				<Component {...pageProps} />
+				<PwaUpdateToast />
 				</TaskCountsProvider>
 			</AuthProvider>
 		</div>
