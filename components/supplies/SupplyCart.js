@@ -1,5 +1,5 @@
 import { X, Minus, Plus, ShoppingCart, PackageCheck, FileText, CircleCheckBig } from 'lucide-react';
-import { fmtSupplyPrice, lineTotal, orderTotal, pricedUnit, SUPPLY_ORDER_STATUS, supplyInvoicePdfUrl } from '../../lib/supplies';
+import { fmtSupplyPrice, lineTotal, orderTotal, pricedUnit, SUPPLY_ORDER_STATUS, supplyCartLineKey, supplyCartLineTitle, supplyInvoicePdfUrl } from '../../lib/supplies';
 import { getPropertyDisplayName } from '../../lib/codes';
 import { formatDateOrDash } from '../../lib/dates';
 import { useEscapeKey } from '../../lib/useEscapeKey';
@@ -17,15 +17,21 @@ function formatOrderDate(iso) {
 }
 
 function CartLine({ item, product, markupPercent, readOnly, onQtyChange, onRemove }) {
-	const title = product?.title || 'Unknown';
+	const lineKey = supplyCartLineKey(item);
+	const title = supplyCartLineTitle(item, product);
 	const unitPrice = pricedUnit(item.unit_price, markupPercent);
+	const isCustom = !item.product_id;
 	return (
 		<div className="flex items-center gap-3 py-3 border-b border-border last:border-0">
 			<div className="flex-1 min-w-0">
 				<p className="text-sm font-medium text-dark truncate">{title}</p>
 				<p className="text-xs text-muted mt-0.5">
-					{fmtSupplyPrice(unitPrice)} each
-					{item.sales_tax_percent > 0 && ' · tax included'}
+					{isCustom ? 'Custom item' : (
+						<>
+							{fmtSupplyPrice(unitPrice)} each
+							{item.sales_tax_percent > 0 && ' · tax included'}
+						</>
+					)}
 				</p>
 			</div>
 			{readOnly ? (
@@ -34,7 +40,7 @@ function CartLine({ item, product, markupPercent, readOnly, onQtyChange, onRemov
 				<div className="flex items-center gap-1.5">
 					<button
 						type="button"
-						onClick={() => onQtyChange(item.product_id, item.quantity - 1)}
+						onClick={() => onQtyChange(lineKey, item.quantity - 1)}
 						className="p-1 rounded-md border border-border text-muted hover:text-dark"
 						aria-label={`Decrease ${title}`}
 					>
@@ -43,7 +49,7 @@ function CartLine({ item, product, markupPercent, readOnly, onQtyChange, onRemov
 					<span className="w-8 text-center text-sm font-medium tabular-nums">{item.quantity}</span>
 					<button
 						type="button"
-						onClick={() => onQtyChange(item.product_id, item.quantity + 1)}
+						onClick={() => onQtyChange(lineKey, item.quantity + 1)}
 						className="p-1 rounded-md border border-border text-muted hover:text-dark"
 						aria-label={`Increase ${title}`}
 					>
@@ -52,12 +58,12 @@ function CartLine({ item, product, markupPercent, readOnly, onQtyChange, onRemov
 				</div>
 			)}
 			<p className="text-sm font-medium text-dark w-16 text-right tabular-nums">
-				{fmtSupplyPrice(lineTotal(item.unit_price, item.sales_tax_percent, item.quantity, markupPercent))}
+				{isCustom ? '—' : fmtSupplyPrice(lineTotal(item.unit_price, item.sales_tax_percent, item.quantity, markupPercent))}
 			</p>
 			{!readOnly && (
 				<button
 					type="button"
-					onClick={() => onRemove(item.product_id)}
+					onClick={() => onRemove(lineKey)}
 					className="p-1 text-muted hover:text-red-600"
 					aria-label={`Remove ${title}`}
 				>
@@ -241,9 +247,9 @@ export default function SupplyCart({
 							</div>
 							{items.map((item) => (
 								<CartLine
-									key={item.product_id}
+									key={supplyCartLineKey(item)}
 									item={item}
-									product={productsById[item.product_id]}
+									product={item.product_id ? productsById[item.product_id] : null}
 									markupPercent={markupPercent}
 									readOnly={readOnly}
 									onQtyChange={onQtyChange}

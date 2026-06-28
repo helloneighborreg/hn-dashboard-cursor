@@ -179,6 +179,22 @@ if (supplyOrderColErr?.code === '42703' || /delivered_at|paid_at|paid_by|expense
 	console.log('✓ supply_orders delivery/payment columns exist');
 }
 
+const { error: supplyCustomItemErr } = await supabase
+	.from('supply_order_items')
+	.select('custom_title')
+	.limit(0);
+
+if (supplyCustomItemErr?.code === '42703' || /custom_title/i.test(supplyCustomItemErr?.message || '')) {
+	console.error('✗ supply_order_items missing custom_title column');
+	console.error('  → Run supabase/migrations/20260628_supply_order_custom_items.sql in Supabase SQL Editor');
+	ok = false;
+} else if (supplyCustomItemErr) {
+	console.error(`✗ supply_order_items custom_title check: ${supplyCustomItemErr.message}`);
+	ok = false;
+} else {
+	console.log('✓ supply_order_items custom_title column exists');
+}
+
 console.log('\n— Guest checkout —');
 
 {
@@ -270,6 +286,22 @@ for (const table of ['billpay_invoices']) {
 		const { count } = await supabase.from(table).select('*', { count: 'exact', head: true });
 		console.log(`✓ Table "${table}" exists (${count ?? 0} rows)`);
 	}
+}
+
+const { error: billpayPdfColErr } = await supabase
+	.from('billpay_invoices')
+	.select('pdf_url, pdf_storage_path')
+	.limit(0);
+
+if (billpayPdfColErr?.code === '42703' || /pdf_url|pdf_storage_path/i.test(billpayPdfColErr?.message || '')) {
+	console.error('✗ billpay_invoices missing pdf_url / pdf_storage_path columns');
+	console.error('  → Run supabase/migrations/20260628_billpay_invoice_pdf.sql in SQL Editor');
+	ok = false;
+} else if (billpayPdfColErr) {
+	console.error(`✗ billpay_invoices PDF column check: ${billpayPdfColErr.message}`);
+	ok = false;
+} else {
+	console.log('✓ billpay_invoices PDF columns exist');
 }
 
 if (!ok) {
