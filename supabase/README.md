@@ -27,7 +27,8 @@ Files under `supabase/migrations/` are **not** applied when you deploy the app. 
 | `20260606_bank_transaction_categorization.sql` | `reviewed`, `hidden`, `notes` on bank transactions (Bookkeeping tab) |
 | `20260624_task_timeline.sql` | `assigned_at`, `started_at`, `completed_at` on `tasks` (task detail timeline) |
 | `20260704_task_payment.sql` | `scheduled_by`, `paid_at`, `paid_by` on `tasks`; migrates `under_review` → `completed` |
-| `20260705_billpay_invoices.sql` | `billpay_invoices` — cleaning invoices queued when tasks are marked paid |
+| `20260705_billpay_invoices.sql` | `billpay_invoices` — cleaning invoices queued when tasks are marked complete |
+| `20260628_billpay_invoice_pdf.sql` | `pdf_url`, `pdf_storage_path` on `billpay_invoices` — cleaning invoice PDFs |
 | `20260715_task_overdue_notified.sql` | `overdue_notified_at` on `tasks` — one overdue email/push per task |
 | `20260627_task_archived.sql` | `archived_at` on `tasks` — hide tasks older than 30 days from dashboard/lists |
 

@@ -1,5 +1,5 @@
 import { withAuth, isAdmin, isCleaner } from '../../../lib/auth';
-import { deleteBillpayInvoiceForTask, upsertBillpayInvoiceForTask } from '../../../lib/billpayDb';
+import { syncBillpayForTaskUpdate } from '../../../lib/billpaySync';
 import { getTaskById, updateTask, deleteTask } from '../../../lib/db';
 import { notifyTaskAssigned, notifyTaskBookingChanged, notifyIfTaskCompleted } from '../../../lib/notify';
 import { withChecklistUrl, submissionIdFromChecklistUrl } from '../../../lib/checklistUrl';
@@ -47,8 +47,6 @@ export default async function handler(req, res) {
 			}
 
 			const prevAssignee = task.assignee;
-			const wasPaid = Boolean(task.paid_at);
-			const willBePaid = body.paid_at !== undefined ? Boolean(body.paid_at) : wasPaid;
 
 			if (body.checklist_review_status === 'approved') {
 				const submissionId = submissionIdFromChecklistUrl(task.checklist_submission_url);
@@ -63,24 +61,10 @@ export default async function handler(req, res) {
 
 			const updated = await updateTask(id, body, { previousTask: task });
 
-			if (willBePaid && !wasPaid) {
-				try {
-					await upsertBillpayInvoiceForTask(updated);
-				} catch (err) {
-					console.error('Billpay invoice create failed:', err.message);
-				}
-			} else if (wasPaid && !willBePaid) {
-				try {
-					await deleteBillpayInvoiceForTask(id);
-				} catch (err) {
-					console.error('Billpay invoice delete failed:', err.message);
-				}
-			} else if (willBePaid && wasPaid) {
-				try {
-					await upsertBillpayInvoiceForTask(updated);
-				} catch (err) {
-					console.error('Billpay invoice refresh failed:', err.message);
-				}
+			try {
+				await syncBillpayForTaskUpdate(task, updated);
+			} catch (err) {
+				console.error('Billpay sync failed:', err.message);
 			}
 
 			const [enrichedRow] = await enrichTasks([updated]);

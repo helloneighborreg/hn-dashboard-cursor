@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Check, Circle, RefreshCw } from 'lucide-react';
+import { Check, Circle, FileText, RefreshCw } from 'lucide-react';
 import clsx from 'clsx';
 import { PageLoader, ErrorState, EmptyState } from '../LoadingSpinner';
 import PageSearchInput from '../PageSearchInput';
@@ -102,7 +102,7 @@ export default function BillpayPage() {
 				<div>
 					<h1 className="text-2xl font-bold text-dark">Billpay</h1>
 					<p className="text-sm text-muted mt-1">
-						Cleaning invoices queued when tasks are marked paid in Tasks.
+						Cleaning invoices with PDFs are queued when tasks are marked complete.
 					</p>
 				</div>
 				<div className="flex items-center gap-2">
@@ -162,6 +162,7 @@ export default function BillpayPage() {
 									<SortableTableHead sortKey="description" label="Task" active={sortKey === 'description'} direction={sortDir} onSort={toggleSort} />
 									<SortableTableHead sortKey="marked" label="Marked paid" active={sortKey === 'marked'} direction={sortDir} onSort={toggleSort} className="table-head-date" />
 									<SortableTableHead sortKey="amount" label="Amount" align="right" active={sortKey === 'amount'} direction={sortDir} onSort={toggleSort} />
+									<SortableTableHead label="PDF" sortable={false} align="center" />
 									<SortableTableHead label={tab === 'pending' ? 'Paid out' : 'Status'} sortable={false} align="center" />
 								</tr>
 							</thead>
@@ -194,6 +195,22 @@ export default function BillpayPage() {
 										</td>
 										<td className="table-cell text-right font-medium">{fmt$(invoice.amount)}</td>
 										<td className="table-cell text-center">
+											{invoice.pdf_url ? (
+												<a
+													href={invoice.pdf_url}
+													target="_blank"
+													rel="noopener noreferrer"
+													className="inline-flex items-center justify-center rounded p-1 text-muted hover:text-dark hover:bg-gray-50"
+													title="View invoice PDF"
+													aria-label="View invoice PDF"
+												>
+													<FileText size={18} aria-hidden />
+												</a>
+											) : (
+												<span className="text-xs text-muted">—</span>
+											)}
+										</td>
+										<td className="table-cell text-center">
 											<button
 												type="button"
 												onClick={() => toggleInvoiceStatus(invoice)}
@@ -222,7 +239,7 @@ export default function BillpayPage() {
 						title={tab === 'pending' ? 'No upcoming billpay items' : 'No paid-out invoices'}
 						message={
 							tab === 'pending'
-								? 'Mark completed tasks as paid in Tasks to queue invoices here.'
+								? 'Complete cleaning tasks to queue invoices with PDFs here.'
 								: 'Invoices you mark as paid out will appear here.'
 						}
 					/>
