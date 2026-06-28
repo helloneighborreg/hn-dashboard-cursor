@@ -15,12 +15,16 @@ export default async function handler(req, res) {
 			}
 			const order = await saveSupplyDraft({
 				order_id: order_id?.trim() || null,
-				items: (items || []).map((item) => ({
-					product_id: item.product_id,
-					quantity: Math.max(1, parseInt(item.quantity, 10) || 1),
-					unit_price: parseFloat(item.unit_price) || 0,
-					sales_tax_percent: parseFloat(item.sales_tax_percent) || 0,
-				})),
+				items: (items || []).map((item) => {
+					const customTitle = item.custom_title?.trim() || null;
+					return {
+						product_id: customTitle ? null : item.product_id,
+						custom_title: customTitle,
+						quantity: Math.max(1, parseInt(item.quantity, 10) || 1),
+						unit_price: parseFloat(item.unit_price) || 0,
+						sales_tax_percent: parseFloat(item.sales_tax_percent) || 0,
+					};
+				}),
 				location: resolveDeliveryLocation(location, property_name),
 				notes: notes?.trim() || null,
 				property_id: property_id?.trim() || null,

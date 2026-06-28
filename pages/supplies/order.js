@@ -4,6 +4,7 @@ import { Plus, ShoppingCart, RefreshCw, ListOrdered } from 'lucide-react';
 import Layout from '../../components/Layout';
 import PageSearchInput from '../../components/PageSearchInput';
 import SupplyProductCard from '../../components/supplies/SupplyProductCard';
+import SupplyOtherCard from '../../components/supplies/SupplyOtherCard';
 import SupplyProductModal from '../../components/supplies/SupplyProductModal';
 import SupplyCart from '../../components/supplies/SupplyCart';
 import SupplyOutstandingOrders, { openSupplyInvoice } from '../../components/supplies/SupplyOutstandingOrders';
@@ -11,12 +12,13 @@ import { PageLoader, ErrorState } from '../../components/LoadingSpinner';
 import { fetchJson } from '../../lib/apiClient';
 import { requireAuth } from '../../lib/auth';
 import { getPropertyDisplayName } from '../../lib/codes';
-import { DEFAULT_INVENTORY_LOCATION, fmtSupplyPrice, isInventoryOnlyProduct, parseMarkupPercent, resolveDeliveryLocation, SUPPLY_CATEGORIES, SUPPLY_ORDER_STATUS, supplyInvoicePdfUrl } from '../../lib/supplies';
+import { DEFAULT_INVENTORY_LOCATION, fmtSupplyPrice, isInventoryOnlyProduct, parseMarkupPercent, resolveDeliveryLocation, SUPPLY_CATEGORIES, SUPPLY_ORDER_STATUS, supplyCartLineKey, supplyInvoicePdfUrl } from '../../lib/supplies';
 import clsx from 'clsx';
 
 function orderToCartItems(order) {
 	return (order?.items || []).map((item) => ({
-		product_id: item.product_id,
+		product_id: item.product_id || null,
+		custom_title: item.custom_title?.trim() || null,
 		quantity: item.quantity,
 		unit_price: item.unit_price,
 		sales_tax_percent: item.sales_tax_percent,
@@ -345,18 +347,45 @@ export default function SuppliesOrderPage() {
 		});
 	}, [orderLocked]);
 
-	function changeQty(productId, qty) {
+	const addCustomItems = useCallback((items) => {
+		if (orderLocked) return;
+		setCart((prev) => {
+			let next = [...prev];
+			for (const item of items) {
+				const customTitle = item.custom_title?.trim();
+				if (!customTitle) continue;
+				const qty = Math.max(1, Math.floor(Number(item.quantity)) || 1);
+				const lineKey = supplyCartLineKey({ custom_title: customTitle });
+				const existing = next.find((c) => supplyCartLineKey(c) === lineKey);
+				if (existing) {
+					next = next.map((c) => (
+						supplyCartLineKey(c) === lineKey ? { ...c, quantity: c.quantity + qty } : c
+					));
+				} else {
+					next.push({
+						custom_title: customTitle,
+						quantity: qty,
+						unit_price: 0,
+						sales_tax_percent: 0,
+					});
+				}
+			}
+			return next;
+		});
+	}, [orderLocked]);
+
+	function changeQty(lineKey, qty) {
 		if (orderLocked) return;
 		if (qty < 1) {
-			setCart((prev) => prev.filter((c) => c.product_id !== productId));
+			setCart((prev) => prev.filter((c) => supplyCartLineKey(c) !== lineKey));
 			return;
 		}
-		setCart((prev) => prev.map((c) => (c.product_id === productId ? { ...c, quantity: qty } : c)));
+		setCart((prev) => prev.map((c) => (supplyCartLineKey(c) === lineKey ? { ...c, quantity: qty } : c)));
 	}
 
-	function removeFromCart(productId) {
+	function removeFromCart(lineKey) {
 		if (orderLocked) return;
-		setCart((prev) => prev.filter((c) => c.product_id !== productId));
+		setCart((prev) => prev.filter((c) => supplyCartLineKey(c) !== lineKey));
 	}
 
 	async function viewInvoice() {
@@ -610,6 +639,7 @@ export default function SuppliesOrderPage() {
 								disabled={orderLocked}
 							/>
 						))}
+						<SupplyOtherCard onAdd={addCustomItems} disabled={orderLocked} />
 					</div>
 				)}
 
