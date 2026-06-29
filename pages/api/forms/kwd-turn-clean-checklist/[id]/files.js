@@ -1,14 +1,9 @@
 import { withAuth } from '../../../../../lib/auth';
 import { uploadChecklistFile } from '../../../../../lib/forms/checklistFormStorage';
 import { appendSubmissionFile } from '../../../../../lib/forms/checklistSubmissions';
+import { CHECKLIST_API_BODY_PARSER } from '../../../../../lib/forms/createChecklistApiHandler';
 
-export const config = {
-	api: {
-		bodyParser: {
-			sizeLimit: '14mb',
-		},
-	},
-};
+export const config = CHECKLIST_API_BODY_PARSER;
 
 export default async function handler(req, res) {
 	await withAuth(req, res, async () => {
@@ -66,7 +61,7 @@ export default async function handler(req, res) {
 				},
 			});
 		} catch (err) {
-			console.error('CJC checklist file upload error:', err.message);
+			console.error('KWD checklist file upload error:', err.message);
 			const message = err?.message || 'Upload failed';
 			if (/bucket not found|Bucket not found/i.test(message)) {
 				return res.status(500).json({

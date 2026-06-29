@@ -1,0 +1,1335 @@
+{
+  "id": "94f6iZKTA7us",
+  "name": "Turn Clean Checklist: Kirkwood",
+  "slug": "kwd-turn-clean-checklist",
+  "urlParameters": [
+    {
+      "id": "ReservationID",
+      "name": "ReservationID"
+    },
+    {
+      "id": "Guest",
+      "name": "Guest"
+    },
+    {
+      "id": "Property",
+      "name": "Property"
+    },
+    {
+      "id": "CheckOut",
+      "name": "CheckOut"
+    },
+    {
+      "id": "id",
+      "name": "id"
+    },
+    {
+      "id": "TaskID",
+      "name": "TaskID"
+    }
+  ],
+  "calculations": [
+    {
+      "id": "svxB",
+      "name": "Invoice Total",
+      "type": "number"
+    }
+  ],
+  "questions": [
+    {
+      "id": "jVpt",
+      "name": "Property",
+      "type": "Dropdown",
+      "options": [
+        {
+          "id": "mXL3",
+          "value": "KWD502",
+          "label": "KWD502"
+        }
+      ]
+    },
+    {
+      "id": "3UUV",
+      "name": "Guest",
+      "type": "ShortAnswer"
+    },
+    {
+      "id": "cdyd",
+      "name": "Reservation ID",
+      "type": "ShortAnswer"
+    },
+    {
+      "id": "m1cH",
+      "name": "Task ID",
+      "type": "ShortAnswer"
+    },
+    {
+      "id": "caar",
+      "name": "Cleaner",
+      "type": "Dropdown",
+      "options": [
+        {
+          "id": "mXL3",
+          "value": "Brandi Drieslein",
+          "label": "Brandi Drieslein"
+        },
+        {
+          "id": "iLXy",
+          "value": "Josiah Burton",
+          "label": "Josiah Burton"
+        }
+      ]
+    },
+    {
+      "id": "oNEm",
+      "name": "Today's Date",
+      "type": "DatePicker"
+    },
+    {
+      "id": "q6K9",
+      "name": "Task Prefill URL Parameter",
+      "type": "ShortAnswer"
+    },
+    {
+      "id": "17it",
+      "name": "Reservation Prefill URL Parameter",
+      "type": "ShortAnswer"
+    },
+    {
+      "id": "23dg",
+      "name": "Previous Guest - Photos Upload",
+      "type": "FileUpload"
+    },
+    {
+      "id": "cdgA",
+      "name": "Key Fob (1) & Garage Remote (1)- Photo Upload",
+      "type": "FileUpload"
+    },
+    {
+      "id": "h89J",
+      "name": "Kirkwood - Bedroom - TV - Task List",
+      "type": "Checkboxes",
+      "options": [
+        {
+          "id": "r696",
+          "value": "Turn on & confirm no screen damage",
+          "label": "Turn on & confirm no screen damage"
+        },
+        {
+          "id": "7EHc",
+          "value": "Clean screen (remove fingerprints, gunk, etc.)",
+          "label": "Clean screen (remove fingerprints, gunk, etc.)"
+        },
+        {
+          "id": "x2N5",
+          "value": "Clean/wipe top of the TV to remove dust",
+          "label": "Clean/wipe top of the TV to remove dust"
+        },
+        {
+          "id": "mDuL",
+          "value": "Check remote for functionality; replace batteries if necessary; place on side/behind magnet",
+          "label": "Check remote for functionality; replace batteries if necessary; place on side/behind magnet"
+        }
+      ]
+    },
+    {
+      "id": "6erL",
+      "name": "Kirkwood - Bedroom - TV - Photo Upload",
+      "type": "FileUpload"
+    },
+    {
+      "id": "2cJ8",
+      "name": "Kirkwood - Bedroom - Dresser - Task List",
+      "type": "Checkboxes",
+      "options": [
+        {
+          "id": "2XwP",
+          "value": "Open and check inside each drawer; remove contents accordingly",
+          "label": "Open and check inside each drawer; remove contents accordingly"
+        },
+        {
+          "id": "ajTk",
+          "value": "Clean/wipe/dust top, drawers, front, sides, base, etc. to remove fingerprints, gunk, dust, etc.",
+          "label": "Clean/wipe/dust top, drawers, front, sides, base, etc. to remove fingerprints, gunk, dust, etc."
+        },
+        {
+          "id": "6jS4",
+          "value": "Check behind; remove anything accordingly",
+          "label": "Check behind; remove anything accordingly"
+        },
+        {
+          "id": "adzi",
+          "value": "Reset/arrange any decor",
+          "label": "Reset/arrange any decor"
+        }
+      ]
+    },
+    {
+      "id": "k37S",
+      "name": "Kirkwood - Bedroom - Dresser - Photo Upload",
+      "type": "FileUpload"
+    },
+    {
+      "id": "251s",
+      "name": "Kirkwood - Bedroom - Nightstands - Task List",
+      "type": "Checkboxes",
+      "options": [
+        {
+          "id": "woD5",
+          "value": "Open and check inside any drawers; remove contents accordingly",
+          "label": "Open and check inside any drawers; remove contents accordingly"
+        },
+        {
+          "id": "5ReD",
+          "value": "Clean/wipe/dust top, drawers, front, sides, base, etc. to remove fingerprints, gunk, dust, etc.",
+          "label": "Clean/wipe/dust top, drawers, front, sides, base, etc. to remove fingerprints, gunk, dust, etc."
+        },
+        {
+          "id": "tLRk",
+          "value": "Check behind; remove anything accordingly",
+          "label": "Check behind; remove anything accordingly"
+        }
+      ]
+    },
+    {
+      "id": "51V4",
+      "name": "Kirkwood - Bedroom - Nightstands - Photo Upload",
+      "type": "FileUpload"
+    },
+    {
+      "id": "q2gY",
+      "name": "Kirkwood - Bedroom - Lamps - Task List",
+      "type": "Checkboxes",
+      "options": [
+        {
+          "id": "x3Jj",
+          "value": "Turn on to ensure functionality; replace bulb if necessary",
+          "label": "Turn on to ensure functionality; replace bulb if necessary"
+        },
+        {
+          "id": "eJHR",
+          "value": "Clean/wipe/dust base, sides, shade, etc. to remove dust, gunk, fingerprints, etc.",
+          "label": "Clean/wipe/dust base, sides, shade, etc. to remove dust, gunk, fingerprints, etc."
+        },
+        {
+          "id": "miMi",
+          "value": "Reset/arrange centered on nightstand",
+          "label": "Reset/arrange centered on nightstand"
+        },
+        {
+          "id": "1cgR",
+          "value": "Ensure the power cord is plugged into outlet",
+          "label": "Ensure the power cord is plugged into outlet"
+        }
+      ]
+    },
+    {
+      "id": "24oG",
+      "name": "Kirkwood - Bedroom - Lamps - Photo Upload",
+      "type": "FileUpload"
+    },
+    {
+      "id": "3BwH",
+      "name": "Kirkwood - Bedroom - Bed - Task List",
+      "type": "Checkboxes",
+      "options": [
+        {
+          "id": "tdje",
+          "value": "Clean/wipe headboard, footboard and side rails to remove any dirt, dust, hair, etc.",
+          "label": "Clean/wipe headboard, footboard and side rails to remove any dirt, dust, hair, etc."
+        },
+        {
+          "id": "6wHs",
+          "value": "Check/inspect/clean underneath; remove anything accordingly",
+          "label": "Check/inspect/clean underneath; remove anything accordingly"
+        },
+        {
+          "id": "91me",
+          "value": "Check/inspect linens once on bed to remove any lint, hair, etc.",
+          "label": "Check/inspect linens once on bed to remove any lint, hair, etc."
+        },
+        {
+          "id": "dj5V",
+          "value": "Reset/arrange pillows",
+          "label": "Reset/arrange pillows"
+        }
+      ]
+    },
+    {
+      "id": "rzxL",
+      "name": "Kirkwood - Bedroom - Bed - Photo Upload",
+      "type": "FileUpload"
+    },
+    {
+      "id": "vEod",
+      "name": "Kirkwood - Bedroom - Closet - Task List",
+      "type": "Checkboxes",
+      "options": [
+        {
+          "id": "qYyr",
+          "value": "Check inside; remove contents accordingly",
+          "label": "Check inside; remove contents accordingly"
+        },
+        {
+          "id": "2jRT",
+          "value": "Check/clean ironing board",
+          "label": "Check/clean ironing board"
+        },
+        {
+          "id": "1mNA",
+          "value": "Check/clean drying rack",
+          "label": "Check/clean drying rack"
+        },
+        {
+          "id": "hEoc",
+          "value": "Clean front of mirror",
+          "label": "Clean front of mirror"
+        },
+        {
+          "id": "t6sn",
+          "value": "Arrange any stock pillows that may havecame with the sofa",
+          "label": "Arrange any stock pillows that may havecame with the sofa"
+        },
+        {
+          "id": "j72z",
+          "value": "Hangers; remove any wire, multi-colored, dry cleaning, etc. & then reset/align facing the same direction",
+          "label": "Hangers; remove any wire, multi-colored, dry cleaning, etc. & then reset/align facing the same direction"
+        },
+        {
+          "id": "s5w5",
+          "value": "Check/confirm for pack n’ play",
+          "label": "Check/confirm for pack n’ play"
+        },
+        {
+          "id": "7nxq",
+          "value": "Check spare linens bin: (1) fitted sheet, (1) flat sheet, (4) pillowcases",
+          "label": "Check spare linens bin: (1) fitted sheet, (1) flat sheet, (4) pillowcases"
+        }
+      ]
+    },
+    {
+      "id": "o6uU",
+      "name": "Kirkwood - Bedroom - Closet - Photo Upload",
+      "type": "FileUpload"
+    },
+    {
+      "id": "fGoS",
+      "name": "Kirkwood - Bedroom - Air Mattress Bin - Task List",
+      "type": "Checkboxes",
+      "options": [
+        {
+          "id": "ixEk",
+          "value": "(1) quilt placed on bottom",
+          "label": "(1) quilt placed on bottom"
+        },
+        {
+          "id": "hvu2",
+          "value": "(1) fitted sheet",
+          "label": "(1) fitted sheet"
+        },
+        {
+          "id": "3hRX",
+          "value": "(1) flat sheet",
+          "label": "(1) flat sheet"
+        },
+        {
+          "id": "gkpk",
+          "value": "(2) pillows",
+          "label": "(2) pillows"
+        },
+        {
+          "id": "fiQy",
+          "value": "(2) pillow protectors",
+          "label": "(2) pillow protectors"
+        },
+        {
+          "id": "iqMD",
+          "value": "(2) pillowcases",
+          "label": "(2) pillowcases"
+        },
+        {
+          "id": "pRMj",
+          "value": "(1) air mattress placed on top",
+          "label": "(1) air mattress placed on top"
+        }
+      ]
+    },
+    {
+      "id": "bQdg",
+      "name": "Kirkwood - Bedroom - Air Mattress Bin - Photo Upload",
+      "type": "FileUpload"
+    },
+    {
+      "id": "x8oC",
+      "name": "Kirkwood - Bedroom - Window - Task List",
+      "type": "Checkboxes",
+      "options": [
+        {
+          "id": "18Bk",
+          "value": "Open curtains; evenly to both sides",
+          "label": "Open curtains; evenly to both sides"
+        },
+        {
+          "id": "ihJp",
+          "value": "Open/close/adjust blinds as necessary (1/4 open is ideal)",
+          "label": "Open/close/adjust blinds as necessary (1/4 open is ideal)"
+        },
+        {
+          "id": "xsDP",
+          "value": "Clean windowsill and track",
+          "label": "Clean windowsill and track"
+        }
+      ]
+    },
+    {
+      "id": "pnnF",
+      "name": "Kirkwood - Bedroom - Window - Photo Upload",
+      "type": "FileUpload"
+    },
+    {
+      "id": "hRFN",
+      "name": "Kirkwood - Living Room - TV - Task List",
+      "type": "Checkboxes",
+      "options": [
+        {
+          "id": "r696",
+          "value": "Turn on & confirm no screen damage",
+          "label": "Turn on & confirm no screen damage"
+        },
+        {
+          "id": "7EHc",
+          "value": "Clean screen (remove fingerprints, gunk, etc.)",
+          "label": "Clean screen (remove fingerprints, gunk, etc.)"
+        },
+        {
+          "id": "x2N5",
+          "value": "Clean/wipe top of the TV to remove dust",
+          "label": "Clean/wipe top of the TV to remove dust"
+        },
+        {
+          "id": "mDuL",
+          "value": "Check remote for functionality; replace batteries if necessary; place on side/behind magnet",
+          "label": "Check remote for functionality; replace batteries if necessary; place on side/behind magnet"
+        }
+      ]
+    },
+    {
+      "id": "p6Vr",
+      "name": "Kirkwood - Living Room - TV - Photo Upload",
+      "type": "FileUpload"
+    },
+    {
+      "id": "n4Rz",
+      "name": "Kirkwood - Living Room - Other Furniture - Task List",
+      "type": "Checkboxes",
+      "options": [
+        {
+          "id": "aB52",
+          "value": "Check/inspect inside any drawers or cabinets; remove contents accordingly",
+          "label": "Check/inspect inside any drawers or cabinets; remove contents accordingly"
+        },
+        {
+          "id": "er3j",
+          "value": "Clean top, shelves, sides, etc.",
+          "label": "Clean top, shelves, sides, etc."
+        },
+        {
+          "id": "5Px2",
+          "value": "Check underneath",
+          "label": "Check underneath"
+        },
+        {
+          "id": "6THF",
+          "value": "Arrange/reset decorative items as necessary",
+          "label": "Arrange/reset decorative items as necessary"
+        }
+      ]
+    },
+    {
+      "id": "8fWQ",
+      "name": "Kirkwood - Living Room - Other Furniture - Photo Upload",
+      "type": "FileUpload"
+    },
+    {
+      "id": "u6nL",
+      "name": "Kirkwood - Living Room - Office Area - Task List",
+      "type": "Checkboxes",
+      "options": [
+        {
+          "id": "iPiZ",
+          "value": "Check any drawers & cabinets for any contents; remove accordingly",
+          "label": "Check any drawers & cabinets for any contents; remove accordingly"
+        },
+        {
+          "id": "1H4W",
+          "value": "Clean/wipe surface, legs, etc.",
+          "label": "Clean/wipe surface, legs, etc."
+        },
+        {
+          "id": "wBin",
+          "value": "Reset/arrange any decor items",
+          "label": "Reset/arrange any decor items"
+        },
+        {
+          "id": "o65z",
+          "value": "Turn on lamp to ensure functionality; replace bulb if necessary",
+          "label": "Turn on lamp to ensure functionality; replace bulb if necessary"
+        },
+        {
+          "id": "u4Dg",
+          "value": "Clean/wipe/dust base, sides, shade, etc. to remove dust, gunk, fingerprints, etc.",
+          "label": "Clean/wipe/dust base, sides, shade, etc. to remove dust, gunk, fingerprints, etc."
+        },
+        {
+          "id": "kwGh",
+          "value": "Clean chair seat, back, base, legs, etc. & arrange at desk",
+          "label": "Clean chair seat, back, base, legs, etc. & arrange at desk"
+        }
+      ]
+    },
+    {
+      "id": "fEPC",
+      "name": "Kirkwood - Living Room - Office Area - Photo Upload",
+      "type": "FileUpload"
+    },
+    {
+      "id": "of9y",
+      "name": "Kirkwood - Living Room - Lamp - Task List",
+      "type": "Checkboxes",
+      "options": [
+        {
+          "id": "x3Jj",
+          "value": "Turn on to ensure functionality; replace bulb if necessary",
+          "label": "Turn on to ensure functionality; replace bulb if necessary"
+        },
+        {
+          "id": "eJHR",
+          "value": "Clean/wipe/dust base, sides, shade, etc. to remove dust, gunk, fingerprints, etc.",
+          "label": "Clean/wipe/dust base, sides, shade, etc. to remove dust, gunk, fingerprints, etc."
+        },
+        {
+          "id": "1cgR",
+          "value": "Ensure the power cord is plugged into outlet",
+          "label": "Ensure the power cord is plugged into outlet"
+        }
+      ]
+    },
+    {
+      "id": "5k4w",
+      "name": "Kirkwood - Living Room - Lamp - Photo Upload",
+      "type": "FileUpload"
+    },
+    {
+      "id": "9XSu",
+      "name": "Kirkwood - Living Room - Couch - Task List",
+      "type": "Checkboxes",
+      "options": [
+        {
+          "id": "vJo7",
+          "value": "Check inside cushions; remove/clean as necessary",
+          "label": "Check inside cushions; remove/clean as necessary"
+        },
+        {
+          "id": "7XQf",
+          "value": "Spot check throw pillows; clean as necessary; reset",
+          "label": "Spot check throw pillows; clean as necessary; reset"
+        },
+        {
+          "id": "kJ8Z",
+          "value": "Check underneath; remove/clean accordingly",
+          "label": "Check underneath; remove/clean accordingly"
+        },
+        {
+          "id": "iG4t",
+          "value": "Pull/reset back cushions on top of seated cushions",
+          "label": "Pull/reset back cushions on top of seated cushions"
+        },
+        {
+          "id": "pEHx",
+          "value": "Clean/wipe feet",
+          "label": "Clean/wipe feet"
+        },
+        {
+          "id": "nqZK",
+          "value": "Inspect/check overall for any human/animal \"stray\" hair",
+          "label": "Inspect/check overall for any human/animal \"stray\" hair"
+        },
+        {
+          "id": "3dMT",
+          "value": "Reposition if necessary",
+          "label": "Reposition if necessary"
+        }
+      ]
+    },
+    {
+      "id": "uArz",
+      "name": "Kirkwood - Living Room - Couch - Photo Upload",
+      "type": "FileUpload"
+    },
+    {
+      "id": "ifSU",
+      "name": "Kirkwood - Living Room - Thermostat - Task List",
+      "type": "Checkboxes",
+      "options": [
+        {
+          "id": "miUz",
+          "value": "Check if batteries need replaced; replace accordingly",
+          "label": "Check if batteries need replaced; replace accordingly"
+        },
+        {
+          "id": "tUL9",
+          "value": "Set system to \"cool\" or \"heat\" accordingly",
+          "label": "Set system to \"cool\" or \"heat\" accordingly"
+        },
+        {
+          "id": "eteD",
+          "value": "Set fan to “auto”",
+          "label": "Set fan to “auto”"
+        },
+        {
+          "id": "dTnH",
+          "value": "Set temperature accordingly (summer = 72 or winter = 68)",
+          "label": "Set temperature accordingly (summer = 72 or winter = 68)"
+        }
+      ]
+    },
+    {
+      "id": "9JzT",
+      "name": "Kirkwood - Living Room - Thermostat - Photo Upload",
+      "type": "FileUpload"
+    },
+    {
+      "id": "1YXd",
+      "name": "Kirkwood - Living Room - Other - Task List",
+      "type": "Checkboxes",
+      "options": [
+        {
+          "id": "miUz",
+          "value": "Fold/roll/reset blankets in basket",
+          "label": "Fold/roll/reset blankets in basket"
+        },
+        {
+          "id": "tUL9",
+          "value": "Open/close window blinds accordingly (1/4 open is idea)",
+          "label": "Open/close window blinds accordingly (1/4 open is idea)"
+        }
+      ]
+    },
+    {
+      "id": "wwFA",
+      "name": "Kirkwood - Living Room - Other - Photo Upload",
+      "type": "FileUpload"
+    },
+    {
+      "id": "vnPa",
+      "name": "Kirkwood - Bathroom - Shower/Tub - Task List",
+      "type": "Checkboxes",
+      "options": [
+        {
+          "id": "v7Bg",
+          "value": "Inspect shower curtain liner; replace if necessary",
+          "label": "Inspect shower curtain liner; replace if necessary"
+        },
+        {
+          "id": "7LsR",
+          "value": "Inspect shower curtain; clean if necessary (do not use dryer)",
+          "label": "Inspect shower curtain; clean if necessary (do not use dryer)"
+        },
+        {
+          "id": "h5Kg",
+          "value": "Scrub/clean interior including base, walls, shelves, fixtures, showerhead, etc.",
+          "label": "Scrub/clean interior including base, walls, shelves, fixtures, showerhead, etc."
+        },
+        {
+          "id": "521q",
+          "value": "Inspect top of shower surround base; clean/wipe to remove dust",
+          "label": "Inspect top of shower surround base; clean/wipe to remove dust"
+        },
+        {
+          "id": "pNTs",
+          "value": "Check/confirm rod is in place/secured",
+          "label": "Check/confirm rod is in place/secured"
+        },
+        {
+          "id": "pZLA",
+          "value": "Check/confirm tub stopper (stored in vanity)",
+          "label": "Check/confirm tub stopper (stored in vanity)"
+        }
+      ]
+    },
+    {
+      "id": "sWeU",
+      "name": "Kirkwood - Bathroom - Shower/Tub - Photo Upload",
+      "type": "FileUpload"
+    },
+    {
+      "id": "mwRE",
+      "name": "Kirkwood - Bathroom - Toilet - Task List",
+      "type": "Checkboxes",
+      "options": [
+        {
+          "id": "sKoK",
+          "value": "Clean toilet exterior including base, sides, seat, etc. & close seat",
+          "label": "Clean toilet exterior including base, sides, seat, etc. & close seat"
+        },
+        {
+          "id": "pU5t",
+          "value": "Clean toilet inside rim",
+          "label": "Clean toilet inside rim"
+        },
+        {
+          "id": "iKQr",
+          "value": "Replace toilet paper on holder (minimum ⅓ remaining) with triangle fold",
+          "label": "Replace toilet paper on holder (minimum ⅓ remaining) with triangle fold"
+        },
+        {
+          "id": "kQx7",
+          "value": "Clean exterior, sides, etc of toilet brush & plunger",
+          "label": "Clean exterior, sides, etc of toilet brush & plunger"
+        },
+        {
+          "id": "ak3u",
+          "value": "Clean inside, bottom, sides, etc of trash can",
+          "label": "Clean inside, bottom, sides, etc of trash can"
+        },
+        {
+          "id": "gdR1",
+          "value": "Replace liner",
+          "label": "Replace liner"
+        }
+      ]
+    },
+    {
+      "id": "73HH",
+      "name": "Kirkwood - Bathroom - Toilet - Photo Upload",
+      "type": "FileUpload"
+    },
+    {
+      "id": "tA8K",
+      "name": "Kirkwood - Bathroom - Vanity - Task List",
+      "type": "Checkboxes",
+      "options": [
+        {
+          "id": "qEEn",
+          "value": "Clean the inside of the sink, fixtures, drain stop, etc.",
+          "label": "Clean the inside of the sink, fixtures, drain stop, etc."
+        },
+        {
+          "id": "mRyJ",
+          "value": "Clean countertops (including backsplash)",
+          "label": "Clean countertops (including backsplash)"
+        },
+        {
+          "id": "ncSj",
+          "value": "Clean mirror",
+          "label": "Clean mirror"
+        },
+        {
+          "id": "iDCr",
+          "value": "Clean exterior of soap dispenser; refill if necessary",
+          "label": "Clean exterior of soap dispenser; refill if necessary"
+        },
+        {
+          "id": "fLXs",
+          "value": "Check/inspect/clean interior of all cabinets",
+          "label": "Check/inspect/clean interior of all cabinets"
+        },
+        {
+          "id": "dtLC",
+          "value": "Confirm night light",
+          "label": "Confirm night light"
+        },
+        {
+          "id": "mtyx",
+          "value": "Clean interior of under sink bins to remove gunk, hair, etc.",
+          "label": "Clean interior of under sink bins to remove gunk, hair, etc."
+        },
+        {
+          "id": "1UkQ",
+          "value": "Toiletry supplies bin: shampoo, bodywash, conditioner (refill if necessary) & hair dryer (retract cord)",
+          "label": "Toiletry supplies bin: shampoo, bodywash, conditioner (refill if necessary) & hair dryer (retract cord)"
+        },
+        {
+          "id": "neFF",
+          "value": "‎Cleaning supplies bin: toilet bowl cleaner, trash can liners & two rolls of TP",
+          "label": "‎Cleaning supplies bin: toilet bowl cleaner, trash can liners & two rolls of TP"
+        }
+      ]
+    },
+    {
+      "id": "kGLC",
+      "name": "Kirkwood - Bathroom - Vanity - Photo Upload",
+      "type": "FileUpload"
+    },
+    {
+      "id": "mUut",
+      "name": "Kirkwood - Bathroom - Linens - Task List",
+      "type": "Checkboxes",
+      "options": [
+        {
+          "id": "uzRc",
+          "value": "Towel bar with (1) bath mat",
+          "label": "Towel bar with (1) bath mat"
+        },
+        {
+          "id": "7o7y",
+          "value": "Inside cabinet (folded accordingly): (4) body towels, (4) washcloths, (4) hand towels, (1) make-up towel, (1) hair wrap and (4) pool towels (May-September)",
+          "label": "Inside cabinet (folded accordingly): (4) body towels, (4) washcloths, (4) hand towels, (1) make-up towel, (1) hair wrap and (4) pool towels (May-September)"
+        }
+      ]
+    },
+    {
+      "id": "22KC",
+      "name": "Kirkwood - Bathroom - Linens - Photo Upload",
+      "type": "FileUpload"
+    },
+    {
+      "id": "1nng",
+      "name": "Kirkwood - Laundry - Washer/Dryer - Task List",
+      "type": "Checkboxes",
+      "options": [
+        {
+          "id": "nkYj",
+          "value": "Clean the front, controls, etc. of entire unit",
+          "label": "Clean the front, controls, etc. of entire unit"
+        },
+        {
+          "id": "dugG",
+          "value": "Clean inside of washer bleach basin, interior rim & leave lid open",
+          "label": "Clean inside of washer bleach basin, interior rim & leave lid open"
+        },
+        {
+          "id": "aRZ9",
+          "value": "Inspect both sides for any trash, clothes, lint, etc. & remove accordingly",
+          "label": "Inspect both sides for any trash, clothes, lint, etc. & remove accordingly"
+        },
+        {
+          "id": "mLH1",
+          "value": "Empty dryer lint trap",
+          "label": "Empty dryer lint trap"
+        },
+        {
+          "id": "f4nU",
+          "value": "Check/confirm ironing board",
+          "label": "Check/confirm ironing board"
+        },
+        {
+          "id": "3vTn",
+          "value": "Check/confirm drying rack",
+          "label": "Check/confirm drying rack"
+        },
+        {
+          "id": "dHXg",
+          "value": "Check/clean inside of laundry supplies bin; refill if necessary",
+          "label": "Check/clean inside of laundry supplies bin; refill if necessary"
+        },
+        {
+          "id": "scbP",
+          "value": "Check/confirm iron",
+          "label": "Check/confirm iron"
+        },
+        {
+          "id": "vS1r",
+          "value": "Check/confirm pet towel + frame",
+          "label": "Check/confirm pet towel + frame"
+        }
+      ]
+    },
+    {
+      "id": "tqV5",
+      "name": "Kirkwood - Laundry - Washer/Dryer - Photo Upload",
+      "type": "FileUpload"
+    },
+    {
+      "id": "gQNs",
+      "name": "Kirkwood - Other Closet Items - Task List",
+      "type": "Checkboxes",
+      "options": [
+        {
+          "id": "3TAR",
+          "value": "Vacuum - check/confirm, empty canister, wrap cord, etc.",
+          "label": "Vacuum - check/confirm, empty canister, wrap cord, etc."
+        },
+        {
+          "id": "445m",
+          "value": "Mop - check/confirm, remove any cleaning pads (clean if necessary), store under kitchen sink",
+          "label": "Mop - check/confirm, remove any cleaning pads (clean if necessary), store under kitchen sink"
+        },
+        {
+          "id": "upiH",
+          "value": "Umbrella - check/confirm mounted on wall",
+          "label": "Umbrella - check/confirm mounted on wall"
+        },
+        {
+          "id": "2c78",
+          "value": "Wagon/cart - check/confirm",
+          "label": "Wagon/cart - check/confirm"
+        }
+      ]
+    },
+    {
+      "id": "2gdi",
+      "name": "Kirkwood - Other Closet Items - Photo Upload",
+      "type": "FileUpload"
+    },
+    {
+      "id": "wz13",
+      "name": "Kirkwood - Other - Task List",
+      "type": "Checkboxes",
+      "options": [
+        {
+          "id": "cgnh",
+          "value": "Clean touch points (light switches, door handles, etc)",
+          "label": "Clean touch points (light switches, door handles, etc)"
+        },
+        {
+          "id": "x3mP",
+          "value": "Clean floors (sweep, vacuum, mop, etc)",
+          "label": "Clean floors (sweep, vacuum, mop, etc)"
+        },
+        {
+          "id": "5Cpm",
+          "value": "Check/clean behind door for dust, cobwebs, debris, etc.",
+          "label": "Check/clean behind door for dust, cobwebs, debris, etc."
+        },
+        {
+          "id": "wV5f",
+          "value": "Check exhaust fan is operational (including light), etc. & clean exterior to remove dust, hair, etc.",
+          "label": "Check exhaust fan is operational (including light), etc. & clean exterior to remove dust, hair, etc."
+        }
+      ]
+    },
+    {
+      "id": "9Tw7",
+      "name": "Kirkwood - Other - Photo Upload",
+      "type": "FileUpload"
+    },
+    {
+      "id": "fU8Z",
+      "name": "Kirkwood - Kitchen - Refrigerator/Freezer - Task List",
+      "type": "Checkboxes",
+      "options": [
+        {
+          "id": "i6EQ",
+          "value": "Clean/wipe outside, handles, etc.",
+          "label": "Clean/wipe outside, handles, etc."
+        },
+        {
+          "id": "ew1q",
+          "value": "Remove/discard any non-reusable (or expired) items",
+          "label": "Remove/discard any non-reusable (or expired) items"
+        },
+        {
+          "id": "fDkA",
+          "value": "Clean/wipe inside shelving, doors, trays, etc.",
+          "label": "Clean/wipe inside shelving, doors, trays, etc."
+        },
+        {
+          "id": "uf9N",
+          "value": "Clean/wipe top",
+          "label": "Clean/wipe top"
+        },
+        {
+          "id": "qCoG",
+          "value": "Check/inspect underneath",
+          "label": "Check/inspect underneath"
+        },
+        {
+          "id": "jBUX",
+          "value": "Turn on ice maker",
+          "label": "Turn on ice maker"
+        },
+        {
+          "id": "mw2b",
+          "value": "Check/confirm wifi magnet",
+          "label": "Check/confirm wifi magnet"
+        }
+      ]
+    },
+    {
+      "id": "4f2n",
+      "name": "Kirkwood - Kitchen - Refrigerator/Freezer - Photo Upload",
+      "type": "FileUpload"
+    },
+    {
+      "id": "ouvC",
+      "name": "Kirkwood - Kitchen - Stove - Task List",
+      "type": "Checkboxes",
+      "options": [
+        {
+          "id": "gU4K",
+          "value": "Clean front, top, controls, etc.",
+          "label": "Clean front, top, controls, etc."
+        },
+        {
+          "id": "jkG5",
+          "value": "Move/adjust grates and drip pans (if applicable) to clean, remove food, etc.",
+          "label": "Move/adjust grates and drip pans (if applicable) to clean, remove food, etc."
+        },
+        {
+          "id": "8gvW",
+          "value": "Check oven interior; run self cleaning if necessary (and time permits)",
+          "label": "Check oven interior; run self cleaning if necessary (and time permits)"
+        },
+        {
+          "id": "mu1y",
+          "value": "Check bottom drawer; clean/remove anything as necessary",
+          "label": "Check bottom drawer; clean/remove anything as necessary"
+        },
+        {
+          "id": "qrgP",
+          "value": "Adjust clock if necessary",
+          "label": "Adjust clock if necessary"
+        }
+      ]
+    },
+    {
+      "id": "ntkY",
+      "name": "Kirkwood - Kitchen -  Stove - Photo Upload",
+      "type": "FileUpload"
+    },
+    {
+      "id": "a1tP",
+      "name": "Kirkwood - Kitchen - Microwave - Task List",
+      "type": "Checkboxes",
+      "options": [
+        {
+          "id": "2rdf",
+          "value": "Clean front to remove fingerprints, marks, streaks, etc.",
+          "label": "Clean front to remove fingerprints, marks, streaks, etc."
+        },
+        {
+          "id": "nM6J",
+          "value": "Check/clean inside walls, ceiling, base, glass tray, door, etc.",
+          "label": "Check/clean inside walls, ceiling, base, glass tray, door, etc."
+        },
+        {
+          "id": "pyE7",
+          "value": "Check light for functionality",
+          "label": "Check light for functionality"
+        },
+        {
+          "id": "r5QY",
+          "value": "Adjust clock if necessary",
+          "label": "Adjust clock if necessary"
+        }
+      ]
+    },
+    {
+      "id": "rz33",
+      "name": "Kirkwood - Kitchen - Microwave - Photo Upload",
+      "type": "FileUpload"
+    },
+    {
+      "id": "rue7",
+      "name": "Kirkwood - Kitchen - Dishwasher - Task List",
+      "type": "Checkboxes",
+      "options": [
+        {
+          "id": "q3ap",
+          "value": "Clean front, controls, etc.",
+          "label": "Clean front, controls, etc."
+        },
+        {
+          "id": "vmwv",
+          "value": "Check inside and remove/reset anything as necessary",
+          "label": "Check inside and remove/reset anything as necessary"
+        },
+        {
+          "id": "kJPd",
+          "value": "Check detergent pocket; clean if necessary",
+          "label": "Check detergent pocket; clean if necessary"
+        }
+      ]
+    },
+    {
+      "id": "bnvt",
+      "name": "Kirkwood - Kitchen - Dishwasher - Photo Upload",
+      "type": "FileUpload"
+    },
+    {
+      "id": "iBLG",
+      "name": "Kirkwood - Kitchen - Keurig - Task List",
+      "type": "Checkboxes",
+      "options": [
+        {
+          "id": "sFmG",
+          "value": "Remove old pod",
+          "label": "Remove old pod"
+        },
+        {
+          "id": "ntyK",
+          "value": "Clean/wipe exterior",
+          "label": "Clean/wipe exterior"
+        },
+        {
+          "id": "eJBV",
+          "value": "Clean rear panel (coffee splashes) where mug is placed",
+          "label": "Clean rear panel (coffee splashes) where mug is placed"
+        },
+        {
+          "id": "xw2x",
+          "value": "Remove base/tray and clean as necessary",
+          "label": "Remove base/tray and clean as necessary"
+        },
+        {
+          "id": "1znX",
+          "value": "Clean/wipe glass coffee pot",
+          "label": "Clean/wipe glass coffee pot"
+        }
+      ]
+    },
+    {
+      "id": "scDi",
+      "name": "Kirkwood - Kitchen - Keurig - Photo upload",
+      "type": "FileUpload"
+    },
+    {
+      "id": "rYWu",
+      "name": "Kirkwood - Kitchen - Sink - Task List",
+      "type": "Checkboxes",
+      "options": [
+        {
+          "id": "dZpd",
+          "value": "Clean/wipe interior of both",
+          "label": "Clean/wipe interior of both"
+        },
+        {
+          "id": "sQGC",
+          "value": "Check/clean black gasket (can be removed)",
+          "label": "Check/clean black gasket (can be removed)"
+        },
+        {
+          "id": "dMAa",
+          "value": "Clean/wipe faucet including top, sides, behind, etc",
+          "label": "Clean/wipe faucet including top, sides, behind, etc"
+        },
+        {
+          "id": "bqea",
+          "value": "Check/clean sprayer nozzle",
+          "label": "Check/clean sprayer nozzle"
+        },
+        {
+          "id": "vnJL",
+          "value": "Clean/wipe soap dispenser; refill if necessary",
+          "label": "Clean/wipe soap dispenser; refill if necessary"
+        },
+        {
+          "id": "obgW",
+          "value": "Clean/wipe dishwashing liquid dispenser; refill if necessary",
+          "label": "Clean/wipe dishwashing liquid dispenser; refill if necessary"
+        },
+        {
+          "id": "dfQn",
+          "value": "Clean/wipe trash can exterior, interior, bottom, sides, etc. & replace liner",
+          "label": "Clean/wipe trash can exterior, interior, bottom, sides, etc. & replace liner"
+        }
+      ]
+    },
+    {
+      "id": "nF1y",
+      "name": "Kirkwood - Kitchen - Sink - Photo Upload",
+      "type": "FileUpload"
+    },
+    {
+      "id": "hyEh",
+      "name": "Kirkwood - Kitchen - Cabinets/Drawers - Task List",
+      "type": "Checkboxes",
+      "options": [
+        {
+          "id": "oKQ3",
+          "value": "Check inside each cabinet/drawer; discard/reset items as necessary (remove to-go containers, plastic bags, etc)",
+          "label": "Check inside each cabinet/drawer; discard/reset items as necessary (remove to-go containers, plastic bags, etc)"
+        },
+        {
+          "id": "oAY3",
+          "value": "Wipe each cabinet/drawer piece of hardware",
+          "label": "Wipe each cabinet/drawer piece of hardware"
+        },
+        {
+          "id": "3UT9",
+          "value": "Move items to clean/wipe remove gunk, hair, food, etc.",
+          "label": "Move items to clean/wipe remove gunk, hair, food, etc."
+        },
+        {
+          "id": "cuVM",
+          "value": "Move/arrange items so they're grouped together (all mixing bowls, all drinking glasses, etc) and arrange to be neat/orderly",
+          "label": "Move/arrange items so they're grouped together (all mixing bowls, all drinking glasses, etc) and arrange to be neat/orderly"
+        },
+        {
+          "id": "qZMK",
+          "value": "Check/clean inside silverware tray to remove food, debris, etc. and arrange appropriately",
+          "label": "Check/clean inside silverware tray to remove food, debris, etc. and arrange appropriately"
+        }
+      ]
+    },
+    {
+      "id": "udzq",
+      "name": "Kirkwood - Kitchen - Cabinets/Drawers - Photo Upload",
+      "type": "FileUpload"
+    },
+    {
+      "id": "5oCr",
+      "name": "Kirkwood - Kitchen - Counters - Task List",
+      "type": "Checkboxes",
+      "options": [
+        {
+          "id": "trZU",
+          "value": "Wipe top & side of \"backsplash\" to remove dust, dirt, debris, etc.",
+          "label": "Wipe top & side of \"backsplash\" to remove dust, dirt, debris, etc."
+        },
+        {
+          "id": "fmra",
+          "value": "Clean/wipe entire surface area to remove any food, debris, gunk, etc.",
+          "label": "Clean/wipe entire surface area to remove any food, debris, gunk, etc."
+        },
+        {
+          "id": "bteG",
+          "value": "Check/inspect/clean the sides/trim of counters",
+          "label": "Check/inspect/clean the sides/trim of counters"
+        }
+      ]
+    },
+    {
+      "id": "ahpg",
+      "name": "Kirkwood - Kitchen - Counters - Photo Upload",
+      "type": "FileUpload"
+    },
+    {
+      "id": "2Wwt",
+      "name": "Kirkwood - Kitchen - Other - Task List",
+      "type": "Checkboxes",
+      "options": [
+        {
+          "id": "pXzG",
+          "value": "Check/confirm tool kit (above microwave, right side)",
+          "label": "Check/confirm tool kit (above microwave, right side)"
+        },
+        {
+          "id": "iKgb",
+          "value": "Check/confirm mail key (above microwave, left side)",
+          "label": "Check/confirm mail key (above microwave, left side)"
+        },
+        {
+          "id": "6iCj",
+          "value": "Check/confirm bluetooth speaker (entry or kitchen drawer)",
+          "label": "Check/confirm bluetooth speaker (entry or kitchen drawer)"
+        },
+        {
+          "id": "gkJP",
+          "value": "Check/confirm booster seat; inspect for cleanliness",
+          "label": "Check/confirm booster seat; inspect for cleanliness"
+        },
+        {
+          "id": "oTmG",
+          "value": "Check/confirm step stool",
+          "label": "Check/confirm step stool"
+        },
+        {
+          "id": "mv9t",
+          "value": "Clean touch points (light switches, door handles, etc)",
+          "label": "Clean touch points (light switches, door handles, etc)"
+        },
+        {
+          "id": "uDnX",
+          "value": "Clean floors (sweep, mop, vacuum, etc)",
+          "label": "Clean floors (sweep, mop, vacuum, etc)"
+        },
+        {
+          "id": "7kgL",
+          "value": "Clean/inspect bar stools for food, debris, etc in crevices",
+          "label": "Clean/inspect bar stools for food, debris, etc in crevices"
+        },
+        {
+          "id": "2RRf",
+          "value": "Check/confirm welcome items: fob + garage remote + card + 2 water + 2 earplugs",
+          "label": "Check/confirm welcome items: fob + garage remote + card + 2 water + 2 earplugs"
+        }
+      ]
+    },
+    {
+      "id": "mngj",
+      "name": "Kirkwood - Kitchen - Other - Photo Upload",
+      "type": "FileUpload"
+    },
+    {
+      "id": "o3tQ",
+      "name": "Additional Charge",
+      "type": "Dropdown",
+      "options": [
+        {
+          "id": "87TT",
+          "value": "Yes",
+          "label": "Yes"
+        },
+        {
+          "id": "oYp8",
+          "value": "No",
+          "label": "No"
+        }
+      ]
+    },
+    {
+      "id": "ub6H",
+      "name": "Additional Charge Amount",
+      "type": "NumberInput"
+    },
+    {
+      "id": "c2iY",
+      "name": "Additional Charge Details",
+      "type": "ShortAnswer"
+    },
+    {
+      "id": "c8HY",
+      "name": "Additional Charge - Photo Upload",
+      "type": "FileUpload"
+    },
+    {
+      "id": "kMt1",
+      "name": "Maintenance",
+      "type": "Dropdown",
+      "options": [
+        {
+          "id": "kMtY",
+          "value": "Yes",
+          "label": "Yes"
+        },
+        {
+          "id": "kMtN",
+          "value": "No",
+          "label": "No"
+        }
+      ]
+    },
+    {
+      "id": "kMt2",
+      "name": "Maintenance Request Details",
+      "type": "ShortAnswer"
+    },
+    {
+      "id": "kMt3",
+      "name": "Maintenance - Photo Upload",
+      "type": "FileUpload"
+    },
+    {
+      "id": "4WY4",
+      "name": "Notes",
+      "type": "ShortAnswer"
+    },
+    {
+      "id": "9kjH",
+      "name": "+ Base Clean Fee",
+      "type": "NumberInput"
+    },
+    {
+      "id": "6xuf",
+      "name": "+ Additional Charge Amount",
+      "type": "NumberInput"
+    },
+    {
+      "id": "97S4",
+      "name": "= Total Amount Due",
+      "type": "NumberInput"
+    }
+  ]
+}

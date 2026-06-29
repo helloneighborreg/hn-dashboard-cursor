@@ -2,9 +2,7 @@ import { withAuth, isAdmin } from '../../../../../lib/auth';
 import { getFormSubmissionById } from '../../../../../lib/forms/checklistSubmissions';
 import {
 	approveChecklistPhotoReview,
-	isPhotoReviewConfigured,
 	PHOTO_REVIEW_STATUS,
-	runChecklistPhotoReview,
 } from '../../../../../lib/forms/checklistPhotoReview';
 
 function isUuid(value) {
@@ -33,29 +31,25 @@ export default async function handler(req, res) {
 					photo_review_status: submission.photo_review_status || null,
 					photo_review_results: submission.photo_review_results || [],
 					photo_reviewed_at: submission.photo_reviewed_at || null,
-					configured: isPhotoReviewConfigured(),
 				},
 			});
 		}
 
 		if (req.method === 'POST') {
-			const action = String(req.body?.action || 'review').trim();
-
-			if (action === 'approve') {
-				const task = await approveChecklistPhotoReview(submissionId);
-				return res.json({
-					data: {
-						id: submissionId,
-						photo_review_status: PHOTO_REVIEW_STATUS.APPROVED,
-						task_id: task?.id || null,
-						checklist_review_status: task?.checklist_review_status || PHOTO_REVIEW_STATUS.APPROVED,
-					},
-				});
+			const action = String(req.body?.action || 'approve').trim();
+			if (action !== 'approve') {
+				return res.status(400).json({ error: 'Only action=approve is supported' });
 			}
 
-			const force = Boolean(req.body?.force);
-			const result = await runChecklistPhotoReview(submissionId, { force });
-			return res.json({ data: result });
+			const task = await approveChecklistPhotoReview(submissionId);
+			return res.json({
+				data: {
+					id: submissionId,
+					photo_review_status: PHOTO_REVIEW_STATUS.APPROVED,
+					task_id: task?.id || null,
+					checklist_review_status: task?.checklist_review_status || PHOTO_REVIEW_STATUS.APPROVED,
+				},
+			});
 		}
 
 		res.status(405).end();

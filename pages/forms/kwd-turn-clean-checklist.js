@@ -5,7 +5,7 @@ import { CheckCircle2, Lock, Settings } from 'lucide-react';
 import Layout from '../../components/Layout';
 import AdminPasswordPrompt from '../../components/AdminPasswordPrompt';
 import ChecklistGeofenceGate from '../../components/forms/ChecklistGeofenceGate';
-import CjcTurnCleanChecklistForm from '../../components/forms/CjcTurnCleanChecklistForm';
+import KwdTurnCleanChecklistForm from '../../components/forms/KwdTurnCleanChecklistForm';
 import { fetchJson } from '../../lib/apiClient';
 import { requireAuth } from '../../lib/auth';
 import { captureChecklistLocation, CHECKLIST_LOCATION_REQUIRED_MESSAGE } from '../../lib/checklistGeolocationClient';
@@ -13,11 +13,11 @@ import { useAuth } from '../../components/AuthContext';
 import {
 	applyUrlParamsToFormValues,
 	applyCalculations,
-	CJC_TURN_CLEAN_FORM,
-	CJC_TURN_CLEAN_FORM_SLUG,
+	KWD_TURN_CLEAN_FORM,
+	KWD_TURN_CLEAN_FORM_SLUG,
 	CHECKLIST_IDS,
 	deserializeAnswers,
-} from '../../lib/forms/cjcTurnCleanChecklist';
+} from '../../lib/forms/kwdTurnCleanChecklist';
 import { getSectionExamplesByForm } from '../../lib/forms/checklistSectionExamples';
 import { persistChecklist } from '../../lib/forms/checklistSubmitClient';
 import { getPropertyGeolocation } from '../../lib/propertyGeolocations';
@@ -32,7 +32,7 @@ function isUuid(value) {
 	return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(value || ''));
 }
 
-export default function CjcTurnCleanChecklistPage({
+export default function KwdTurnCleanChecklistPage({
 	initialValues,
 	resetValues,
 	submissionId: initialSubmissionId = null,
@@ -80,7 +80,7 @@ export default function CjcTurnCleanChecklistPage({
 			save: true,
 			location,
 			onProgress,
-			apiBasePath: '/api/forms/cjc-turn-clean-checklist',
+			apiBasePath: '/api/forms/kwd-turn-clean-checklist',
 			checklistIds: CHECKLIST_IDS,
 		});
 		if (!json?.data?.id) throw new Error('Could not save checklist');
@@ -128,7 +128,7 @@ export default function CjcTurnCleanChecklistPage({
 				submissionId: submissionIdRef.current,
 				save: false,
 				location,
-				apiBasePath: '/api/forms/cjc-turn-clean-checklist',
+				apiBasePath: '/api/forms/kwd-turn-clean-checklist',
 				checklistIds: CHECKLIST_IDS,
 				onProgress: ({ phase, done, total }) => {
 					if (phase === 'upload' && total > 0) {
@@ -160,7 +160,7 @@ export default function CjcTurnCleanChecklistPage({
 		setUnlocking(true);
 		setUnlockError('');
 		try {
-			const json = await fetchJson(`/api/forms/cjc-turn-clean-checklist/${submissionId}/unlock`, {
+			const json = await fetchJson(`/api/forms/kwd-turn-clean-checklist/${submissionId}/unlock`, {
 				method: 'POST',
 				body: { admin_password: password },
 			});
@@ -180,7 +180,7 @@ export default function CjcTurnCleanChecklistPage({
 		return (
 			<Layout>
 				<Head>
-					<title>Checklist submitted — {CJC_TURN_CLEAN_FORM.name}</title>
+					<title>Checklist submitted — {KWD_TURN_CLEAN_FORM.name}</title>
 				</Head>
 				<div className="max-w-3xl mx-auto px-4 py-10 text-center space-y-4">
 					<div className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-green-100 text-green-600">
@@ -196,7 +196,7 @@ export default function CjcTurnCleanChecklistPage({
 						</p>
 					)}
 					<div className="flex flex-wrap items-center justify-center gap-3 pt-2">
-						<Link href="/forms/cjc-turn-clean-checklist" className="btn-primary">Back to checklist</Link>
+						<Link href="/forms/kwd-turn-clean-checklist" className="btn-primary">Back to checklist</Link>
 						{submitted?.view_url && (
 							<a href={submitted.view_url} className="btn-secondary">View submission</a>
 						)}
@@ -209,17 +209,17 @@ export default function CjcTurnCleanChecklistPage({
 	return (
 		<Layout>
 			<Head>
-				<title>{CJC_TURN_CLEAN_FORM.name}</title>
+				<title>{KWD_TURN_CLEAN_FORM.name}</title>
 			</Head>
 			<div className="max-w-3xl mx-auto py-6 sm:py-8">
 				<div className="mb-6 text-center">
-					<h1 className="text-2xl font-semibold text-dark">{CJC_TURN_CLEAN_FORM.name}</h1>
+					<h1 className="text-2xl font-semibold text-dark">{KWD_TURN_CLEAN_FORM.name}</h1>
 					{geolocationTarget && !isAdmin && (
 						<p className="text-sm text-muted mt-1">{CHECKLIST_LOCATION_REQUIRED_MESSAGE}</p>
 					)}
 					{isAdmin && (
 						<Link
-							href="/forms/cjc-turn-clean-checklist/examples"
+							href="/forms/kwd-turn-clean-checklist/examples"
 							className="inline-flex mt-3 items-center gap-1.5 text-sm text-brand-700 hover:text-brand-800 font-medium"
 						>
 							<Settings size={14} />
@@ -274,7 +274,7 @@ export default function CjcTurnCleanChecklistPage({
 								</div>
 							)}
 
-							<CjcTurnCleanChecklistForm
+							<KwdTurnCleanChecklistForm
 								initialValues={initialValues}
 								resetValues={resetValues}
 								onSubmit={handleSubmit}
@@ -320,7 +320,7 @@ export const getServerSideProps = requireAuth(async (context) => {
 		if (isUuid(submissionId)) {
 			submission = await getFormSubmissionById(submissionId);
 		} else if (reservationId) {
-			submission = await getFormSubmissionForReservation(reservationId, { formSlug: CJC_TURN_CLEAN_FORM_SLUG });
+			submission = await getFormSubmissionForReservation(reservationId, { formSlug: KWD_TURN_CLEAN_FORM_SLUG });
 		}
 	} catch (err) {
 		const message = err?.message || '';
@@ -350,7 +350,7 @@ export const getServerSideProps = requireAuth(async (context) => {
 
 	let sectionExamples = {};
 	try {
-		sectionExamples = await getSectionExamplesByForm(CJC_TURN_CLEAN_FORM_SLUG);
+		sectionExamples = await getSectionExamplesByForm(KWD_TURN_CLEAN_FORM_SLUG);
 	} catch (err) {
 		const message = err?.message || '';
 		if (!dbError && /form_checklist_section_examples/i.test(message) && /does not exist|PGRST205/i.test(message)) {

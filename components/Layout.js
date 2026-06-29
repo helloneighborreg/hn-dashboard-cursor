@@ -34,6 +34,7 @@ const NAV_ICONS = {
   '/billpay': Wallet,
   '/forms': ClipboardList,
   '/forms/cjc-turn-clean-checklist': ClipboardList,
+  '/forms/kwd-turn-clean-checklist': ClipboardList,
   '/settings/checklists': ClipboardList,
   '/supplies': Package,
   '/supplies/inventory': Warehouse,

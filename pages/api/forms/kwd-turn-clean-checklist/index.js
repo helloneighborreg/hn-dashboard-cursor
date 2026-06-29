@@ -1,6 +1,6 @@
-import * as cjcForm from '../../../../lib/forms/cjcTurnCleanChecklist';
+import * as kwdForm from '../../../../lib/forms/kwdTurnCleanChecklist';
 import { createChecklistApiHandler, CHECKLIST_API_BODY_PARSER } from '../../../../lib/forms/createChecklistApiHandler';
 
 export const config = CHECKLIST_API_BODY_PARSER;
 
-export default createChecklistApiHandler(cjcForm);
+export default createChecklistApiHandler(kwdForm);
